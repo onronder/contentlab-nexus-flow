@@ -1,3 +1,4 @@
+
 import { NavLink, useLocation } from "react-router-dom";
 import { 
   BarChart3, 
@@ -133,7 +134,7 @@ export function AppSidebar() {
             {!collapsed && "Main Navigation"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-3">
+            <SidebarMenu className="space-y-4">
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
@@ -141,22 +142,22 @@ export function AppSidebar() {
                       to={item.url} 
                       end={item.url === "/"} 
                       className={cn(
-                        "nav-item flex items-center justify-between gap-3 px-4 py-4 rounded-xl transition-all group interactive-lift",
+                        "nav-item flex items-center justify-between gap-3 px-4 py-6 rounded-xl transition-all group interactive-lift min-h-[72px]",
                         isActive(item.url)
                           ? "gradient-primary text-primary-foreground shadow-elegant"
                           : "text-sidebar-foreground hover:bg-primary/5 hover:text-primary"
                       )}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <item.icon className={cn(
-                          "h-5 w-5",
+                          "h-5 w-5 flex-shrink-0",
                           isActive(item.url) 
                             ? 'text-primary-foreground' 
                             : 'text-muted-foreground group-hover:text-primary'
                         )} />
                         {!collapsed && (
-                          <div className="flex flex-col gap-1">
-                            <span className="font-medium text-sm">{item.title}</span>
+                          <div className="flex flex-col gap-2 min-w-0">
+                            <span className="font-medium text-sm leading-tight">{item.title}</span>
                             <span className={cn(
                               "text-xs leading-relaxed",
                               isActive(item.url) 
@@ -169,7 +170,7 @@ export function AppSidebar() {
                         )}
                       </div>
                       {!collapsed && (item.badge || item.featured) && (
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-shrink-0">
                           {item.featured && (
                             <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
                               Featured
