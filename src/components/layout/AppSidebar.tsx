@@ -1,4 +1,5 @@
 
+
 import { NavLink, useLocation } from "react-router-dom";
 import { 
   BarChart3, 
@@ -63,7 +64,7 @@ const mainNavItems = [
     icon: Target, 
     featured: true,
     description: "Competitor analysis",
-    badge: { text: "New", variant: "secondary" as const }
+    badge: null
   },
   { 
     title: "Team", 
@@ -158,7 +159,8 @@ export function AppSidebar() {
                         {!collapsed && (
                           <div className="flex flex-col gap-1 min-w-0 flex-1">
                             {item.featured && (
-                              <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 w-fit mb-1">
+                              <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 w-fit mb-1 flex items-center gap-1">
+                                <Crown className="h-3 w-3" />
                                 Featured
                               </Badge>
                             )}
@@ -248,3 +250,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
