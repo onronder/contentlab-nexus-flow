@@ -1,5 +1,4 @@
 
-
 import { NavLink, useLocation } from "react-router-dom";
 import { 
   BarChart3, 
@@ -9,7 +8,6 @@ import {
   Target,
   Settings,
   Home,
-  Crown,
   Sparkles,
   Activity,
   Building2
@@ -19,7 +17,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -28,51 +25,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const mainNavItems = [
-  { 
-    title: "Dashboard", 
-    url: "/", 
-    icon: Home,
-    description: "Overview & insights",
-    badge: null
-  },
-  { 
-    title: "Projects", 
-    url: "/projects", 
-    icon: Building2,
-    description: "Project management",
-    badge: null
-  },
-  { 
-    title: "Content", 
-    url: "/content", 
-    icon: FileText,
-    description: "Content library",
-    badge: { text: "12", variant: "default" as const }
-  },
-  { 
-    title: "Analytics", 
-    url: "/analytics", 
-    icon: BarChart3,
-    description: "Performance data",
-    badge: null
-  },
-  { 
-    title: "Competitive", 
-    url: "/competitive", 
-    icon: Target,
-    description: "Competitor analysis",
-    badge: null
-  },
-  { 
-    title: "Team", 
-    url: "/team", 
-    icon: Users,
-    description: "Team collaboration",
-    badge: null
-  },
-];
+import { mockContent, mockUsers } from "@/data/mockData";
+import { useMemo } from "react";
 
 const settingsItems = [
   { title: "Settings", url: "/settings", icon: Settings },
@@ -84,6 +38,57 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
 
+  // Memoize dynamic badge counts for performance
+  const badgeCounts = useMemo(() => ({
+    content: mockContent.length,
+    team: mockUsers.length,
+  }), []);
+
+  const mainNavItems = [
+    { 
+      title: "Dashboard", 
+      url: "/", 
+      icon: Home,
+      description: "Overview & insights",
+      badge: null
+    },
+    { 
+      title: "Projects", 
+      url: "/projects", 
+      icon: Building2,
+      description: "Project management",
+      badge: null
+    },
+    { 
+      title: "Content", 
+      url: "/content", 
+      icon: FileText,
+      description: "Content library",
+      badge: { text: badgeCounts.content.toString(), variant: "default" as const }
+    },
+    { 
+      title: "Analytics", 
+      url: "/analytics", 
+      icon: BarChart3,
+      description: "Performance data",
+      badge: null
+    },
+    { 
+      title: "Competitive", 
+      url: "/competitive", 
+      icon: Target,
+      description: "Competitor analysis",
+      badge: null
+    },
+    { 
+      title: "Team", 
+      url: "/team", 
+      icon: Users,
+      description: "Team collaboration",
+      badge: { text: badgeCounts.team.toString(), variant: "secondary" as const }
+    },
+  ];
+
   const isActive = (path: string) => {
     if (path === "/") {
       return currentPath === "/";
@@ -91,16 +96,9 @@ export function AppSidebar() {
     return currentPath.startsWith(path);
   };
 
-  const getNavClassName = (path: string) => cn(
-    "transition-elegant group",
-    isActive(path) 
-      ? "bg-primary text-primary-foreground shadow-glow" 
-      : "hover:bg-accent hover:text-accent-foreground"
-  );
-
   return (
     <Sidebar className={cn(
-      "border-r border-sidebar-border bg-sidebar transition-all duration-300",
+      "border-r border-sidebar-border bg-sidebar transition-all duration-300 z-40",
       collapsed ? "w-14" : "w-64"
     )}>
       <SidebarHeader className="p-6 border-b border-sidebar-border/50">
@@ -153,7 +151,7 @@ export function AppSidebar() {
                              <div className="flex items-center justify-between gap-2">
                               <span className="font-medium text-sm leading-tight">{item.title}</span>
                               {item.badge && (
-                                <Badge variant={item.badge.variant} className="text-xs flex-shrink-0">
+                                <Badge variant={item.badge.variant} className="text-xs flex-shrink-0 z-10">
                                   {item.badge.text}
                                 </Badge>
                               )}
@@ -212,7 +210,7 @@ export function AppSidebar() {
                     <NavLink 
                       to={item.url} 
                       className={cn(
-                        "nav-item flex items-center gap-3 px-3 py-3 rounded-xl transition-all group interactive-lift",
+                        "nav-item flex items-center gap-3 px-3 py-3 rounded-xl transition-all group interactive-lift z-10",
                         isActive(item.url)
                           ? "gradient-primary text-primary-foreground shadow-elegant"
                           : "text-sidebar-foreground hover:bg-primary/5 hover:text-primary"
@@ -236,4 +234,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
