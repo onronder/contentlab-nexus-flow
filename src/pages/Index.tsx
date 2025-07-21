@@ -6,21 +6,31 @@ import { Link } from "react-router-dom";
 const Index = () => {
   return (
     <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="text-center py-12 bg-gradient-hero rounded-xl text-white shadow-glow">
-        <div className="flex items-center justify-center mb-4">
-          <Crown className="h-12 w-12 mr-3" />
-          <h1 className="text-4xl font-bold">ContentLab Nexus</h1>
+      {/* Enhanced Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="gradient-mesh absolute inset-0 opacity-40" />
+        <div className="relative glass-card p-12 rounded-3xl border-0 text-center">
+          <div className="flex items-center justify-center mb-6">
+            <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center shadow-glow mr-4">
+              <Crown className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-5xl font-bold logo-contentlab">ContentLab Nexus</h1>
+          </div>
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+            The ultimate competitive intelligence platform for content marketing teams
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild variant="hero" size="xl" className="group">
+              <Link to="/competitive">
+                <Target className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
+                Start Competitive Analysis
+              </Link>
+            </Button>
+            <Button variant="glass" size="xl">
+              Watch Demo
+            </Button>
+          </div>
         </div>
-        <p className="text-xl text-white/90 mb-6 max-w-2xl mx-auto">
-          The ultimate competitive intelligence platform for content marketing teams
-        </p>
-        <Button asChild variant="secondary" size="lg" className="text-primary">
-          <Link to="/competitive">
-            <Target className="mr-2 h-5 w-5" />
-            Start Competitive Analysis
-          </Link>
-        </Button>
       </div>
 
       {/* Quick Stats */}

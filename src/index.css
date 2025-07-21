@@ -2,74 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ContentLab Nexus Design System - Professional Blue Gradient Theme
+/* ContentLab Nexus Design System - World-Class UI with Enhanced Gradients
 All colors MUST be HSL for maximum flexibility and theming support.
+Inspired by the beautiful ContentLab logo gradients
 */
 
 @layer base {
   :root {
-    /* Core Brand Colors - Professional Blue Gradient */
+    /* Core Brand Colors - Enhanced ContentLab Blue Gradient System */
     --background: 0 0% 100%;
     --foreground: 222 84% 5%;
 
-    /* Surface Colors */
+    /* Surface Colors with Subtle Gradients */
     --card: 0 0% 100%;
     --card-foreground: 222 84% 5%;
+    --card-glass: 0 0% 100% / 0.8;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 5%;
 
-    /* Primary Brand - Blue Gradient System */
-    --primary: 217 91% 60%;
+    /* Primary Brand - ContentLab Blue to Cyan Gradient */
+    --primary: 217 91% 55%;
     --primary-foreground: 0 0% 98%;
-    --primary-variant: 262 83% 58%;
+    --primary-variant: 194 82% 58%;
     --primary-glow: 217 91% 70%;
+    --primary-deep: 217 91% 45%;
 
-    /* Secondary - Light Blue Tints */
-    --secondary: 213 93% 95%;
+    /* Secondary - Light Blue Tints with Glass Effect */
+    --secondary: 213 93% 96%;
     --secondary-foreground: 217 91% 20%;
+    --secondary-glass: 213 93% 98% / 0.7;
 
-    /* Muted - Subtle Gray-Blue */
-    --muted: 214 32% 91%;
+    /* Muted - Sophisticated Gray-Blue */
+    --muted: 214 32% 93%;
     --muted-foreground: 215 16% 47%;
+    --muted-glass: 214 32% 96% / 0.8;
 
-    /* Accent - Purple Gradient */
-    --accent: 262 83% 95%;
+    /* Accent - Enhanced Purple-Blue Gradient */
+    --accent: 262 83% 96%;
     --accent-foreground: 262 83% 20%;
+    --accent-glow: 262 83% 75%;
 
-    /* Status Colors */
+    /* Status Colors with Enhanced Variants */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
+    --destructive-glow: 0 84% 75%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
+    --success-glow: 142 76% 55%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 98%;
+    --warning-glow: 38 92% 70%;
 
-    /* Border & Input */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    /* Border & Input with Glass Effect */
+    --border: 214 32% 88%;
+    --border-glass: 214 32% 85% / 0.5;
+    --input: 214 32% 93%;
+    --input-glass: 214 32% 96% / 0.8;
     --ring: 217 91% 60%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Beautiful Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-variant)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--secondary)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-variant)) 100%);
-    --gradient-glow: radial-gradient(circle at center, hsl(var(--primary-glow) / 0.3) 0%, transparent 70%);
+    /* World-Class Gradients - ContentLab Inspired */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 55%) 0%, hsl(194 82% 58%) 100%);
+    --gradient-primary-intense: linear-gradient(135deg, hsl(217 91% 45%) 0%, hsl(194 82% 48%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(213 93% 98%) 0%, hsl(194 82% 95%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(213 93% 98%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 55%) 0%, hsl(194 82% 58%) 25%, hsl(262 83% 58%) 100%);
+    --gradient-glow: radial-gradient(circle at 30% 40%, hsl(217 91% 70% / 0.4) 0%, hsl(194 82% 70% / 0.3) 50%, transparent 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9) 0%, hsl(213 93% 98% / 0.8) 100%);
+    --gradient-mesh: radial-gradient(circle at 20% 80%, hsl(217 91% 60% / 0.15) 0%, transparent 50%), 
+                     radial-gradient(circle at 80% 20%, hsl(194 82% 58% / 0.15) 0%, transparent 50%),
+                     radial-gradient(circle at 40% 40%, hsl(262 83% 58% / 0.1) 0%, transparent 50%);
 
-    /* Elegant Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.3);
-    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
-    --shadow-card: 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -1px hsl(var(--foreground) / 0.06);
-    --shadow-stepper: 0 8px 32px hsl(var(--primary) / 0.12);
+    /* Enhanced Shadows with Multiple Layers */
+    --shadow-elegant: 0 10px 30px -10px hsl(217 91% 55% / 0.25), 0 4px 12px -4px hsl(217 91% 55% / 0.15);
+    --shadow-glow: 0 0 40px hsl(217 91% 70% / 0.4), 0 0 80px hsl(194 82% 70% / 0.2);
+    --shadow-card: 0 4px 12px -2px hsl(217 91% 55% / 0.08), 0 2px 6px -1px hsl(217 91% 55% / 0.06);
+    --shadow-card-hover: 0 8px 25px -5px hsl(217 91% 55% / 0.15), 0 4px 12px -2px hsl(217 91% 55% / 0.1);
+    --shadow-stepper: 0 12px 40px -8px hsl(217 91% 55% / 0.15), 0 4px 16px -4px hsl(217 91% 55% / 0.1);
+    --shadow-glass: 0 8px 32px hsl(217 91% 55% / 0.12), inset 0 1px 0 hsl(0 0% 100% / 0.6);
 
-    /* Smooth Transitions */
+    /* Advanced Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     --transition-elegant: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     /* Sidebar Variables */
     --sidebar-background: 213 93% 98%;
@@ -83,41 +103,51 @@ All colors MUST be HSL for maximum flexibility and theming support.
   }
 
   .dark {
-    /* Dark Theme Variables */
+    /* Dark Theme Variables - Enhanced for World-Class UI */
     --background: 222 84% 5%;
     --foreground: 210 40% 98%;
 
     --card: 222 84% 7%;
     --card-foreground: 210 40% 98%;
+    --card-glass: 222 84% 9% / 0.8;
 
     --popover: 222 84% 7%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 217 91% 70%;
     --primary-foreground: 222 84% 5%;
-    --primary-variant: 262 83% 68%;
+    --primary-variant: 194 82% 68%;
     --primary-glow: 217 91% 80%;
+    --primary-deep: 217 91% 60%;
 
     --secondary: 217 32% 18%;
     --secondary-foreground: 210 40% 98%;
+    --secondary-glass: 217 32% 20% / 0.7;
 
-    --muted: 217 32% 18%;
+    --muted: 217 32% 15%;
     --muted-foreground: 215 20% 65%;
+    --muted-glass: 217 32% 18% / 0.8;
 
     --accent: 262 83% 18%;
     --accent-foreground: 210 40% 98%;
+    --accent-glow: 262 83% 55%;
 
-    --destructive: 0 63% 31%;
+    --destructive: 0 63% 45%;
     --destructive-foreground: 210 40% 98%;
+    --destructive-glow: 0 63% 65%;
 
-    --success: 142 76% 36%;
+    --success: 142 76% 45%;
     --success-foreground: 210 40% 98%;
+    --success-glow: 142 76% 65%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 60%;
     --warning-foreground: 222 84% 5%;
+    --warning-glow: 38 92% 80%;
 
-    --border: 217 32% 18%;
+    --border: 217 32% 15%;
+    --border-glass: 217 32% 18% / 0.5;
     --input: 217 32% 18%;
+    --input-glass: 217 32% 20% / 0.8;
     --ring: 217 91% 70%;
 
     --sidebar-background: 222 84% 4%;
@@ -129,17 +159,25 @@ All colors MUST be HSL for maximum flexibility and theming support.
     --sidebar-border: 217 32% 15%;
     --sidebar-ring: 217 91% 70%;
 
-    /* Dark Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-variant)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--card)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-variant)) 100%);
-    --gradient-glow: radial-gradient(circle at center, hsl(var(--primary-glow) / 0.2) 0%, transparent 70%);
+    /* Enhanced Dark Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 70%) 0%, hsl(194 82% 68%) 100%);
+    --gradient-primary-intense: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(194 82% 58%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(217 32% 18%) 0%, hsl(194 82% 25%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(217 32% 15%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 70%) 0%, hsl(194 82% 68%) 25%, hsl(262 83% 68%) 100%);
+    --gradient-glow: radial-gradient(circle at 30% 40%, hsl(217 91% 80% / 0.3) 0%, hsl(194 82% 80% / 0.2) 50%, transparent 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(217 32% 20% / 0.9) 0%, hsl(217 32% 18% / 0.8) 100%);
+    --gradient-mesh: radial-gradient(circle at 20% 80%, hsl(217 91% 70% / 0.1) 0%, transparent 50%), 
+                     radial-gradient(circle at 80% 20%, hsl(194 82% 68% / 0.1) 0%, transparent 50%),
+                     radial-gradient(circle at 40% 40%, hsl(262 83% 68% / 0.08) 0%, transparent 50%);
 
-    /* Dark Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
-    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
-    --shadow-stepper: 0 8px 32px hsl(0 0% 0% / 0.3);
+    /* Enhanced Dark Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.6), 0 4px 12px -4px hsl(217 91% 70% / 0.1);
+    --shadow-glow: 0 0 40px hsl(217 91% 70% / 0.3), 0 0 80px hsl(194 82% 68% / 0.15);
+    --shadow-card: 0 4px 12px -2px hsl(0 0% 0% / 0.4), 0 2px 6px -1px hsl(0 0% 0% / 0.3);
+    --shadow-card-hover: 0 8px 25px -5px hsl(0 0% 0% / 0.5), 0 4px 12px -2px hsl(217 91% 70% / 0.1);
+    --shadow-stepper: 0 12px 40px -8px hsl(0 0% 0% / 0.4), 0 4px 16px -4px hsl(217 91% 70% / 0.1);
+    --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.3), inset 0 1px 0 hsl(217 32% 25% / 0.6);
   }
 }
 
@@ -188,13 +226,38 @@ All colors MUST be HSL for maximum flexibility and theming support.
     @apply ring-2 ring-primary/20 ring-offset-2;
   }
 
-  /* Custom utility classes */
+  /* Enhanced Utility Classes for World-Class UI */
   .gradient-primary {
     background: var(--gradient-primary);
   }
 
+  .gradient-primary-intense {
+    background: var(--gradient-primary-intense);
+  }
+
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+
   .gradient-hero {
     background: var(--gradient-hero);
+  }
+
+  .gradient-glass {
+    background: var(--gradient-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .gradient-mesh {
+    background: var(--gradient-mesh);
+  }
+
+  .glass-card {
+    background: var(--gradient-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border-glass));
   }
 
   .shadow-elegant {
@@ -205,8 +268,16 @@ All colors MUST be HSL for maximum flexibility and theming support.
     box-shadow: var(--shadow-glow);
   }
 
+  .shadow-card-hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
   .shadow-stepper {
     box-shadow: var(--shadow-stepper);
+  }
+
+  .shadow-glass {
+    box-shadow: var(--shadow-glass);
   }
 
   .transition-smooth {
@@ -219,5 +290,50 @@ All colors MUST be HSL for maximum flexibility and theming support.
 
   .transition-elegant {
     transition: var(--transition-elegant);
+  }
+
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+
+  /* Enhanced Interactive Elements */
+  .interactive-scale {
+    @apply transition-all duration-200 ease-out hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .interactive-glow {
+    @apply transition-all duration-300 ease-out hover:shadow-glow;
+  }
+
+  .interactive-lift {
+    @apply transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-card-hover;
+  }
+
+  /* Logo Integration Styles */
+  .logo-contentlab {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Micro-interaction Enhancements */
+  .form-field:focus-within {
+    @apply ring-2 ring-primary/30 ring-offset-2 transition-all duration-200;
+  }
+
+  .nav-item {
+    @apply relative overflow-hidden transition-all duration-200;
+  }
+
+  .nav-item::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-primary opacity-0 transition-opacity duration-200;
+  }
+
+  .nav-item:hover::before {
+    @apply opacity-10;
   }
 }
