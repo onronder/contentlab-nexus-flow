@@ -61,7 +61,7 @@ const mainNavItems = [
     url: "/competitive", 
     icon: Target, 
     featured: true,
-    description: "Market intelligence",
+    description: "Competitor analysis",
     badge: { text: "New", variant: "secondary" as const }
   },
   { 
