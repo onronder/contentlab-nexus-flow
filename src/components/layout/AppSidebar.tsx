@@ -61,8 +61,7 @@ const mainNavItems = [
   { 
     title: "Competitive", 
     url: "/competitive", 
-    icon: Target, 
-    featured: true,
+    icon: Target,
     description: "Competitor analysis",
     badge: null
   },
@@ -156,15 +155,9 @@ export function AppSidebar() {
                             ? 'text-primary-foreground' 
                             : 'text-muted-foreground group-hover:text-primary'
                         )} />
-                        {!collapsed && (
-                          <div className="flex flex-col gap-1 min-w-0 flex-1">
-                            {item.featured && (
-                              <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 w-fit mb-1 flex items-center gap-1">
-                                <Crown className="h-3 w-3" />
-                                Featured
-                              </Badge>
-                            )}
-                            <div className="flex items-center justify-between gap-2">
+                         {!collapsed && (
+                           <div className="flex flex-col gap-1 min-w-0 flex-1">
+                             <div className="flex items-center justify-between gap-2">
                               <span className="font-medium text-sm leading-tight">{item.title}</span>
                               {item.badge && (
                                 <Badge variant={item.badge.variant} className="text-xs flex-shrink-0">
