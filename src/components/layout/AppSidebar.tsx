@@ -126,13 +126,6 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup className="px-4">
-          <SidebarGroupLabel className={cn(
-            "text-sidebar-foreground/70 font-medium mb-2 flex items-center gap-2",
-            collapsed && "justify-center"
-          )}>
-            <Activity className="h-4 w-4" />
-            {!collapsed && "Main Navigation"}
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-3">
               {mainNavItems.map((item) => (
