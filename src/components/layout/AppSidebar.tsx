@@ -39,11 +39,9 @@ const settingsItems = [
 ];
 
 export function AppSidebar() {
-  const { state, open } = useSidebar();
-  const collapsed = !open;
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
   
-  // Debug logging
-  console.log('Sidebar state:', { state, open, collapsed });
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -111,8 +109,8 @@ export function AppSidebar() {
         to={item.url} 
         end={item.url === "/"} 
         className={cn(
-          "nav-item flex items-center justify-center gap-3 px-4 py-4 rounded-xl transition-all group interactive-lift",
-          collapsed ? "w-10 h-10 p-0" : "min-h-[64px]",
+          "nav-item flex items-center gap-3 px-4 py-4 rounded-xl transition-all group interactive-lift",
+          collapsed ? "justify-center" : "min-h-[64px]",
           isActive(item.url)
             ? "gradient-primary text-primary-foreground shadow-elegant"
             : "text-sidebar-foreground hover:bg-primary/5 hover:text-primary"
@@ -161,6 +159,11 @@ export function AppSidebar() {
           <TooltipContent side="right" className="font-medium">
             <div className="text-sm">{item.title}</div>
             <div className="text-xs text-muted-foreground">{item.description}</div>
+            {item.badge && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {item.badge.text} items
+              </div>
+            )}
           </TooltipContent>
         </Tooltip>
       );
@@ -174,8 +177,8 @@ export function AppSidebar() {
       <NavLink 
         to={item.url} 
         className={cn(
-          "nav-item flex items-center justify-center gap-3 px-3 py-3 rounded-xl transition-all group interactive-lift z-10",
-          collapsed ? "w-10 h-10 p-0" : "",
+          "nav-item flex items-center gap-3 px-3 py-3 rounded-xl transition-all group interactive-lift",
+          collapsed && "justify-center",
           isActive(item.url)
             ? "gradient-primary text-primary-foreground shadow-elegant"
             : "text-sidebar-foreground hover:bg-primary/5 hover:text-primary"
@@ -209,10 +212,7 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <Sidebar className={cn(
-        "border-r border-sidebar-border bg-sidebar transition-all duration-300 z-40",
-        collapsed ? "w-14" : "w-64"
-      )}>
+      <Sidebar className="border-r border-sidebar-border bg-sidebar">
         <SidebarHeader className={cn(
           "border-b border-sidebar-border/50 transition-all duration-300",
           collapsed ? "p-2" : "p-6"

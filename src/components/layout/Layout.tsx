@@ -9,7 +9,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={true} collapsible="icon">
       <div className="min-h-screen flex w-full gradient-mesh">
         <AppSidebar />
         
