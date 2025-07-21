@@ -212,7 +212,7 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <Sidebar className="border-r border-sidebar-border bg-sidebar">
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
         <SidebarHeader className={cn(
           "border-b border-sidebar-border/50 transition-all duration-300",
           collapsed ? "p-2" : "p-6"
