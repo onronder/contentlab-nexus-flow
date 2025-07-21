@@ -1,3 +1,4 @@
+
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @tailwind base;
 @tailwind components;
@@ -13,6 +14,8 @@
     --popover-foreground: 0 0% 3.9%;
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 98%;
+    --primary-variant: 217 91% 70%;
+    --primary-glow: 217 91% 50%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
@@ -21,6 +24,10 @@
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
@@ -49,6 +56,20 @@
     --z-tooltip: 70;
     --z-toast: 80;
     --z-sidebar: 40;
+
+    /* Shadow Variables */
+    --shadow-elegant: 0 2px 4px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-glow: 0 4px 6px -1px hsla(var(--primary), 0.2), 0 2px 4px -1px hsla(var(--primary), 0.1);
+    --shadow-stepper: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.08);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-card-hover: 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+
+    /* Gradient Variables */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-variant)) 50%, hsl(var(--primary-glow)) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-variant)) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--muted)) 100%);
+    --gradient-subtle: linear-gradient(to bottom, #F9FAFB, #F4F5F7);
+    --gradient-mesh: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--accent)) 100%);
   }
 
   .dark {
@@ -58,8 +79,10 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
+    --primary: 217 91% 70%;
     --primary-foreground: 0 0% 9%;
+    --primary-variant: 217 91% 80%;
+    --primary-glow: 217 91% 60%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -146,23 +169,47 @@
 }
 
 .shadow-elegant {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-elegant);
 }
 
 .shadow-glow {
-  box-shadow: 0 4px 6px -1px rgba(var(--primary-rgb), 0.2), 0 2px 4px -1px rgba(var(--primary-rgb), 0.1);
+  box-shadow: var(--shadow-glow);
+}
+
+.shadow-stepper {
+  box-shadow: var(--shadow-stepper);
+}
+
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-card-hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .gradient-primary {
-  background: linear-gradient(135deg, #5243AA 0%, #7161EF 50%, #A261EF 100%);
+  background: var(--gradient-primary);
+}
+
+.gradient-hero {
+  background: var(--gradient-hero);
+}
+
+.gradient-secondary {
+  background: var(--gradient-secondary);
 }
 
 .gradient-subtle {
-  background: linear-gradient(to bottom, #F9FAFB, #F4F5F7);
+  background: var(--gradient-subtle);
+}
+
+.gradient-mesh {
+  background: var(--gradient-mesh);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, #7161EF 50%, #A261EF 100%);
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-variant)) 50%, hsl(var(--primary-glow)) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -174,9 +221,16 @@
   }
 }
 
-.gradient-text-fallback {
-  color: hsl(var(--primary));
-  font-weight: 700;
+.logo-contentlab {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-variant)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  @supports not (-webkit-background-clip: text) {
+    color: hsl(var(--primary));
+    background: none;
+  }
 }
 
 .glass-card {
@@ -186,6 +240,25 @@
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Typography Utilities */
+@layer utilities {
+  .page-title {
+    @apply text-4xl font-bold mb-2;
+  }
+  .page-description {
+    @apply text-lg text-muted-foreground mb-6;
+  }
+  .section-title {
+    @apply text-2xl font-semibold mb-4;
+  }
+  .card-title {
+    @apply text-lg font-semibold;
+  }
+  .transition-elegant {
+    @apply transition-all duration-300 ease-elegant;
+  }
 }
 
 /* Add performance optimizations */
@@ -214,5 +287,8 @@
   }
   .p-responsive {
     @apply p-4;
+  }
+  .page-title {
+    @apply text-3xl;
   }
 }

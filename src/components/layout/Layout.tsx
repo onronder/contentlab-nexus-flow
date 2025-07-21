@@ -1,3 +1,4 @@
+
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,7 @@ export function Layout({ children }: LayoutProps) {
               <SidebarTrigger className="h-8 w-8 hover:bg-primary/10 rounded-lg transition-colors" />
               <div className="h-6 w-px bg-border/60" />
               <div className="hidden md:flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shadow-glow">
                   <span className="text-primary-foreground font-bold text-sm">C</span>
                 </div>
                 <span className="logo-contentlab text-lg font-bold">CONTENTLAB</span>
@@ -29,7 +30,7 @@ export function Layout({ children }: LayoutProps) {
               <div className="hidden sm:block text-sm text-muted-foreground">
                 Welcome back to <span className="logo-contentlab font-medium">ContentLab Nexus</span>
               </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center shadow-elegant">
+              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center shadow-elegant">
                 <span className="text-primary-foreground font-medium text-sm">U</span>
               </div>
             </div>

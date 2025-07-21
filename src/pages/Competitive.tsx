@@ -25,10 +25,10 @@ export default function Competitive() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold gradient-text">
+          <h1 className="page-title gradient-text">
             Competitive Intelligence
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="page-description">
             Monitor, analyze, and outperform your competitors with advanced intelligence
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function Competitive() {
         <TabsContent value="overview" className="space-y-6">
           <Card className="shadow-elegant">
             <CardHeader>
-              <CardTitle>Competitive Landscape</CardTitle>
+              <CardTitle className="section-title">Competitive Landscape</CardTitle>
               <CardDescription>
                 Key insights about your competitive environment
               </CardDescription>
@@ -158,7 +158,7 @@ export default function Competitive() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 card-title">
                         {competitor.name}
                         <Badge 
                           variant={competitor.priority_level === 'high' ? 'destructive' : 

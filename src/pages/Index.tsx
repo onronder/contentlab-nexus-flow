@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Target, Users, BarChart3, FileText, TrendingUp, Crown } from "lucide-react";
@@ -14,9 +15,9 @@ const Index = () => {
             <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center shadow-glow mr-4">
               <Crown className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="text-5xl font-bold logo-contentlab">ContentLab Nexus</h1>
+            <h1 className="page-title logo-contentlab">ContentLab Nexus</h1>
           </div>
-          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+          <p className="page-description max-w-3xl mx-auto">
             The ultimate competitive intelligence platform for content marketing teams
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -86,7 +87,7 @@ const Index = () => {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Target className="h-6 w-6 text-primary" />
-              <CardTitle>Competitive Intelligence</CardTitle>
+              <CardTitle className="card-title">Competitive Intelligence</CardTitle>
             </div>
             <CardDescription>
               Monitor and analyze competitor strategies with advanced AI-powered insights
@@ -103,7 +104,7 @@ const Index = () => {
           <CardHeader>
             <div className="flex items-center gap-2">
               <BarChart3 className="h-6 w-6 text-primary" />
-              <CardTitle>Advanced Analytics</CardTitle>
+              <CardTitle className="card-title">Advanced Analytics</CardTitle>
             </div>
             <CardDescription>
               Deep dive into performance metrics and competitive positioning data
@@ -120,7 +121,7 @@ const Index = () => {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Users className="h-6 w-6 text-primary" />
-              <CardTitle>Team Collaboration</CardTitle>
+              <CardTitle className="card-title">Team Collaboration</CardTitle>
             </div>
             <CardDescription>
               Work together seamlessly with your marketing team on competitive research
@@ -137,7 +138,7 @@ const Index = () => {
       {/* Recent Activity */}
       <Card className="shadow-elegant">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle className="section-title">Recent Activity</CardTitle>
           <CardDescription>
             Latest updates from your competitive intelligence dashboard
           </CardDescription>
