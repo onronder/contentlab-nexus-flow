@@ -148,7 +148,7 @@ export function AppSidebar() {
                           : "text-sidebar-foreground hover:bg-primary/5 hover:text-primary"
                       )}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 w-full">
                         <item.icon className={cn(
                           "h-5 w-5 flex-shrink-0",
                           isActive(item.url) 
@@ -156,8 +156,20 @@ export function AppSidebar() {
                             : 'text-muted-foreground group-hover:text-primary'
                         )} />
                         {!collapsed && (
-                          <div className="flex flex-col gap-2 min-w-0">
-                            <span className="font-medium text-sm leading-tight">{item.title}</span>
+                          <div className="flex flex-col gap-1 min-w-0 flex-1">
+                            {item.featured && (
+                              <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 w-fit mb-1">
+                                Featured
+                              </Badge>
+                            )}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-sm leading-tight">{item.title}</span>
+                              {item.badge && (
+                                <Badge variant={item.badge.variant} className="text-xs flex-shrink-0">
+                                  {item.badge.text}
+                                </Badge>
+                              )}
+                            </div>
                             <span className={cn(
                               "text-xs leading-relaxed",
                               isActive(item.url) 
@@ -169,20 +181,6 @@ export function AppSidebar() {
                           </div>
                         )}
                       </div>
-                      {!collapsed && (item.badge || item.featured) && (
-                        <div className="flex gap-1 flex-shrink-0">
-                          {item.featured && (
-                            <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
-                              Featured
-                            </Badge>
-                          )}
-                          {item.badge && (
-                            <Badge variant={item.badge.variant} className="text-xs">
-                              {item.badge.text}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
