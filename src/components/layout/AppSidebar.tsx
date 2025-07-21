@@ -39,21 +39,21 @@ const mainNavItems = [
     title: "Projects", 
     url: "/projects", 
     icon: Building2,
-    description: "Manage your projects",
+    description: "Project management",
     badge: null
   },
   { 
     title: "Content", 
     url: "/content", 
     icon: FileText,
-    description: "Content management",
+    description: "Content library",
     badge: { text: "12", variant: "default" as const }
   },
   { 
     title: "Analytics", 
     url: "/analytics", 
     icon: BarChart3,
-    description: "Performance metrics",
+    description: "Performance data",
     badge: null
   },
   { 
@@ -61,14 +61,14 @@ const mainNavItems = [
     url: "/competitive", 
     icon: Target, 
     featured: true,
-    description: "Competitor analysis",
+    description: "Market intelligence",
     badge: { text: "New", variant: "secondary" as const }
   },
   { 
     title: "Team", 
     url: "/team", 
     icon: Users,
-    description: "Team management",
+    description: "Team collaboration",
     badge: null
   },
 ];
