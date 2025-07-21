@@ -41,6 +41,9 @@ const settingsItems = [
 export function AppSidebar() {
   const { state, open } = useSidebar();
   const collapsed = !open;
+  
+  // Debug logging
+  console.log('Sidebar state:', { state, open, collapsed });
   const location = useLocation();
   const currentPath = location.pathname;
 
