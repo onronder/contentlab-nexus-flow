@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { mockContent, mockUsers } from "@/data/mockData";
+import { mockContentItems, mockUsers } from "@/data/mockData";
 import { useMemo } from "react";
 
 const settingsItems = [
@@ -40,7 +40,7 @@ export function AppSidebar() {
 
   // Memoize dynamic badge counts for performance
   const badgeCounts = useMemo(() => ({
-    content: mockContent.length,
+    content: mockContentItems.length,
     team: mockUsers.length,
   }), []);
 
