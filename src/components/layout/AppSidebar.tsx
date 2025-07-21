@@ -133,7 +133,7 @@ export function AppSidebar() {
             {!collapsed && "Main Navigation"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-3">
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
@@ -141,7 +141,7 @@ export function AppSidebar() {
                       to={item.url} 
                       end={item.url === "/"} 
                       className={cn(
-                        "nav-item flex items-center justify-between gap-3 px-3 py-3 rounded-xl transition-all group interactive-lift",
+                        "nav-item flex items-center justify-between gap-3 px-4 py-4 rounded-xl transition-all group interactive-lift",
                         isActive(item.url)
                           ? "gradient-primary text-primary-foreground shadow-elegant"
                           : "text-sidebar-foreground hover:bg-primary/5 hover:text-primary"
