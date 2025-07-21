@@ -155,10 +155,10 @@ export function AppSidebar() {
                             : 'text-muted-foreground group-hover:text-primary'
                         )} />
                         {!collapsed && (
-                          <div className="flex flex-col">
+                          <div className="flex flex-col gap-1">
                             <span className="font-medium text-sm">{item.title}</span>
                             <span className={cn(
-                              "text-xs",
+                              "text-xs leading-relaxed",
                               isActive(item.url) 
                                 ? 'text-primary-foreground/80' 
                                 : 'text-muted-foreground'
