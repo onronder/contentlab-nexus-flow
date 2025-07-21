@@ -25,7 +25,7 @@ export default function Competitive() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold gradient-text">
             Competitive Intelligence
           </h1>
           <p className="text-muted-foreground mt-2">
