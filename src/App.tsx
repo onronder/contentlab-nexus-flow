@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { Layout } from "@/components/layout/Layout";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProtectedRoute, PublicRoute } from "@/components/routing";
 import Index from "./pages/Index";
@@ -32,9 +32,9 @@ const App = () => (
         <Routes>
           {/* Public routes with main layout */}
           <Route path="/" element={
-            <AppLayout>
+            <Layout>
               <Index />
-            </AppLayout>
+            </Layout>
           } />
           
           {/* Authentication routes with auth layout */}
@@ -84,9 +84,9 @@ const App = () => (
             path="/profile" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <Profile />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
@@ -94,9 +94,9 @@ const App = () => (
             path="/projects" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <Projects />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
@@ -104,9 +104,9 @@ const App = () => (
             path="/content" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <Content />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
@@ -114,9 +114,9 @@ const App = () => (
             path="/analytics" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <Analytics />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
@@ -124,9 +124,9 @@ const App = () => (
             path="/team" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <TeamPage />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
@@ -134,9 +134,9 @@ const App = () => (
             path="/settings" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <Settings />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
@@ -144,9 +144,9 @@ const App = () => (
             path="/competitive" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <Competitive />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
@@ -154,18 +154,18 @@ const App = () => (
             path="/security" 
             element={
               <ProtectedRoute>
-                <AppLayout>
+                <Layout>
                   <Security />
-                </AppLayout>
+                </Layout>
               </ProtectedRoute>
             } 
           />
           
           {/* Catch-all route */}
           <Route path="*" element={
-            <AppLayout>
+            <Layout>
               <NotFound />
-            </AppLayout>
+            </Layout>
           } />
         </Routes>
       </BrowserRouter>
