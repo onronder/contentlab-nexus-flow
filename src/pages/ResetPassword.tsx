@@ -49,15 +49,29 @@ const ResetPassword = () => {
     confirmPassword: ''
   });
 
-  // Check if we have valid reset tokens
+  // Check if we have valid reset tokens and set session
   useEffect(() => {
-    const checkTokens = () => {
+    const checkTokens = async () => {
       const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
       const type = searchParams.get('type');
 
       if (type === 'recovery' && accessToken && refreshToken) {
-        setValidToken(true);
+        try {
+          // Set the session with the tokens from the URL
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          } else {
+            setValidToken(true);
+          }
+        } catch (error) {
+          setError('Failed to validate reset link. Please request a new password reset.');
+        }
       } else {
         setError('Invalid or expired reset link. Please request a new password reset.');
       }
@@ -148,20 +162,26 @@ const ResetPassword = () => {
         return;
       }
 
+      // Clear sensitive data from memory
+      setFormData({ password: '', confirmPassword: '' });
       setSuccess(true);
       
-      // Redirect to login after success
+      // Log successful password reset for security monitoring
+      console.log('Password reset completed successfully for user:', user?.id);
+      
+      // Automatically redirect to dashboard after success (user is already signed in)
       setTimeout(() => {
-        navigate('/login', { 
+        navigate('/', { 
           state: { 
-            message: 'Password updated successfully! Please sign in with your new password.',
-            email: user?.email
+            message: 'Password updated successfully! Welcome back.',
+            type: 'success'
           }
         });
       }, 2000);
 
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
+      console.error('Password reset error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -206,21 +226,33 @@ const ResetPassword = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
             
-            <Button 
-              onClick={() => navigate('/forgot-password')}
-              className="w-full"
-            >
-              Request New Reset Link
-            </Button>
-            
-            <div className="text-center">
+            <div className="space-y-3">
               <Button 
-                variant="ghost" 
-                onClick={() => navigate('/login')}
-                className="text-sm"
+                onClick={() => navigate('/forgot-password')}
+                className="w-full"
               >
-                Back to Sign In
+                Request New Reset Link
               </Button>
+              
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/login')}
+                  className="text-sm"
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+            </div>
+            
+            {/* Contact Support */}
+            <div className="text-center text-sm text-muted-foreground">
+              <p>
+                Still having trouble?{' '}
+                <a href="/contact" className="text-primary hover:underline">
+                  Contact Support
+                </a>
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -241,13 +273,18 @@ const ResetPassword = () => {
               Your password has been successfully updated
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Redirecting you to sign in with your new password...
+                Your password has been updated and you're now signed in. Redirecting you to your dashboard...
               </AlertDescription>
             </Alert>
+            
+            {/* Security confirmation */}
+            <div className="text-center text-sm text-muted-foreground">
+              <p>For your security, you may want to sign out of other devices</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -285,7 +322,8 @@ const ResetPassword = () => {
                   )}
                   disabled={isLoading}
                   autoFocus
-                  aria-describedby="password-requirements"
+                  autoComplete="new-password"
+                  aria-describedby="password-requirements password-help"
                 />
                 <Button
                   type="button"
@@ -303,6 +341,10 @@ const ResetPassword = () => {
                 </Button>
               </div>
               
+              <p id="password-help" className="text-sm text-muted-foreground">
+                Create a strong password with at least 8 characters including uppercase, lowercase, numbers, and special characters
+              </p>
+              
               {/* Password Strength Indicator */}
               {formData.password && (
                 <div className="space-y-2">
@@ -317,10 +359,19 @@ const ResetPassword = () => {
                       {getStrengthLabel()}
                     </span>
                   </div>
-                  <Progress 
-                    value={passwordStrength} 
-                    className="h-2"
-                  />
+                   <div className="relative">
+                    <Progress 
+                      value={passwordStrength} 
+                      className="h-2"
+                    />
+                    <div 
+                      className={cn(
+                        "absolute top-0 left-0 h-2 rounded-full transition-all duration-300",
+                        getStrengthColor()
+                      )}
+                      style={{ width: `${passwordStrength}%` }}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -367,7 +418,8 @@ const ResetPassword = () => {
                     formData.confirmPassword && formData.confirmPassword === formData.password && "border-green-500 focus-visible:ring-green-500"
                   )}
                   disabled={isLoading}
-                  aria-describedby={validationErrors.confirmPassword ? "confirmPassword-error" : undefined}
+                  autoComplete="new-password"
+                  aria-describedby={validationErrors.confirmPassword ? "confirmPassword-error" : "confirmPassword-help"}
                 />
                 <Button
                   type="button"
@@ -384,6 +436,11 @@ const ResetPassword = () => {
                   )}
                 </Button>
               </div>
+              
+              <p id="confirmPassword-help" className="text-sm text-muted-foreground">
+                Re-enter your password to confirm it matches
+              </p>
+              
               {formData.confirmPassword && formData.confirmPassword === formData.password && (
                 <p className="text-sm text-green-600 flex items-center gap-1">
                   <Check className="h-3 w-3" />
@@ -425,9 +482,18 @@ const ResetPassword = () => {
               )}
             </Button>
 
-            {/* Security Notice */}
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Make sure you're on a secure network when updating your password</p>
+            {/* Security Tips */}
+            <div className="space-y-2 pt-4 border-t">
+              <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Security Tips
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Use a unique password not used on other accounts</li>
+                <li>• Make sure you're on a secure network</li>
+                <li>• Consider using a password manager</li>
+                <li>• Avoid common words or personal information</li>
+              </ul>
             </div>
           </form>
         </CardContent>
