@@ -82,8 +82,9 @@ const Login = () => {
         });
         
         // Redirect to intended page or dashboard
-        const redirectTo = location.state?.from?.pathname || '/';
-        navigate(redirectTo, { replace: true });
+        const searchParams = new URLSearchParams(location.search);
+        const returnUrl = searchParams.get('returnUrl') || location.state?.from?.pathname || '/';
+        navigate(returnUrl, { replace: true });
       }
     } catch (error) {
       const errorMessage = 'An unexpected error occurred. Please try again.';

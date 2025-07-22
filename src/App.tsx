@@ -3,7 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { AuthLayout } from "@/components/layout/AuthLayout";
+import { ProtectedRoute, PublicRoute } from "@/components/routing";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -26,24 +28,135 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/content" element={<Content />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/team" element={<TeamPage />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/competitive" element={<Competitive />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          {/* Public routes with main layout */}
+          <Route path="/" element={
+            <AppLayout>
+              <Index />
+            </AppLayout>
+          } />
+          
+          {/* Authentication routes with auth layout */}
+          <Route 
+            path="/login" 
+            element={
+              <PublicRoute>
+                <AuthLayout>
+                  <Login />
+                </AuthLayout>
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/signup" 
+            element={
+              <PublicRoute>
+                <AuthLayout>
+                  <Signup />
+                </AuthLayout>
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/forgot-password" 
+            element={
+              <PublicRoute>
+                <AuthLayout>
+                  <ForgotPassword />
+                </AuthLayout>
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/reset-password" 
+            element={
+              <PublicRoute>
+                <AuthLayout>
+                  <ResetPassword />
+                </AuthLayout>
+              </PublicRoute>
+            } 
+          />
+          
+          {/* Protected routes with main layout */}
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Profile />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Projects />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/content" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Content />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Analytics />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/team" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <TeamPage />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Settings />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/competitive" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Competitive />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Catch-all route */}
+          <Route path="*" element={
+            <AppLayout>
+              <NotFound />
+            </AppLayout>
+          } />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

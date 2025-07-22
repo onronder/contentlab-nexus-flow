@@ -294,344 +294,342 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-4xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Profile Settings</h1>
-            <p className="text-muted-foreground">Manage your account information and preferences</p>
-          </div>
+    <div className="container max-w-4xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/')}
+          className="shrink-0"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Profile Settings</h1>
+          <p className="text-muted-foreground">Manage your account information and preferences</p>
         </div>
+      </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Profile Overview Card */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader className="text-center">
-                <div className="relative mx-auto w-24 h-24 mb-4">
-                  <Avatar className="w-24 h-24">
-                    <AvatarImage 
-                      src={avatarPreview || profile.avatar_url || undefined} 
-                      alt={profile.full_name || 'User'} 
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Profile Overview Card */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="relative mx-auto w-24 h-24 mb-4">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage 
+                    src={avatarPreview || profile.avatar_url || undefined} 
+                    alt={profile.full_name || 'User'} 
+                  />
+                  <AvatarFallback className="text-lg">
+                    {getInitials(profile.full_name || 'User')}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {/* Upload overlay */}
+                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center">
+                  {isUploadingImage ? (
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  ) : (
+                    <Camera 
+                      className="h-6 w-6 text-white" 
+                      onClick={handleAvatarClick}
                     />
-                    <AvatarFallback className="text-lg">
-                      {getInitials(profile.full_name || 'User')}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  {/* Upload overlay */}
-                  <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center">
-                    {isUploadingImage ? (
-                      <Loader2 className="h-6 w-6 text-white animate-spin" />
-                    ) : (
-                      <Camera 
-                        className="h-6 w-6 text-white" 
-                        onClick={handleAvatarClick}
-                      />
-                    )}
-                  </div>
+                  )}
                 </div>
-                
-                <CardTitle className="text-xl">{profile.full_name || 'User'}</CardTitle>
-                <CardDescription>{profile.email}</CardDescription>
-                
-                {/* Avatar actions */}
-                <div className="flex gap-2 justify-center mt-4">
+              </div>
+              
+              <CardTitle className="text-xl">{profile.full_name || 'User'}</CardTitle>
+              <CardDescription>{profile.email}</CardDescription>
+              
+              {/* Avatar actions */}
+              <div className="flex gap-2 justify-center mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAvatarClick}
+                  disabled={isUploadingImage}
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Upload
+                </Button>
+                {profile.avatar_url && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleAvatarClick}
+                    onClick={handleRemoveAvatar}
                     disabled={isUploadingImage}
                   >
-                    <Upload className="h-3 w-3 mr-1" />
-                    Upload
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Remove
                   </Button>
-                  {profile.avatar_url && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRemoveAvatar}
-                      disabled={isUploadingImage}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Remove
-                    </Button>
-                  )}
+                )}
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              {/* Profile completion */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Profile Completion</span>
+                  <span className="font-medium">{profileCompletion}%</span>
                 </div>
-              </CardHeader>
-              
-              <CardContent>
-                {/* Profile completion */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Profile Completion</span>
-                    <span className="font-medium">{profileCompletion}%</span>
-                  </div>
-                  <Progress value={profileCompletion} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {profileCompletion === 100 
-                      ? 'Your profile is complete!' 
-                      : 'Complete your profile to improve your experience'
-                    }
-                  </p>
-                </div>
+                <Progress value={profileCompletion} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  {profileCompletion === 100 
+                    ? 'Your profile is complete!' 
+                    : 'Complete your profile to improve your experience'
+                  }
+                </p>
+              </div>
 
-                <Separator className="my-4" />
+              <Separator className="my-4" />
 
-                {/* Account info */}
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Member since</p>
-                      <p className="text-muted-foreground">
-                        {new Date(profile.created_at || '').toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Account Status</p>
-                      <Badge variant="secondary" className="text-xs">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Verified
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Profile Form */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+              {/* Account info */}
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>
-                      Update your personal details and contact information
-                    </CardDescription>
-                  </div>
-                  
-                  {!isEditing ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditing(true)}
-                      className="shrink-0"
-                    >
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={handleCancel}
-                        disabled={isUpdatingProfile}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSave}
-                        disabled={isUpdatingProfile}
-                      >
-                        {isUpdatingProfile ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                {/* Full Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="full_name" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Full Name
-                  </Label>
-                  <Input
-                    id="full_name"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleInputChange}
-                    onBlur={handleBlur}
-                    disabled={!isEditing}
-                    className={cn(
-                      validationErrors.full_name && "border-destructive focus-visible:ring-destructive"
-                    )}
-                    placeholder="Enter your full name"
-                  />
-                  {validationErrors.full_name && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {validationErrors.full_name}
-                    </p>
-                  )}
-                </div>
-
-                {/* Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    onBlur={handleBlur}
-                    disabled={!isEditing}
-                    className={cn(
-                      validationErrors.email && "border-destructive focus-visible:ring-destructive"
-                    )}
-                    placeholder="Enter your email address"
-                  />
-                  {validationErrors.email && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {validationErrors.email}
-                    </p>
-                  )}
-                  {!isEditing && (
-                    <p className="text-xs text-muted-foreground">
-                      Email changes require verification through both old and new email addresses
-                    </p>
-                  )}
-                </div>
-
-                {/* Phone */}
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    Phone Number
-                  </Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    onBlur={handleBlur}
-                    disabled={!isEditing}
-                    className={cn(
-                      validationErrors.phone && "border-destructive focus-visible:ring-destructive"
-                    )}
-                    placeholder="Enter your phone number"
-                  />
-                  {validationErrors.phone && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {validationErrors.phone}
-                    </p>
-                  )}
-                </div>
-
-                {/* Bio */}
-                <div className="space-y-2">
-                  <Label htmlFor="bio" className="flex items-center gap-2">
-                    <Edit2 className="h-4 w-4" />
-                    Bio
-                  </Label>
-                  <Textarea
-                    id="bio"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    onBlur={handleBlur}
-                    disabled={!isEditing}
-                    className={cn(
-                      "min-h-[100px]",
-                      validationErrors.bio && "border-destructive focus-visible:ring-destructive"
-                    )}
-                    placeholder="Tell us about yourself..."
-                  />
-                  <div className="flex justify-between">
-                    {validationErrors.bio && (
-                      <p className="text-sm text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {validationErrors.bio}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground ml-auto">
-                      {formData.bio.length}/500 characters
+                    <p className="font-medium">Member since</p>
+                    <p className="text-muted-foreground">
+                      {new Date(profile.created_at || '').toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-
-                {/* Security Section */}
-                <Separator />
                 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Lock className="h-5 w-5" />
-                    Security & Privacy
-                  </h3>
-                  
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate('/forgot-password')}
-                      className="justify-start"
-                    >
-                      <Lock className="h-4 w-4 mr-2" />
-                      Change Password
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        toast({
-                          title: "Feature coming soon",
-                          description: "Two-factor authentication will be available soon",
-                        });
-                      }}
-                      className="justify-start"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Two-Factor Auth
-                    </Button>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Account Status</p>
+                    <Badge variant="secondary" className="text-xs">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Verified
+                    </Badge>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-        />
+        {/* Profile Form */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>
+                    Update your personal details and contact information
+                  </CardDescription>
+                </div>
+                
+                {!isEditing ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="shrink-0"
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleCancel}
+                      disabled={isUpdatingProfile}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={isUpdatingProfile}
+                    >
+                      {isUpdatingProfile ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              {/* Full Name */}
+              <div className="space-y-2">
+                <Label htmlFor="full_name" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Full Name
+                </Label>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  disabled={!isEditing}
+                  className={cn(
+                    validationErrors.full_name && "border-destructive focus-visible:ring-destructive"
+                  )}
+                  placeholder="Enter your full name"
+                />
+                {validationErrors.full_name && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.full_name}
+                  </p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  disabled={!isEditing}
+                  className={cn(
+                    validationErrors.email && "border-destructive focus-visible:ring-destructive"
+                  )}
+                  placeholder="Enter your email address"
+                />
+                {validationErrors.email && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.email}
+                  </p>
+                )}
+                {!isEditing && (
+                  <p className="text-xs text-muted-foreground">
+                    Email changes require verification through both old and new email addresses
+                  </p>
+                )}
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  disabled={!isEditing}
+                  className={cn(
+                    validationErrors.phone && "border-destructive focus-visible:ring-destructive"
+                  )}
+                  placeholder="Enter your phone number"
+                />
+                {validationErrors.phone && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.phone}
+                  </p>
+                )}
+              </div>
+
+              {/* Bio */}
+              <div className="space-y-2">
+                <Label htmlFor="bio" className="flex items-center gap-2">
+                  <Edit2 className="h-4 w-4" />
+                  Bio
+                </Label>
+                <Textarea
+                  id="bio"
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  disabled={!isEditing}
+                  className={cn(
+                    "min-h-[100px]",
+                    validationErrors.bio && "border-destructive focus-visible:ring-destructive"
+                  )}
+                  placeholder="Tell us about yourself..."
+                />
+                <div className="flex justify-between">
+                  {validationErrors.bio && (
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.bio}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground ml-auto">
+                    {formData.bio.length}/500 characters
+                  </p>
+                </div>
+              </div>
+
+              {/* Security Section */}
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Security & Privacy
+                </h3>
+                
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/forgot-password')}
+                    className="justify-start"
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Change Password
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      toast({
+                        title: "Feature coming soon",
+                        description: "Two-factor authentication will be available soon",
+                      });
+                    }}
+                    className="justify-start"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Two-Factor Auth
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 };
