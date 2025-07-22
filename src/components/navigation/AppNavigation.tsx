@@ -24,6 +24,7 @@ import {
   BarChart3,
   Users,
   Trophy,
+  Shield,
   ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -205,6 +206,12 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
             <span>Settings</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/security" className="cursor-pointer">
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Security</span>
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           onClick={handleSignOut}
@@ -321,6 +328,16 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
                           <Link to="/settings" onClick={() => setMobileMenuOpen(false)}>
                             <Settings className="mr-2 h-4 w-4" />
                             Settings
+                          </Link>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start"
+                          asChild
+                        >
+                          <Link to="/security" onClick={() => setMobileMenuOpen(false)}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            Security
                           </Link>
                         </Button>
                         <Button

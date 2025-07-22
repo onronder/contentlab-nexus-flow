@@ -18,6 +18,7 @@ import Analytics from "./pages/Analytics";
 import TeamPage from "./pages/Team";
 import Settings from "./pages/Settings";
 import Competitive from "./pages/Competitive";
+import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -145,6 +146,16 @@ const App = () => (
               <ProtectedRoute>
                 <AppLayout>
                   <Competitive />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/security" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Security />
                 </AppLayout>
               </ProtectedRoute>
             } 

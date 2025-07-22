@@ -6,3 +6,4 @@ export { useProfileImage } from './useProfileImage';
 export { useIsMobile } from './use-mobile';
 export { useToast } from './use-toast';
 export { useStepperState } from './useStepperState';
+export { useSessionManager } from './useSessionManager';
