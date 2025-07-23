@@ -47,6 +47,371 @@ export type Database = {
         }
         Relationships: []
       }
+      project_activities: {
+        Row: {
+          activity_description: string
+          activity_type: string
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          project_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_description: string
+          activity_type: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          project_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_description?: string
+          activity_type?: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          project_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_activities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_analytics: {
+        Row: {
+          calculation_method: string | null
+          created_at: string | null
+          data_source: string | null
+          id: string
+          measurement_date: string | null
+          metadata: Json | null
+          metric_name: string
+          metric_unit: string | null
+          metric_value: number | null
+          project_id: string
+        }
+        Insert: {
+          calculation_method?: string | null
+          created_at?: string | null
+          data_source?: string | null
+          id?: string
+          measurement_date?: string | null
+          metadata?: Json | null
+          metric_name: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          project_id: string
+        }
+        Update: {
+          calculation_method?: string | null
+          created_at?: string | null
+          data_source?: string | null
+          id?: string
+          measurement_date?: string | null
+          metadata?: Json | null
+          metric_name?: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_analytics_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_competitors: {
+        Row: {
+          added_by: string
+          analysis_count: number | null
+          analysis_frequency: string | null
+          company_name: string
+          company_size: string | null
+          competitive_tier: string
+          created_at: string | null
+          custom_attributes: Json | null
+          data_quality_score: number | null
+          domain: string
+          id: string
+          industry: string | null
+          last_analysis_date: string | null
+          market_share_estimate: number | null
+          monitoring_enabled: boolean | null
+          project_id: string
+          tags: string[] | null
+          threat_level: string
+          updated_at: string | null
+          value_proposition: string | null
+        }
+        Insert: {
+          added_by: string
+          analysis_count?: number | null
+          analysis_frequency?: string | null
+          company_name: string
+          company_size?: string | null
+          competitive_tier?: string
+          created_at?: string | null
+          custom_attributes?: Json | null
+          data_quality_score?: number | null
+          domain: string
+          id?: string
+          industry?: string | null
+          last_analysis_date?: string | null
+          market_share_estimate?: number | null
+          monitoring_enabled?: boolean | null
+          project_id: string
+          tags?: string[] | null
+          threat_level?: string
+          updated_at?: string | null
+          value_proposition?: string | null
+        }
+        Update: {
+          added_by?: string
+          analysis_count?: number | null
+          analysis_frequency?: string | null
+          company_name?: string
+          company_size?: string | null
+          competitive_tier?: string
+          created_at?: string | null
+          custom_attributes?: Json | null
+          data_quality_score?: number | null
+          domain?: string
+          id?: string
+          industry?: string | null
+          last_analysis_date?: string | null
+          market_share_estimate?: number | null
+          monitoring_enabled?: boolean | null
+          project_id?: string
+          tags?: string[] | null
+          threat_level?: string
+          updated_at?: string | null
+          value_proposition?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_competitors_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_team_members: {
+        Row: {
+          access_level: string
+          allowed_sections: string[] | null
+          created_at: string | null
+          expiration_date: string | null
+          id: string
+          invitation_status: string | null
+          invited_at: string | null
+          invited_by: string | null
+          is_temporary: boolean | null
+          joined_at: string | null
+          last_activity: string | null
+          permissions: Json | null
+          project_id: string
+          role: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_level?: string
+          allowed_sections?: string[] | null
+          created_at?: string | null
+          expiration_date?: string | null
+          id?: string
+          invitation_status?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
+          is_temporary?: boolean | null
+          joined_at?: string | null
+          last_activity?: string | null
+          permissions?: Json | null
+          project_id: string
+          role?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_level?: string
+          allowed_sections?: string[] | null
+          created_at?: string | null
+          expiration_date?: string | null
+          id?: string
+          invitation_status?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
+          is_temporary?: boolean | null
+          joined_at?: string | null
+          last_activity?: string | null
+          permissions?: Json | null
+          project_id?: string
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_team_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          default_settings: Json | null
+          description: string | null
+          id: string
+          industry: string | null
+          is_public: boolean | null
+          name: string
+          project_type: string
+          suggested_metrics: Json | null
+          suggested_objectives: Json | null
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          default_settings?: Json | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          is_public?: boolean | null
+          name: string
+          project_type: string
+          suggested_metrics?: Json | null
+          suggested_objectives?: Json | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          default_settings?: Json | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          is_public?: boolean | null
+          name?: string
+          project_type?: string
+          suggested_metrics?: Json | null
+          suggested_objectives?: Json | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          actual_end_date: string | null
+          allow_team_access: boolean | null
+          auto_analysis_enabled: boolean | null
+          created_at: string | null
+          created_by: string
+          custom_fields: Json | null
+          description: string | null
+          id: string
+          industry: string
+          is_public: boolean | null
+          name: string
+          notification_settings: Json | null
+          organization_id: string | null
+          primary_objectives: Json | null
+          priority: string
+          project_type: string
+          start_date: string | null
+          status: string
+          success_metrics: Json | null
+          tags: string[] | null
+          target_end_date: string | null
+          target_market: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_end_date?: string | null
+          allow_team_access?: boolean | null
+          auto_analysis_enabled?: boolean | null
+          created_at?: string | null
+          created_by: string
+          custom_fields?: Json | null
+          description?: string | null
+          id?: string
+          industry: string
+          is_public?: boolean | null
+          name: string
+          notification_settings?: Json | null
+          organization_id?: string | null
+          primary_objectives?: Json | null
+          priority?: string
+          project_type?: string
+          start_date?: string | null
+          status?: string
+          success_metrics?: Json | null
+          tags?: string[] | null
+          target_end_date?: string | null
+          target_market?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_end_date?: string | null
+          allow_team_access?: boolean | null
+          auto_analysis_enabled?: boolean | null
+          created_at?: string | null
+          created_by?: string
+          custom_fields?: Json | null
+          description?: string | null
+          id?: string
+          industry?: string
+          is_public?: boolean | null
+          name?: string
+          notification_settings?: Json | null
+          organization_id?: string | null
+          primary_objectives?: Json | null
+          priority?: string
+          project_type?: string
+          start_date?: string | null
+          status?: string
+          success_metrics?: Json | null
+          tags?: string[] | null
+          target_end_date?: string | null
+          target_market?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string
