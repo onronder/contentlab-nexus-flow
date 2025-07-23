@@ -101,6 +101,16 @@ const App = () => (
             } 
           />
           <Route 
+            path="/projects/:projectId" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <div>Project Detail Page - To be implemented</div>
+                </Layout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/content" 
             element={
               <ProtectedRoute>

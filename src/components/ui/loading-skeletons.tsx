@@ -110,3 +110,9 @@ export const TableSkeleton = ({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
     ))}
   </div>
 );
+
+// Re-export additional UI components
+export { Skeleton };
+export { LoadingSpinner } from './loading-spinner';
+export { ErrorAlert } from './error-alert';
+export { AccessDenied } from './access-denied';
