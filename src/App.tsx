@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Projects from "./pages/Projects";
+import CreateProject from "./pages/CreateProject";
 import Content from "./pages/Content";
 import Analytics from "./pages/Analytics";
 import TeamPage from "./pages/Team";
@@ -96,6 +97,16 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <Projects />
+                </Layout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/create" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CreateProject />
                 </Layout>
               </ProtectedRoute>
             } 
