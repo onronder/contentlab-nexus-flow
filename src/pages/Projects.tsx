@@ -1,13 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Filter, Grid3X3, List, FolderOpen, AlertCircle, RefreshCw, Settings2 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Toggle } from '@/components/ui/toggle';
-import { ProjectCreationWizard } from '@/components/projects/ProjectCreationWizard';
 import { ProjectAnalyticsCards } from '@/components/projects/ProjectAnalyticsCards';
 import { ProjectFilterSidebar } from '@/components/projects/ProjectFilterSidebar';
 import { AdvancedSearchInput } from '@/components/projects/AdvancedSearchInput';
@@ -15,27 +13,26 @@ import { AdvancedSearchDialog } from '@/components/projects/AdvancedSearchDialog
 import { ProjectBulkActions } from '@/components/projects/ProjectBulkActions';
 import { ProjectGridView } from '@/components/projects/ProjectGridView';
 import { ProjectListView } from '@/components/projects/ProjectListView';
-import { useProjects, useCreateProject, useCurrentUserId } from '@/hooks';
+import { useProjects, useCurrentUserId } from '@/hooks';
 import { useAdvancedProjectFilters } from '@/hooks/useAdvancedProjectFilters';
-import { Project, ProjectCreationInput } from '@/types/projects';
+import { Project } from '@/types/projects';
 import { useToast } from '@/hooks/use-toast';
 
 type ViewMode = 'grid' | 'list';
 
 const Projects = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const currentUserId = useCurrentUserId();
   
   // State management
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('projects-view-mode') as ViewMode) || 'grid';
   });
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
   const { data: projects = [], isLoading, error, refetch } = useProjects();
-  const createProjectMutation = useCreateProject();
 
   // Advanced filtering hook
   const {
@@ -146,19 +143,10 @@ const Projects = () => {
     });
   }, [selectedProjects, toast]);
 
-  // Project creation handler
-  const handleProjectCreated = async (projectData: ProjectCreationInput) => {
-    try {
-      await createProjectMutation.mutateAsync(projectData);
-      setShowCreateModal(false);
-      toast({
-        title: "Project Created",
-        description: "Your new project has been created successfully.",
-      });
-    } catch (error) {
-      console.error('Failed to create project:', error);
-    }
-  };
+  // Navigation to create project page
+  const handleCreateProject = useCallback(() => {
+    navigate('/projects/create');
+  }, [navigate]);
 
   // Project click handler
   const handleProjectClick = useCallback((project: Project) => {
@@ -244,29 +232,13 @@ const Projects = () => {
             </p>
           </div>
           
-          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-white shadow-elegant hover:shadow-glow transition-all duration-200 mt-4 lg:mt-0">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Project
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-hidden">
-              <DialogHeader>
-                <DialogTitle>Create New Project</DialogTitle>
-                <DialogDescription>
-                  Set up a new competitive intelligence project to track and analyze competitor activities.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="overflow-y-auto max-h-[calc(80vh-8rem)]">
-                <ProjectCreationWizard 
-                  onProjectCreated={handleProjectCreated}
-                  onCancel={() => setShowCreateModal(false)}
-                  isSubmitting={createProjectMutation.isPending}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            onClick={handleCreateProject}
+            className="gradient-primary text-white shadow-elegant hover:shadow-glow transition-all duration-200 mt-4 lg:mt-0"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Project
+          </Button>
         </div>
 
         {/* Controls */}
@@ -410,7 +382,7 @@ const Projects = () => {
                       Clear Filters
                     </Button>
                   )}
-                  <Button onClick={() => setShowCreateModal(true)} className="gradient-primary">
+                  <Button onClick={handleCreateProject} className="gradient-primary">
                     <Plus className="h-4 w-4 mr-2" />
                     Create New Project
                   </Button>
