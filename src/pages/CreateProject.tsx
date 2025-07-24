@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProjectCreationWizard } from '@/components/projects/ProjectCreationWizard';
 import { ProjectCreationInput } from '@/types/projects';
 import { createProject } from '@/services/projectService';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 export function CreateProjectPage() {
   const navigate = useNavigate();
@@ -53,25 +55,33 @@ export function CreateProjectPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-card shadow-lg rounded-lg border">
-          <div className="px-6 py-4 border-b">
-            <h1 className="text-2xl font-bold text-foreground">
-              Create New Project
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Set up a new competitive intelligence project to track competitors and analyze market opportunities.
-            </p>
-          </div>
+      <div className="p-6 lg:p-8">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          onClick={handleCancel}
+          className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Projects
+        </Button>
 
-          <div className="p-6">
-            <ProjectCreationWizard
-              onProjectCreated={handleProjectCreation}
-              onCancel={handleCancel}
-              isSubmitting={isCreating}
-            />
-          </div>
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">
+            Create New Project
+          </h1>
+          <p className="mt-2 text-lg text-muted-foreground">
+            Set up a new competitive intelligence project to track competitors and analyze market opportunities.
+          </p>
         </div>
+
+        {/* Project Creation Wizard */}
+        <ProjectCreationWizard
+          onProjectCreated={handleProjectCreation}
+          onCancel={handleCancel}
+          isSubmitting={isCreating}
+        />
       </div>
     </div>
   );
