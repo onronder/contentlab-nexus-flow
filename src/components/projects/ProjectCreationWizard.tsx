@@ -80,10 +80,44 @@ export function ProjectCreationWizard({
   };
 
   const validateCurrentStep = (): boolean => {
-    const validation = validateProjectCreation(formData);
+    const errors: ValidationError[] = [];
     
-    if (!validation.isValid) {
-      setValidationErrors(validation.errors);
+    // Validate based on current step
+    switch (currentStep) {
+      case 'basic_info':
+        if (!formData.name?.trim()) {
+          errors.push({ field: 'name', message: 'Project name is required' });
+        }
+        if (!formData.industry?.trim()) {
+          errors.push({ field: 'industry', message: 'Industry is required' });
+        }
+        if (!formData.projectType) {
+          errors.push({ field: 'projectType', message: 'Project type is required' });
+        }
+        break;
+        
+      case 'objectives':
+        if (!formData.primaryObjectives || formData.primaryObjectives.length === 0) {
+          errors.push({ field: 'primaryObjectives', message: 'At least one objective is required' });
+        }
+        break;
+        
+      case 'configuration':
+        // Configuration step is optional, no required validation
+        break;
+        
+      case 'review':
+        // Final validation - check all required fields
+        const fullValidation = validateProjectCreation(formData);
+        if (!fullValidation.isValid) {
+          setValidationErrors(fullValidation.errors);
+          return false;
+        }
+        break;
+    }
+    
+    if (errors.length > 0) {
+      setValidationErrors(errors);
       return false;
     }
     
