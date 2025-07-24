@@ -21,6 +21,7 @@ import Settings from "./pages/Settings";
 import Competitive from "./pages/Competitive";
 import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
+import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Authentication testing route (public for debugging) */}
+          <Route path="/auth-test" element={<AuthTestingPanel />} />
+          
           {/* Public routes with main layout */}
           <Route path="/" element={
             <Layout>
