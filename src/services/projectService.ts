@@ -114,21 +114,59 @@ export async function createProject(userId: string, projectData: ProjectCreation
 
 export async function fetchUserProjects(userId: string): Promise<Project[]> {
   try {
-    const { data, error } = await supabase
+    // Query 1: Projects created by the user
+    const { data: ownedProjects, error: ownedError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('created_by', userId)
+      .order('updated_at', { ascending: false });
+
+    if (ownedError) {
+      console.error('Error fetching owned projects:', ownedError);
+      throw new Error(`Failed to fetch projects: ${ownedError.message}`);
+    }
+
+    // Query 2: Projects where user is a team member
+    const { data: memberProjects, error: memberError } = await supabase
       .from('projects')
       .select(`
         *,
         project_team_members!inner(user_id, role, invitation_status)
       `)
-      .or(`created_by.eq.${userId},project_team_members.user_id.eq.${userId}`)
+      .eq('project_team_members.user_id', userId)
       .eq('project_team_members.invitation_status', 'active')
       .order('updated_at', { ascending: false });
 
-    if (error) {
-      throw new Error(`Failed to fetch projects: ${error.message}`);
+    if (memberError) {
+      console.error('Error fetching member projects:', memberError);
+      throw new Error(`Failed to fetch projects: ${memberError.message}`);
     }
 
-    return (data || []).map(project => ({
+    // Merge and deduplicate results
+    const projectMap = new Map<string, any>();
+
+    // Add owned projects
+    (ownedProjects || []).forEach(project => {
+      projectMap.set(project.id, {
+        ...project,
+        project_team_members: [],
+      });
+    });
+
+    // Add member projects (may overwrite if user is both owner and member)
+    (memberProjects || []).forEach(project => {
+      const existingProject = projectMap.get(project.id);
+      projectMap.set(project.id, {
+        ...project,
+        project_team_members: existingProject?.project_team_members || project.project_team_members || [],
+      });
+    });
+
+    // Convert to array and sort by updated_at
+    const projects = Array.from(projectMap.values())
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+    return projects.map(project => ({
       id: project.id,
       name: project.name,
       description: project.description || '',
