@@ -13,7 +13,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks';
 import { useToast } from '@/hooks/use-toast';
-import { LogoutButton } from '@/components/ui/logout-button';
+
 import {
   User,
   Settings,
@@ -325,11 +325,17 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
                             Security
                           </Link>
                         </Button>
-                        <LogoutButton
-                          variant="ghost"
-                          className="w-full justify-start"
-                          showConfirmDialog={false}
-                        />
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                          onClick={() => {
+                            signOut();
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Sign out
+                        </Button>
                       </div>
                     </div>
                   ) : (
