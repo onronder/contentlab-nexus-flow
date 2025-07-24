@@ -24,9 +24,11 @@ export interface AuthMethods {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<{ error: string | null }>;
+  signOutFromAllDevices: () => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<{ error: string | null }>;
+  validatePassword: (password: string) => { isValid: boolean; errors: string[] };
 }
 
 // Complete auth context interface

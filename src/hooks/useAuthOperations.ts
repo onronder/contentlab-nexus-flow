@@ -7,6 +7,7 @@ interface UseAuthOperationsReturn {
   signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<boolean>;
   signInWithEmail: (email: string, password: string) => Promise<boolean>;
   signOutUser: () => Promise<boolean>;
+  signOutFromAllDevices: () => Promise<boolean>;
   resetUserPassword: (email: string) => Promise<boolean>;
   updateUserProfile: (updates: any) => Promise<boolean>;
   clearOperationError: () => void;
@@ -17,7 +18,7 @@ interface UseAuthOperationsReturn {
  * Provides simplified interface for authentication operations with error handling
  */
 export const useAuthOperations = (): UseAuthOperationsReturn => {
-  const { signUp, signIn, signOut, resetPassword, updateProfile } = useAuth();
+  const { signUp, signIn, signOut, signOutFromAllDevices, resetPassword, updateProfile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [operationError, setOperationError] = useState<string | null>(null);
 
@@ -86,6 +87,11 @@ export const useAuthOperations = (): UseAuthOperationsReturn => {
         return false;
       }
 
+      // Force page refresh after successful logout to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
+
       return true;
     } catch (error) {
       setOperationError('An unexpected error occurred during sign out');
@@ -94,6 +100,32 @@ export const useAuthOperations = (): UseAuthOperationsReturn => {
       setIsSubmitting(false);
     }
   }, [signOut]);
+
+  const signOutFromAllDevicesOp = useCallback(async (): Promise<boolean> => {
+    setIsSubmitting(true);
+    setOperationError(null);
+
+    try {
+      const { error } = await signOutFromAllDevices();
+      
+      if (error) {
+        setOperationError(error);
+        return false;
+      }
+
+      // Force page refresh after successful logout to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
+
+      return true;
+    } catch (error) {
+      setOperationError('An unexpected error occurred during sign out');
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [signOutFromAllDevices]);
 
   const resetUserPassword = useCallback(async (email: string): Promise<boolean> => {
     setIsSubmitting(true);
@@ -143,6 +175,7 @@ export const useAuthOperations = (): UseAuthOperationsReturn => {
     signUpWithEmail,
     signInWithEmail,
     signOutUser,
+    signOutFromAllDevices: signOutFromAllDevicesOp,
     resetUserPassword,
     updateUserProfile,
     clearOperationError,

@@ -11,8 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useAuth, useAuthOperations } from '@/hooks';
+import { useAuth } from '@/hooks';
 import { useToast } from '@/hooks/use-toast';
+import { LogoutButton } from '@/components/ui/logout-button';
 import {
   User,
   Settings,
@@ -91,25 +92,8 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, profile, isAuthenticated } = useAuth();
-  const { signOutUser, isSubmitting } = useAuthOperations();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleSignOut = async () => {
-    const success = await signOutUser();
-    if (success) {
-      navigate('/');
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out",
-      });
-    } else {
-      toast({
-        title: "Sign out failed",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const getInitials = (name: string) => {
     return name
@@ -169,7 +153,6 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
         <Button
           variant="ghost"
           className="relative h-10 w-10 rounded-full"
-          disabled={isSubmitting}
         >
           <Avatar className="h-10 w-10">
             <AvatarImage 
@@ -213,13 +196,15 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          onClick={handleSignOut}
-          disabled={isSubmitting}
-          className="cursor-pointer"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sign out</span>
+        <DropdownMenuItem asChild>
+          <div className="cursor-pointer w-full">
+            <LogoutButton 
+              variant="ghost" 
+              className="w-full justify-start h-auto px-0 py-0 font-normal"
+              showConfirmDialog={false}
+              size="sm"
+            />
+          </div>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -256,6 +241,17 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
 
         {/* Right side actions */}
         <div className="flex items-center gap-4">
+          {/* Desktop logout button - prominent for authenticated users */}
+          {isAuthenticated && (
+            <div className="hidden md:flex">
+              <LogoutButton 
+                variant="outline" 
+                size="sm"
+                className="border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              />
+            </div>
+          )}
+          
           {/* Mobile menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -340,18 +336,11 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
                             Security
                           </Link>
                         </Button>
-                        <Button
+                        <LogoutButton
                           variant="ghost"
                           className="w-full justify-start"
-                          onClick={() => {
-                            handleSignOut();
-                            setMobileMenuOpen(false);
-                          }}
-                          disabled={isSubmitting}
-                        >
-                          <LogOut className="mr-2 h-4 w-4" />
-                          Sign out
-                        </Button>
+                          showConfirmDialog={false}
+                        />
                       </div>
                     </div>
                   ) : (

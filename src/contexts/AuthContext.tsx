@@ -281,17 +281,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [mapAuthError, isAccountLocked, recordFailedAttempt, clearFailedAttempts, setupSessionTimeout]);
 
-  // Sign out user
+  // Sign out user with complete cleanup
   const signOut = useCallback(async () => {
     try {
+      console.log('AuthProvider: Signing out user');
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Clear session timeout
+      // Clear session timeout first
       if (sessionTimeout) {
         clearTimeout(sessionTimeout);
         setSessionTimeout(null);
       }
 
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
 
       if (error) {
@@ -300,6 +302,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error: errorMessage };
       }
 
+      // Force complete auth state reset
+      setAuthState({
+        user: null,
+        session: null,
+        profile: null,
+        isLoading: false,
+        isAuthenticated: false,
+        error: null,
+      });
+
+      // Clear any failed attempts
+      setFailedAttempts(new Map());
+
+      // Clear localStorage items that might persist auth state
+      try {
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-auth-token');
+      } catch (e) {
+        console.warn('Could not clear localStorage:', e);
+      }
+
+      console.log('AuthProvider: Sign out completed successfully');
       return { error: null };
     } catch (error) {
       const errorMessage = mapAuthError(error as Error);
@@ -307,6 +331,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { error: errorMessage };
     }
   }, [mapAuthError, sessionTimeout]);
+
+  // Sign out from all devices
+  const signOutFromAllDevices = useCallback(async () => {
+    try {
+      console.log('AuthProvider: Signing out from all devices');
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // This signs out from all sessions
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+
+      if (error) {
+        const errorMessage = mapAuthError(error);
+        setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+        return { error: errorMessage };
+      }
+
+      // Force complete cleanup same as regular signOut
+      setAuthState({
+        user: null,
+        session: null,
+        profile: null,
+        isLoading: false,
+        isAuthenticated: false,
+        error: null,
+      });
+
+      // Clear any failed attempts
+      setFailedAttempts(new Map());
+
+      // Clear localStorage items that might persist auth state
+      try {
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-auth-token');
+      } catch (e) {
+        console.warn('Could not clear localStorage:', e);
+      }
+
+      console.log('AuthProvider: Global sign out completed successfully');
+      return { error: null };
+    } catch (error) {
+      const errorMessage = mapAuthError(error as Error);
+      setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+      return { error: errorMessage };
+    }
+  }, [mapAuthError]);
 
   // Reset password
   const resetPassword = useCallback(async (email: string) => {
@@ -469,6 +538,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    signOutFromAllDevices,
     resetPassword,
     updateProfile,
     refreshProfile,
@@ -478,6 +548,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    signOutFromAllDevices,
     resetPassword,
     updateProfile,
     refreshProfile,

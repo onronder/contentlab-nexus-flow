@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { mockContentItems, mockUsers } from "@/data/mockData";
 import { useMemo } from "react";
+import { LogoutButton } from "@/components/ui/logout-button";
 
 const settingsItems = [
   { title: "Settings", url: "/settings", icon: Settings },
@@ -298,6 +299,29 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+                
+                {/* Logout Button */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <div className={cn(
+                      "w-full transition-all duration-300",
+                      collapsed ? "p-2" : "p-3"
+                    )}>
+                      <LogoutButton
+                        variant="ghost"
+                        size={collapsed ? "icon" : "sm"}
+                        className={cn(
+                          "w-full transition-all group interactive-lift text-destructive hover:bg-destructive hover:text-destructive-foreground",
+                          collapsed ? "justify-center" : "justify-start"
+                        )}
+                        showIcon={true}
+                        showConfirmDialog={true}
+                      >
+                        {!collapsed && "Sign out"}
+                      </LogoutButton>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
