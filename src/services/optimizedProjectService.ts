@@ -102,9 +102,15 @@ export async function fetchOptimizedUserProjects(userId: string): Promise<Projec
       isPublic: project.is_public,
       allowTeamAccess: project.allow_team_access,
       autoAnalysisEnabled: project.auto_analysis_enabled,
-      notificationSettings: typeof project.notification_settings === 'object' && project.notification_settings ? 
-        (project.notification_settings as unknown as Project['notificationSettings']) : 
-        { email: true, inApp: true, frequency: 'daily' as const },
+        notificationSettings: typeof project.notification_settings === 'object' && project.notification_settings ? 
+          {
+            email: (project.notification_settings as any)?.email ?? true,
+            inApp: (project.notification_settings as any)?.inApp ?? true,
+            frequency: ['daily', 'immediate', 'weekly'].includes((project.notification_settings as any)?.frequency) 
+              ? (project.notification_settings as any).frequency 
+              : 'daily' as const
+          } : 
+          { email: true, inApp: true, frequency: 'daily' as const },
       customFields: typeof project.custom_fields === 'object' && project.custom_fields ? 
         project.custom_fields as Record<string, any> : {},
       tags: Array.isArray(project.tags) ? project.tags : [],
@@ -203,8 +209,14 @@ export async function fetchProjectsPaginated(
       allowTeamAccess: project.allow_team_access,
       autoAnalysisEnabled: project.auto_analysis_enabled,
       notificationSettings: typeof project.notification_settings === 'object' && project.notification_settings ? 
-        (project.notification_settings as unknown as Project['notificationSettings']) : 
-        { email: true, inApp: true, frequency: 'daily' },
+        {
+          email: (project.notification_settings as any)?.email ?? true,
+          inApp: (project.notification_settings as any)?.inApp ?? true,
+          frequency: ['daily', 'immediate', 'weekly'].includes((project.notification_settings as any)?.frequency) 
+            ? (project.notification_settings as any).frequency 
+            : 'daily' as const
+        } : 
+        { email: true, inApp: true, frequency: 'daily' as const },
       customFields: typeof project.custom_fields === 'object' && project.custom_fields ? 
         project.custom_fields as Record<string, any> : {},
       tags: Array.isArray(project.tags) ? project.tags : [],
@@ -350,7 +362,13 @@ export async function batchUpdateProjects(
         allowTeamAccess: data.allow_team_access,
         autoAnalysisEnabled: data.auto_analysis_enabled,
         notificationSettings: typeof data.notification_settings === 'object' && data.notification_settings ? 
-          (data.notification_settings as unknown as Project['notificationSettings']) : 
+          {
+            email: (data.notification_settings as any)?.email ?? true,
+            inApp: (data.notification_settings as any)?.inApp ?? true,
+            frequency: ['daily', 'immediate', 'weekly'].includes((data.notification_settings as any)?.frequency) 
+              ? (data.notification_settings as any).frequency 
+              : 'daily' as const
+          } : 
           { email: true, inApp: true, frequency: 'daily' as const },
         customFields: typeof data.custom_fields === 'object' && data.custom_fields ? 
           data.custom_fields as Record<string, any> : {},
@@ -432,7 +450,13 @@ export async function prefetchProjectData(projectId: string): Promise<{
         allowTeamAccess: data.allow_team_access,
         autoAnalysisEnabled: data.auto_analysis_enabled,
         notificationSettings: typeof data.notification_settings === 'object' && data.notification_settings ? 
-          (data.notification_settings as unknown as Project['notificationSettings']) : 
+          {
+            email: (data.notification_settings as any)?.email ?? true,
+            inApp: (data.notification_settings as any)?.inApp ?? true,
+            frequency: ['daily', 'immediate', 'weekly'].includes((data.notification_settings as any)?.frequency) 
+              ? (data.notification_settings as any).frequency 
+              : 'daily' as const
+          } : 
           { email: true, inApp: true, frequency: 'daily' as const },
         customFields: typeof data.custom_fields === 'object' && data.custom_fields ? 
           data.custom_fields as Record<string, any> : {},
