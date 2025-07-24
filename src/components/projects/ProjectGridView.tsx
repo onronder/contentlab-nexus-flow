@@ -1,11 +1,13 @@
 import React from 'react';
 import { Calendar, Users, MoreVertical, Clock, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AccessibleCard } from '@/components/ui/accessible-card';
+import { AccessibleButton } from '@/components/ui/accessible-button';
 import { Project } from '@/types/projects';
+import { useFocusManagement } from '@/hooks/useFocusManagement';
 
 interface ProjectGridViewProps {
   projects: Project[];
@@ -20,6 +22,7 @@ export function ProjectGridView({
   onProjectSelect,
   onProjectClick
 }: ProjectGridViewProps) {
+  const { handleArrowNavigation, getButtonProps, getLinkProps } = useFocusManagement();
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active": return "bg-green-500";
@@ -60,19 +63,34 @@ export function ProjectGridView({
     }
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent, container: HTMLElement) => {
+    handleArrowNavigation(event, container, 'horizontal');
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div 
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      role="grid"
+      aria-label={`${projects.length} projects in grid view`}
+      onKeyDown={(e) => handleKeyDown(e, e.currentTarget)}
+    >
       {projects.map((project) => {
         const isSelected = selectedProjects.includes(project.id);
         
         return (
-          <Card 
+          <AccessibleCard
             key={project.id} 
-            className={`interactive-lift cursor-pointer border-2 transition-all duration-200 ${getPriorityColor(project.priority)} ${
-              isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
-            }`}
+            id={`project-${project.id}`}
+            interactive={true}
+            selected={isSelected}
+            label={`${project.name} - ${getProjectTypeLabel(project.projectType)} project`}
+            description={`${project.description || 'No description'}. Status: ${project.status}. Priority: ${project.priority}. Team members: ${project.teamMemberCount}. Competitors: ${project.competitorCount}.`}
+            onClick={() => onProjectClick(project)}
+            className={`interactive-lift border-2 transition-all duration-200 ${getPriorityColor(project.priority)}`}
+            role="gridcell"
+            tabIndex={0}
           >
-            <CardHeader className="pb-3">
+            <header className="pb-3 p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 flex-1">
                   <Checkbox
@@ -82,22 +100,34 @@ export function ProjectGridView({
                     }
                     onClick={(e) => e.stopPropagation()}
                     className="mt-1"
+                    aria-label={`Select ${project.name} project`}
+                    aria-describedby={`project-${project.id}-description`}
                   />
                   
                   <div 
                     className="flex items-center gap-3 flex-1 cursor-pointer"
                     onClick={() => onProjectClick(project)}
+                    role="button"
+                    tabIndex={-1}
+                    aria-label={`View details for ${project.name}`}
                   >
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <div 
+                        className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center"
+                        aria-hidden="true"
+                      >
                         <span className="text-primary font-semibold text-lg">
                           {project.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(project.status)}`} />
+                      <div 
+                        className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${getStatusColor(project.status)}`} 
+                        aria-label={`Project status: ${project.status}`}
+                        role="img"
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <CardTitle className="text-lg font-semibold line-clamp-1">{project.name}</CardTitle>
+                      <h3 className="text-lg font-semibold line-clamp-1">{project.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="secondary" className="text-xs">
                           {getProjectTypeLabel(project.projectType)}
@@ -112,67 +142,98 @@ export function ProjectGridView({
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    <AccessibleButton 
+                      variant="ghost" 
+                      size="sm"
+                      description={`More actions for ${project.name} project`}
+                      {...getButtonProps(`Open menu for ${project.name}`, 'Access additional project actions')}
+                    >
+                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                      <span className="sr-only">More actions</span>
+                    </AccessibleButton>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onProjectClick(project)}>
+                  <DropdownMenuContent align="end" className="bg-background border border-border shadow-lg">
+                    <DropdownMenuItem 
+                      onClick={() => onProjectClick(project)}
+                      className="focus:bg-muted focus:text-foreground"
+                    >
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                    <DropdownMenuItem>Archive</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem className="focus:bg-muted focus:text-foreground">
+                      Edit Project
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="focus:bg-muted focus:text-foreground">
+                      Archive
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive">
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            </CardHeader>
+            </header>
             
-            <CardContent onClick={() => onProjectClick(project)}>
-              <CardDescription className="text-sm mb-4 line-clamp-2">
+            <div 
+              className="p-6 pt-0"
+              onClick={() => onProjectClick(project)}
+            >
+              <p 
+                id={`project-${project.id}-description`}
+                className="text-sm mb-4 line-clamp-2 text-muted-foreground"
+              >
                 {project.description || 'No description provided'}
-              </CardDescription>
+              </p>
               
               {/* Industry and Market */}
-              <div className="mb-4">
+              <div className="mb-4" aria-label="Project categorization">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline" className="text-xs">{project.industry}</Badge>
+                  <Badge variant="outline" className="text-xs" aria-label={`Industry: ${project.industry}`}>
+                    {project.industry}
+                  </Badge>
                   {project.targetMarket && (
-                    <Badge variant="outline" className="text-xs">{project.targetMarket}</Badge>
+                    <Badge variant="outline" className="text-xs" aria-label={`Target market: ${project.targetMarket}`}>
+                      {project.targetMarket}
+                    </Badge>
                   )}
                 </div>
               </div>
 
               {/* Analytics */}
-              <div className="flex items-center justify-between mb-4 text-sm">
+              <div className="flex items-center justify-between mb-4 text-sm" aria-label="Project metrics">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center text-muted-foreground">
-                    <Users className="h-3 w-3 mr-1" />
-                    <span>{project.teamMemberCount}</span>
+                    <Users className="h-3 w-3 mr-1" aria-hidden="true" />
+                    <span aria-label={`${project.teamMemberCount} team members`}>
+                      {project.teamMemberCount}
+                    </span>
                   </div>
                   <div className="flex items-center text-muted-foreground">
-                    <span className="text-xs">Competitors: {project.competitorCount}</span>
+                    <span className="text-xs" aria-label={`${project.competitorCount} competitors being tracked`}>
+                      Competitors: {project.competitorCount}
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Dates */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground" aria-label="Project timeline">
                 <div className="flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Updated {formatDate(project.updatedAt)}
+                  <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
+                  <time dateTime={project.updatedAt.toISOString()}>
+                    Updated {formatDate(project.updatedAt)}
+                  </time>
                 </div>
                 {project.targetEndDate && (
                   <div className="flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    Due {formatDate(project.targetEndDate)}
+                    <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
+                    <time dateTime={project.targetEndDate.toISOString()}>
+                      Due {formatDate(project.targetEndDate)}
+                    </time>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </AccessibleCard>
         );
       })}
     </div>
