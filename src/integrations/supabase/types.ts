@@ -365,7 +365,7 @@ export type Database = {
           allow_team_access?: boolean | null
           auto_analysis_enabled?: boolean | null
           created_at?: string | null
-          created_by: string
+          created_by?: string
           custom_fields?: Json | null
           description?: string | null
           id?: string

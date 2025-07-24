@@ -43,7 +43,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
         tags: projectData.tags,
         start_date: projectData.startDate?.toISOString(),
         target_end_date: projectData.targetEndDate?.toISOString(),
-        created_by: userId,
+        // created_by will be automatically set by database default (auth.uid())
         status: 'planning',
         priority: 'medium'
       })
