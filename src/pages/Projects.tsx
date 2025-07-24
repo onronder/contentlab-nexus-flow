@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, Filter, Grid3X3, List, FolderOpen, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Search, Filter, Grid3X3, List, FolderOpen, AlertCircle, RefreshCw, Settings2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -10,11 +9,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Toggle } from '@/components/ui/toggle';
 import { ProjectCreationWizard } from '@/components/projects/ProjectCreationWizard';
 import { ProjectAnalyticsCards } from '@/components/projects/ProjectAnalyticsCards';
-import { ProjectFilterSidebar, ProjectFilters } from '@/components/projects/ProjectFilterSidebar';
+import { ProjectFilterSidebar } from '@/components/projects/ProjectFilterSidebar';
+import { AdvancedSearchInput } from '@/components/projects/AdvancedSearchInput';
+import { AdvancedSearchDialog } from '@/components/projects/AdvancedSearchDialog';
 import { ProjectBulkActions } from '@/components/projects/ProjectBulkActions';
 import { ProjectGridView } from '@/components/projects/ProjectGridView';
 import { ProjectListView } from '@/components/projects/ProjectListView';
-import { useProjects, useCreateProject } from '@/hooks';
+import { useProjects, useCreateProject, useCurrentUserId } from '@/hooks';
+import { useAdvancedProjectFilters } from '@/hooks/useAdvancedProjectFilters';
 import { Project, ProjectCreationInput } from '@/types/projects';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,88 +24,73 @@ type ViewMode = 'grid' | 'list';
 
 const Projects = () => {
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const currentUserId = useCurrentUserId();
   
   // State management
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('projects-view-mode') as ViewMode) || 'grid';
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
-  
-  // Filter state
-  const [filters, setFilters] = useState<ProjectFilters>(() => {
-    const statusFromUrl = searchParams.get('status');
-    return {
-      status: statusFromUrl ? statusFromUrl.split(',') : [],
-      priority: searchParams.get('priority')?.split(',') || [],
-      industry: searchParams.get('industry')?.split(',') || [],
-      projectType: searchParams.get('type')?.split(',') || [],
-      dateRange: { field: 'created' }
-    };
-  });
 
   const { data: projects = [], isLoading, error, refetch } = useProjects();
   const createProjectMutation = useCreateProject();
 
-  // Debounced search
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+  // Advanced filtering hook
+  const {
+    filters,
+    setFilters,
+    updateFilter,
+    filterProjects,
+    activeFilterCount,
+    clearAllFilters,
+    searchHistory,
+    saveSearchToHistory,
+    quickDateFilters,
+    applyQuickDateFilter,
+    getFilterOptions
+  } = useAdvancedProjectFilters(currentUserId);
 
-  // URL state synchronization
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (debouncedSearchTerm) params.set('search', debouncedSearchTerm);
-    if (filters.status.length) params.set('status', filters.status.join(','));
-    if (filters.priority.length) params.set('priority', filters.priority.join(','));
-    if (filters.industry.length) params.set('industry', filters.industry.join(','));
-    if (filters.projectType.length) params.set('type', filters.projectType.join(','));
-    
-    setSearchParams(params);
-  }, [debouncedSearchTerm, filters, setSearchParams]);
+  // Clear search history
+  const clearSearchHistory = useCallback(() => {
+    localStorage.removeItem('project-search-history');
+    window.location.reload(); // Simple way to reset search history state
+  }, []);
+
+  // Handle search
+  const handleSearch = useCallback((query: string) => {
+    updateFilter('search', {
+      ...filters.search,
+      query
+    });
+    if (query.trim()) {
+      saveSearchToHistory(query);
+    }
+  }, [filters.search, updateFilter, saveSearchToHistory]);
+
+  // Handle search from history
+  const handleSearchFromHistory = useCallback((query: string) => {
+    updateFilter('search', {
+      ...filters.search,
+      query
+    });
+  }, [filters.search, updateFilter]);
 
   // Save view mode preference
   useEffect(() => {
     localStorage.setItem('projects-view-mode', viewMode);
   }, [viewMode]);
 
-  // Filter projects
+  // Apply filtering
   const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
-      // Search filter
-      const searchMatch = !debouncedSearchTerm || 
-        project.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        (project.description?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
-        project.industry.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+    return filterProjects(projects);
+  }, [projects, filterProjects]);
 
-      // Status filter
-      const statusMatch = filters.status.length === 0 || filters.status.includes(project.status);
-      
-      // Priority filter
-      const priorityMatch = filters.priority.length === 0 || filters.priority.includes(project.priority);
-      
-      // Industry filter
-      const industryMatch = filters.industry.length === 0 || filters.industry.includes(project.industry);
-      
-      // Project type filter
-      const typeMatch = filters.projectType.length === 0 || filters.projectType.includes(project.projectType);
-
-      return searchMatch && statusMatch && priorityMatch && industryMatch && typeMatch;
-    });
-  }, [projects, debouncedSearchTerm, filters]);
-
-  // Calculate active filter count
-  const activeFilterCount = useMemo(() => {
-    return filters.status.length + filters.priority.length + filters.industry.length + filters.projectType.length;
-  }, [filters]);
+  // Get filter options with counts
+  const filterOptions = useMemo(() => {
+    return getFilterOptions(projects);
+  }, [projects, getFilterOptions]);
 
   // Project selection handlers
   const handleProjectSelect = useCallback((projectId: string, selected: boolean) => {
@@ -284,14 +271,22 @@ const Projects = () => {
 
         {/* Controls */}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search projects by name, description, or industry..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+          {/* Advanced Search */}
+          <div className="flex-1 flex gap-2">
+            <AdvancedSearchInput
+              value={filters.search.query}
+              onChange={(value) => updateFilter('search', { ...filters.search, query: value })}
+              onSearch={handleSearch}
+              searchHistory={searchHistory}
+              onClearHistory={clearSearchHistory}
+              className="flex-1"
+            />
+            <AdvancedSearchDialog
+              filters={filters}
+              onFiltersChange={setFilters}
+              searchHistory={searchHistory}
+              onSearchFromHistory={handleSearchFromHistory}
+              onClearHistory={clearSearchHistory}
             />
           </div>
 
@@ -310,12 +305,25 @@ const Projects = () => {
             )}
           </Button>
 
+          {/* Clear filters button */}
+          {activeFilterCount > 0 && (
+            <Button
+              variant="outline"
+              onClick={clearAllFilters}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
+          )}
+
           {/* View toggle */}
           <div className="flex border rounded-lg">
             <Toggle
               pressed={viewMode === 'grid'}
               onPressedChange={() => setViewMode('grid')}
               className="rounded-r-none"
+              aria-label="Grid view"
             >
               <Grid3X3 className="h-4 w-4" />
             </Toggle>
@@ -323,6 +331,7 @@ const Projects = () => {
               pressed={viewMode === 'list'}
               onPressedChange={() => setViewMode('list')}
               className="rounded-l-none border-l"
+              aria-label="List view"
             >
               <List className="h-4 w-4" />
             </Toggle>
@@ -344,6 +353,10 @@ const Projects = () => {
                 onFiltersChange={setFilters}
                 projects={projects}
                 activeFilterCount={activeFilterCount}
+                quickDateFilters={quickDateFilters}
+                onApplyQuickDateFilter={applyQuickDateFilter}
+                filterOptions={filterOptions}
+                currentUserId={currentUserId}
               />
             </div>
           )}
@@ -356,6 +369,10 @@ const Projects = () => {
             onFiltersChange={setFilters}
             projects={projects}
             activeFilterCount={activeFilterCount}
+            quickDateFilters={quickDateFilters}
+            onApplyQuickDateFilter={applyQuickDateFilter}
+            filterOptions={filterOptions}
+            currentUserId={currentUserId}
           />
 
           {/* Projects Content */}
@@ -378,15 +395,26 @@ const Projects = () => {
                 <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No projects found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {debouncedSearchTerm || activeFilterCount > 0
+                  {filters.search.query || activeFilterCount > 0
                     ? "Try adjusting your search terms or filters" 
                     : "Create your first project to get started"
                   }
                 </p>
-                <Button onClick={() => setShowCreateModal(true)} className="gradient-primary">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create New Project
-                </Button>
+                <div className="flex justify-center gap-2">
+                  {(filters.search.query || activeFilterCount > 0) && (
+                    <Button 
+                      variant="outline" 
+                      onClick={clearAllFilters}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Clear Filters
+                    </Button>
+                  )}
+                  <Button onClick={() => setShowCreateModal(true)} className="gradient-primary">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Project
+                  </Button>
+                </div>
               </div>
             ) : viewMode === 'grid' ? (
               <ProjectGridView
