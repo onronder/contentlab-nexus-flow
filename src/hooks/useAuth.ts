@@ -31,16 +31,21 @@ export function useAuth() {
   });
 
   const signIn = async (email: string, password: string) => {
+    console.log('useAuth.signIn called with email:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
+    console.log('Supabase signInWithPassword result:', { error });
+
     if (error) {
+      console.error('Login error in useAuth:', error);
       toast.error(error.message);
       return { error: error.message };
     }
 
+    console.log('Login successful in useAuth');
     toast.success('Successfully signed in!');
     return { error: null };
   };

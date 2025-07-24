@@ -58,16 +58,22 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Login form submitted with:', { email, password: password ? '[HIDDEN]' : 'empty' });
     
     if (!validateForm()) {
+      console.log('Form validation failed');
       return;
     }
+
+    console.log('Form validation passed, attempting sign in...');
 
     setIsLoading(true);
     setErrors({});
 
     try {
+      console.log('Calling signIn function...');
       const { error } = await signIn(email, password);
+      console.log('signIn result:', { error });
 
       if (error) {
         setErrors({ general: error });
@@ -77,6 +83,7 @@ const Login = () => {
           description: error,
         });
       } else {
+        console.log('Sign in successful, redirecting...');
         toast({
           title: "Welcome back!",
           description: "You have been successfully signed in.",
@@ -85,9 +92,11 @@ const Login = () => {
         // Redirect to intended page or dashboard
         const searchParams = new URLSearchParams(location.search);
         const returnUrl = searchParams.get('returnUrl') || location.state?.from?.pathname || '/';
+        console.log('Redirecting to:', returnUrl);
         navigate(returnUrl, { replace: true });
       }
     } catch (error) {
+      console.error('Login error:', error);
       const errorMessage = 'An unexpected error occurred. Please try again.';
       setErrors({ general: errorMessage });
       toast({
@@ -96,6 +105,7 @@ const Login = () => {
         description: errorMessage,
       });
     } finally {
+      console.log('Login attempt finished, setting loading to false');
       setIsLoading(false);
     }
   };
