@@ -162,58 +162,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Update authentication state
+  // Update authentication state - simplified to prevent blocking
   const updateAuthState = useCallback(async (user: User | null, session: Session | null) => {
     console.log('updateAuthState called:', { user: user?.id, session: !!session });
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-
+    
     if (user && session) {
-      try {
-        // Inline profile fetching to avoid dependency loop
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching profile:', error);
-        }
-
-        const newState = {
-          user: { ...user, profile: profile || undefined },
-          session,
-          profile: profile || null,
-          isLoading: false,
-          isAuthenticated: true,
-          error: null,
-        };
-        console.log('Setting authenticated state:', newState);
-        setAuthState(newState);
-      } catch (error) {
-        console.error('Profile fetch error:', error);
-        const newState = {
-          user: { ...user, profile: undefined },
-          session,
-          profile: null,
-          isLoading: false,
-          isAuthenticated: true,
-          error: null,
-        };
-        console.log('Setting authenticated state (no profile):', newState);
-        setAuthState(newState);
-      }
+      // Set authenticated state immediately, fetch profile in background
+      setAuthState({
+        user: { ...user, profile: undefined },
+        session,
+        profile: null,
+        isLoading: false,
+        isAuthenticated: true,
+        error: null,
+      });
+      
+      // Fetch profile in background without blocking authentication
+      fetchProfile(user.id)
+        .then(profile => {
+          setAuthState(prev => ({
+            ...prev,
+            user: { ...user, profile: profile || undefined },
+            profile: profile || null,
+          }));
+        })
+        .catch(error => {
+          console.error('Profile fetch error:', error);
+        });
     } else {
-      const newState = {
+      setAuthState({
         user: null,
         session: null,
         profile: null,
         isLoading: false,
         isAuthenticated: false,
         error: null,
-      };
-      console.log('Setting unauthenticated state:', newState);
-      setAuthState(newState);
+      });
     }
   }, []);
 
@@ -401,77 +385,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [authState.user, fetchProfile, mapAuthError]);
 
-  // Initialize authentication and set up listeners
+  // Initialize authentication and set up listeners - simplified
   useEffect(() => {
-    let mounted = true;
-
+    console.log('AuthProvider: Initializing authentication');
+    
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-
-        console.log('Auth state changed:', event, session?.user?.id);
-
-        // Handle different auth events
-        switch (event) {
-          case 'SIGNED_IN':
-          case 'TOKEN_REFRESHED':
-            if (session?.user) {
-              await updateAuthState(session.user, session);
-              setupSessionTimeout();
-            }
-            break;
-          case 'SIGNED_OUT':
-            if (sessionTimeout) {
-              clearTimeout(sessionTimeout);
-              setSessionTimeout(null);
-            }
-            await updateAuthState(null, null);
-            break;
-          default:
-            break;
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, { session: !!session });
+      updateAuthState(session?.user || null, session || null);
+      
+      if (session) {
+        setupSessionTimeout();
+      } else if (sessionTimeout) {
+        clearTimeout(sessionTimeout);
+        setSessionTimeout(null);
       }
-    );
+    });
 
     // Check for existing session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session retrieval error:', error);
-          if (mounted) {
-            setAuthState(prev => ({ 
-              ...prev, 
-              isLoading: false, 
-              error: mapAuthError(error) 
-            }));
-          }
-          return;
-        }
-
-        if (mounted) {
-          await updateAuthState(session?.user || null, session);
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (mounted) {
-          setAuthState(prev => ({ 
-            ...prev, 
-            isLoading: false, 
-            error: mapAuthError(error as Error) 
-          }));
-        }
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error) }));
+        return;
       }
-    };
+      
+      updateAuthState(session?.user || null, session || null);
+      if (session) {
+        setupSessionTimeout();
+      }
+    });
 
-    initializeAuth();
-
-    // Cleanup function
+    // Cleanup
     return () => {
-      mounted = false;
+      console.log('AuthProvider: Cleaning up');
       subscription.unsubscribe();
+      if (sessionTimeout) {
+        clearTimeout(sessionTimeout);
+      }
     };
   }, []);
 

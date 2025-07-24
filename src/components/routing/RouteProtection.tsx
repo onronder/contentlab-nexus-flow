@@ -21,7 +21,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAuth = true,
   redirectTo,
   fallback,
-  timeout = 10000 // 10 second timeout
+  timeout = 5000 // 5 second timeout
 }) => {
   const location = useLocation();
   const { isAuthenticated, isLoading, error } = useAuth();
