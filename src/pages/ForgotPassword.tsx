@@ -5,18 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuthOperations, useAuthGuard } from '@/hooks';
+import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@supabase/auth-helpers-react';
 import { Mail, ArrowLeft, Clock, Shield, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const { resetUserPassword, isSubmitting, operationError, clearOperationError } = useAuthOperations();
-  const { shouldRender } = useAuthGuard({ 
-    requireAuth: false, 
-    redirectIfAuthenticated: true,
-    redirectTo: '/'
-  });
+  const { resetPassword } = useAuth();
+  const user = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
 
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -24,10 +23,12 @@ const ForgotPassword = () => {
   const [canResend, setCanResend] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
-  // Clear operation error when component mounts
+  // Redirect if authenticated
   useEffect(() => {
-    clearOperationError();
-  }, [clearOperationError]);
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   // Handle resend countdown
   useEffect(() => {
@@ -68,24 +69,34 @@ const ForgotPassword = () => {
     
     if (!validateEmail(email)) return;
 
-    const success = await resetUserPassword(email);
+    setIsSubmitting(true);
+    setOperationError(null);
+
+    const { error } = await resetPassword(email);
     
-    if (success) {
+    if (!error) {
       setResetSent(true);
       setCanResend(false);
       setResendCountdown(60); // 60 second cooldown
+    } else {
+      setOperationError(error);
     }
+    
+    setIsSubmitting(false);
   };
 
   const handleResend = async () => {
     if (!canResend || isSubmitting) return;
     
-    const success = await resetUserPassword(email);
+    setIsSubmitting(true);
+    const { error } = await resetPassword(email);
     
-    if (success) {
+    if (!error) {
       setCanResend(false);
       setResendCountdown(60);
     }
+    
+    setIsSubmitting(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -94,7 +105,7 @@ const ForgotPassword = () => {
     }
   };
 
-  if (!shouldRender) {
+  if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

@@ -1,12 +1,13 @@
 import { useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts';
+import { useUser } from '@supabase/auth-helpers-react';
 import { useSessionManager } from './useSessionManager';
 
 /**
  * Hook for monitoring security events and suspicious activities
  */
 export const useSecurityMonitoring = () => {
-  const { user, isAuthenticated } = useAuth();
+  const user = useUser();
+  const isAuthenticated = !!user;
   const { logSecurityEvent } = useSessionManager();
 
   // Monitor for potential security threats

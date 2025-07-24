@@ -1,8 +1,5 @@
 // Authentication hooks
-export { useAuth } from '../contexts';
-export { useCurrentUserId, useIsAuthenticated } from './useAuthHelpers';
-export { useProjectPermissions } from './useProjectPermissions';
-export type { ProjectPermissions } from './useProjectPermissions';
+export { useAuth } from './useAuth';
 
 // Project data hooks
 export {
@@ -23,8 +20,8 @@ export {
 } from './mutations/useProjectMutations';
 
 // Other hooks
-export { useAuthOperations } from './useAuthOperations';
-export { useAuthGuard } from './useAuthGuard';
+export { useProjectPermissions } from './useProjectPermissions';
+export type { ProjectPermissions } from './useProjectPermissions';
 export { useProfileImage } from './useProfileImage';
 export { useIsMobile } from './use-mobile';
 export { useToast } from './use-toast';

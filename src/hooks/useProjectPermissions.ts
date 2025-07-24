@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@supabase/auth-helpers-react';
 import { ProjectTeamMember, PermissionSet } from '@/types/projects';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -21,7 +21,7 @@ export function useProjectPermissions(projectId: string | null): {
   error: string | null;
   teamMember: ProjectTeamMember | null;
 } {
-  const { user } = useAuth();
+  const user = useUser();
   const [permissions, setPermissions] = useState<ProjectPermissions>({
     isOwner: false,
     isAdmin: false,

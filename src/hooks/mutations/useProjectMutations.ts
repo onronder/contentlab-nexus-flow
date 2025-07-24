@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@supabase/auth-helpers-react';
 import { queryKeys } from '@/lib/queryClient';
 import { 
   createProject, 
@@ -15,7 +15,7 @@ import { toast } from 'sonner';
  * Hook to create a new project with optimistic updates
  */
 export function useCreateProject() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -101,7 +101,7 @@ export function useCreateProject() {
  * Hook to update a project with optimistic updates
  */
 export function useUpdateProject() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -190,7 +190,7 @@ export function useUpdateProject() {
  * Hook to delete a project
  */
 export function useDeleteProject() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -252,7 +252,7 @@ export function useDeleteProject() {
  * Hook to archive a project
  */
 export function useArchiveProject() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -340,7 +340,7 @@ export function useArchiveProject() {
  * Hook to restore an archived project
  */
 export function useRestoreProject() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({

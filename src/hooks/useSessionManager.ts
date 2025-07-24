@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts';
+import { useUser } from '@supabase/auth-helpers-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -31,7 +31,7 @@ export interface SecurityEvent extends Omit<SecurityEventRow, 'event_data' | 'se
 }
 
 export const useSessionManager = () => {
-  const { user } = useAuth();
+  const user = useUser();
   const { toast } = useToast();
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);

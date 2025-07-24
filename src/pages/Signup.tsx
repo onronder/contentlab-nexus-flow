@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAuthOperations, useAuthGuard } from '@/hooks';
+import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@supabase/auth-helpers-react';
 import { Eye, EyeOff, Check, X, Info, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,12 +20,10 @@ interface PasswordRequirement {
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { signUpWithEmail, isSubmitting, operationError, clearOperationError } = useAuthOperations();
-  const { shouldRender } = useAuthGuard({ 
-    requireAuth: false, 
-    redirectIfAuthenticated: true,
-    redirectTo: '/'
-  });
+  const { signUp } = useAuth();
+  const user = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -53,10 +52,12 @@ const Signup = () => {
     acceptTerms: ''
   });
 
-  // Clear operation error when component mounts or form changes
+  // Redirect if authenticated
   useEffect(() => {
-    clearOperationError();
-  }, [clearOperationError]);
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     if (formData.password) {
@@ -139,9 +140,12 @@ const Signup = () => {
 
     if (!isValidForm) return;
 
-    const success = await signUpWithEmail(formData.email, formData.password, formData.fullName);
+    setIsSubmitting(true);
+    setOperationError(null);
+
+    const { error } = await signUp(formData.email, formData.password, formData.fullName);
     
-    if (success) {
+    if (!error) {
       // Show success message and redirect
       navigate('/login', { 
         state: { 
@@ -149,7 +153,11 @@ const Signup = () => {
           email: formData.email
         }
       });
+    } else {
+      setOperationError(error);
     }
+    
+    setIsSubmitting(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -170,7 +178,7 @@ const Signup = () => {
     return 'Strong';
   };
 
-  if (!shouldRender) {
+  if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

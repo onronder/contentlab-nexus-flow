@@ -15,7 +15,8 @@ import { AdvancedSearchDialog } from '@/components/projects/AdvancedSearchDialog
 import { ProjectBulkActions } from '@/components/projects/ProjectBulkActions';
 import { ProjectGridView } from '@/components/projects/ProjectGridView';
 import { ProjectListView } from '@/components/projects/ProjectListView';
-import { useProjects, useCurrentUserId } from '@/hooks';
+import { useProjects } from '@/hooks';
+import { useUser } from '@supabase/auth-helpers-react';
 import { useAdvancedProjectFilters } from '@/hooks/useAdvancedProjectFilters';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAccessibleAnnouncement } from '@/hooks/useAccessibleAnnouncement';
@@ -31,7 +32,8 @@ type ViewMode = 'grid' | 'list';
 const Projects = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const currentUserId = useCurrentUserId();
+  const user = useUser();
+  const currentUserId = user?.id;
   
   // Accessibility hooks
   const { announce, announceResultCount, announceSelectionChange } = useAccessibleAnnouncement();

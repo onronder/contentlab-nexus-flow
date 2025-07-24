@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts';
-import { useAuthGuard } from '@/hooks';
+import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@supabase/auth-helpers-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,17 +19,18 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{email?: string; password?: string; general?: string}>({});
 
-  const { signIn, error: authError } = useAuth();
+  const { signIn } = useAuth();
+  const user = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
   // Redirect if already authenticated
-  useAuthGuard({
-    requireAuth: false,
-    redirectIfAuthenticated: true,
-    redirectTo: location.state?.from?.pathname || '/'
-  });
+  React.useEffect(() => {
+    if (user) {
+      navigate(location.state?.from?.pathname || '/');
+    }
+  }, [user, navigate, location]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -119,12 +120,6 @@ const Login = () => {
     }
   };
 
-  // Clear general errors when auth error changes
-  useEffect(() => {
-    if (authError && errors.general !== authError) {
-      setErrors(prev => ({ ...prev, general: authError }));
-    }
-  }, [authError, errors.general]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20 p-4">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -24,16 +24,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   timeout = 15000 // 15 second timeout for slower connections
 }) => {
   const location = useLocation();
-  const { isAuthenticated, isLoading, error } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   // Add debug logging
   useEffect(() => {
-    const log = `[${new Date().toLocaleTimeString()}] Auth state - Loading: ${isLoading}, Authenticated: ${isAuthenticated}, Error: ${error}`;
+    const log = `[${new Date().toLocaleTimeString()}] Auth state - Loading: ${isLoading}, Authenticated: ${isAuthenticated}`;
     console.log('ProtectedRoute:', log);
     setDebugInfo(prev => [...prev.slice(-4), log]); // Keep last 5 logs
-  }, [isLoading, isAuthenticated, error]);
+  }, [isLoading, isAuthenticated]);
 
   // Handle authentication timeout
   useEffect(() => {
@@ -141,29 +141,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Handle authentication error
-  if (error) {
-    console.error('ProtectedRoute: Authentication error:', error);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="max-w-md mx-auto text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-foreground">Authentication Error</h2>
-            <p className="text-sm text-muted-foreground">
-              {error}
-            </p>
-          </div>
-          <Button 
-            onClick={() => window.location.href = getRedirectUrl()}
-            className="w-full"
-          >
-            Go to Login
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   // Redirect if authentication requirements aren't met
   if (requireAuth && !isAuthenticated) {
@@ -187,7 +164,7 @@ export const PublicRoute: React.FC<ProtectedRouteProps> = ({
   timeout = 10000
 }) => {
   const location = useLocation();
-  const { isAuthenticated, isLoading, error } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
   // Handle authentication timeout
@@ -249,10 +226,6 @@ export const PublicRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Handle authentication error
-  if (error) {
-    console.error('PublicRoute: Authentication error:', error);
-  }
 
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && !isLoading) {
