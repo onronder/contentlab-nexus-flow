@@ -329,35 +329,77 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [authState.user, fetchProfile, mapAuthError]);
 
-  // Initialize authentication and set up listeners - simplified
+  // Initialize authentication and set up listeners - simplified and fixed
   useEffect(() => {
     console.log('AuthProvider: Initializing authentication');
     
+    let mounted = true;
+    
     // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, { session: !!session });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, { 
+        session: !!session, 
+        accessToken: !!session?.access_token,
+        userId: session?.user?.id 
+      });
       
-      // Handle auth events synchronously
+      if (!mounted) return;
+      
+      // Handle auth events and ensure proper session state
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        updateAuthState(session?.user || null, session || null);
+        if (session?.access_token && session?.user) {
+          console.log('Valid session found, updating auth state');
+          updateAuthState(session.user, session);
+        } else {
+          console.log('Invalid session, clearing auth state');
+          updateAuthState(null, null);
+        }
       } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out, clearing auth state');
         updateAuthState(null, null);
       }
     });
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-        setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error) }));
-        return;
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error) }));
+          }
+          return;
+        }
+        
+        console.log('Initial session check:', { 
+          session: !!session, 
+          accessToken: !!session?.access_token,
+          userId: session?.user?.id 
+        });
+        
+        if (mounted) {
+          if (session?.access_token && session?.user) {
+            updateAuthState(session.user, session);
+          } else {
+            updateAuthState(null, null);
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+        if (mounted) {
+          setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error as Error) }));
+        }
       }
-      
-      console.log('Initial session check:', { session: !!session });
-      updateAuthState(session?.user || null, session || null);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    checkInitialSession();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [updateAuthState, mapAuthError]);
 
   // Memoize context value to prevent unnecessary re-renders

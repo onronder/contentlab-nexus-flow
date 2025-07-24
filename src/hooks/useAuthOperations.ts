@@ -80,13 +80,16 @@ export const useAuthOperations = (): UseAuthOperationsReturn => {
     setOperationError(null);
 
     try {
+      console.log('useAuthOperations: Starting sign out');
       const { error } = await signOut();
       
       if (error) {
+        console.error('useAuthOperations: Sign out error:', error);
         setOperationError(error);
         return false;
       }
 
+      console.log('useAuthOperations: Sign out successful, redirecting');
       // Force page refresh after successful logout to ensure clean state
       setTimeout(() => {
         window.location.href = '/login';
@@ -94,6 +97,7 @@ export const useAuthOperations = (): UseAuthOperationsReturn => {
 
       return true;
     } catch (error) {
+      console.error('useAuthOperations: Sign out exception:', error);
       setOperationError('An unexpected error occurred during sign out');
       return false;
     } finally {
@@ -106,13 +110,16 @@ export const useAuthOperations = (): UseAuthOperationsReturn => {
     setOperationError(null);
 
     try {
+      console.log('useAuthOperations: Starting global sign out');
       const { error } = await signOutFromAllDevices();
       
       if (error) {
+        console.error('useAuthOperations: Global sign out error:', error);
         setOperationError(error);
         return false;
       }
 
+      console.log('useAuthOperations: Global sign out successful, redirecting');
       // Force page refresh after successful logout to ensure clean state
       setTimeout(() => {
         window.location.href = '/login';
@@ -120,6 +127,7 @@ export const useAuthOperations = (): UseAuthOperationsReturn => {
 
       return true;
     } catch (error) {
+      console.error('useAuthOperations: Global sign out exception:', error);
       setOperationError('An unexpected error occurred during sign out');
       return false;
     } finally {
