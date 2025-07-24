@@ -27,13 +27,15 @@ interface ProjectAnalyticsData {
 
 export async function createProject(userId: string, projectData: ProjectCreationInput): Promise<Project> {
   try {
-    // Validate session before creating project
-    const validatedUserId = await validateAndRefreshSession();
+    // Get current session to ensure user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    // Ensure the validated user ID matches the provided user ID
-    if (validatedUserId !== userId) {
-      throw new Error('User session mismatch. Please log in again.');
+    if (authError || !user) {
+      throw new Error('Authentication required. Please log in again.');
     }
+    
+    // Use the authenticated user's ID directly
+    const authenticatedUserId = user.id;
 
     const { data, error } = await supabase
       .from('projects')
@@ -53,7 +55,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
         tags: projectData.tags,
         start_date: projectData.startDate?.toISOString(),
         target_end_date: projectData.targetEndDate?.toISOString(),
-        created_by: validatedUserId, // Explicitly set created_by
+        created_by: authenticatedUserId, // Explicitly set created_by
         status: 'planning',
         priority: 'medium'
       })
@@ -80,7 +82,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
       .from('project_team_members')
       .insert({
         project_id: data.id,
-        user_id: validatedUserId,
+        user_id: authenticatedUserId,
         role: 'owner',
         invitation_status: 'active',
         permissions: {
