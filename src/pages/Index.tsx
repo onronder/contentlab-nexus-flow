@@ -1,10 +1,40 @@
 
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Target, Users, BarChart3, FileText, TrendingUp, Crown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks";
 
 const Index = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users to projects dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate('/projects', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center shadow-glow mx-auto animate-pulse">
+            <Crown className="h-8 w-8 text-primary-foreground" />
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show landing page for unauthenticated users
+  if (isAuthenticated) {
+    return null; // Will redirect
+  }
   return (
     <div className="space-y-8">
       {/* Enhanced Hero Section */}
@@ -22,13 +52,15 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild variant="hero" size="xl" className="group">
-              <Link to="/competitive">
+              <Link to="/login">
                 <Target className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
-                Start Competitive Analysis
+                Get Started
               </Link>
             </Button>
-            <Button variant="glass" size="xl">
-              Watch Demo
+            <Button asChild variant="glass" size="xl">
+              <Link to="/login">
+                Sign In
+              </Link>
             </Button>
           </div>
         </div>
@@ -95,7 +127,7 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
-              <Link to="/competitive">Explore Features</Link>
+              <Link to="/login">Get Started</Link>
             </Button>
           </CardContent>
         </Card>
@@ -111,8 +143,8 @@ const Index = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full" disabled>
-              Coming Soon
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/login">Get Started</Link>
             </Button>
           </CardContent>
         </Card>
@@ -128,8 +160,8 @@ const Index = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full" disabled>
-              Coming Soon
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/login">Get Started</Link>
             </Button>
           </CardContent>
         </Card>
