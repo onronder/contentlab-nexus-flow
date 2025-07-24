@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { validateAndRefreshSession } from '@/utils/sessionUtils';
 import { 
   Project, 
   ProjectCreationInput, 
@@ -27,24 +26,7 @@ interface ProjectAnalyticsData {
 
 export async function createProject(userId: string, projectData: ProjectCreationInput): Promise<Project> {
   try {
-    // Validate authentication and get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError) {
-      console.error('Authentication error:', authError);
-      throw new Error(`Authentication failed: ${authError.message}`);
-    }
-    
-    if (!user?.id) {
-      throw new Error('No authenticated user found. Please log in again.');
-    }
-    
-    // Ensure user matches the provided userId (security check)
-    if (user.id !== userId) {
-      throw new Error('User session mismatch. Please refresh and try again.');
-    }
-    
-    console.log('Creating project for user:', user.id);
+    console.log('Creating project for user:', userId);
 
     const { data, error } = await supabase
       .from('projects')
@@ -64,7 +46,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
         tags: projectData.tags,
         start_date: projectData.startDate?.toISOString(),
         target_end_date: projectData.targetEndDate?.toISOString(),
-        created_by: user.id, // Use authenticated user ID
+        created_by: userId, // Use provided user ID
         status: 'planning',
         priority: 'medium'
       })
@@ -91,7 +73,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
       .from('project_team_members')
       .insert({
         project_id: data.id,
-        user_id: user.id,
+        user_id: userId,
         role: 'owner',
         invitation_status: 'active',
         permissions: {

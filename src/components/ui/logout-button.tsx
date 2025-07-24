@@ -72,9 +72,16 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
 
   if (!showConfirmDialog) {
     return (
-      <div onClick={() => handleLogout(false)}>
-        <LogoutButtonContent />
-      </div>
+      <Button
+        variant={variant}
+        size={size}
+        className={cn("gap-2", className)}
+        disabled={isSubmitting}
+        onClick={() => handleLogout(false)}
+      >
+        {showIcon && <LogOut className="h-4 w-4" />}
+        {children || "Sign out"}
+      </Button>
     );
   }
 

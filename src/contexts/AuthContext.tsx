@@ -21,97 +21,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
-  // Session timeout state - increased duration for better UX
-  const [sessionTimeout, setSessionTimeout] = useState<NodeJS.Timeout | null>(null);
-  const SESSION_TIMEOUT_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+  // Simplified state - remove complex session timeout and failed attempts tracking
 
-  // Failed login attempts tracking
-  const [failedAttempts, setFailedAttempts] = useState<Map<string, { count: number; lastAttempt: number }>>(new Map());
-
-  // Enhanced password validation
+  // Basic password validation - simplified
   const validatePassword = useCallback((password: string): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
     if (password.length < 8) errors.push('Password must be at least 8 characters long');
-    if (!/[A-Z]/.test(password)) errors.push('Password must contain at least one uppercase letter');
-    if (!/[a-z]/.test(password)) errors.push('Password must contain at least one lowercase letter');
-    if (!/\d/.test(password)) errors.push('Password must contain at least one number');
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('Password must contain at least one special character');
-    if (/(.)\1{2,}/.test(password)) errors.push('Password cannot contain more than 2 consecutive identical characters');
-    
-    // Check against common passwords
-    const commonPasswords = ['password', '123456', 'qwerty', 'admin', 'welcome'];
-    if (commonPasswords.some(common => password.toLowerCase().includes(common))) {
-      errors.push('Password contains common words and is not secure');
-    }
     
     return { isValid: errors.length === 0, errors };
   }, []);
-
-  // Check for account lockout
-  const isAccountLocked = useCallback((email: string): boolean => {
-    const attempts = failedAttempts.get(email);
-    if (!attempts) return false;
-    
-    const now = Date.now();
-    const lockoutDuration = 15 * 60 * 1000; // 15 minutes lockout
-    
-    return attempts.count >= 5 && (now - attempts.lastAttempt) < lockoutDuration;
-  }, [failedAttempts]);
-
-  // Record failed login attempt
-  const recordFailedAttempt = useCallback((email: string) => {
-    const now = Date.now();
-    const current = failedAttempts.get(email) || { count: 0, lastAttempt: 0 };
-    
-    // Reset count if last attempt was more than 1 hour ago
-    if (now - current.lastAttempt > 60 * 60 * 1000) {
-      current.count = 0;
-    }
-    
-    current.count += 1;
-    current.lastAttempt = now;
-    
-    setFailedAttempts(new Map(failedAttempts.set(email, current)));
-  }, [failedAttempts]);
-
-  // Clear failed attempts on successful login
-  const clearFailedAttempts = useCallback((email: string) => {
-    const newMap = new Map(failedAttempts);
-    newMap.delete(email);
-    setFailedAttempts(newMap);
-  }, [failedAttempts]);
-
-  // Setup session timeout
-  const setupSessionTimeout = useCallback(() => {
-    if (sessionTimeout) {
-      clearTimeout(sessionTimeout);
-    }
-    
-    const timeout = setTimeout(async () => {
-      // Clear session timeout first to avoid recursion
-      setSessionTimeout(null);
-      
-      // Sign out manually to avoid circular dependency
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          console.error('Session timeout signout error:', error);
-        }
-      } catch (error) {
-        console.error('Session timeout signout error:', error);
-      }
-    }, SESSION_TIMEOUT_DURATION);
-    
-    setSessionTimeout(timeout);
-  }, [sessionTimeout, SESSION_TIMEOUT_DURATION]);
-
-  // Reset session timeout on activity
-  const resetSessionTimeout = useCallback(() => {
-    if (authState.isAuthenticated) {
-      setupSessionTimeout();
-    }
-  }, [authState.isAuthenticated, setupSessionTimeout]);
 
   // Helper function to map Supabase errors to user-friendly messages
   const mapAuthError = useCallback((error: AuthError | Error | null): string | null => {
@@ -162,12 +81,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Update authentication state - simplified to prevent blocking
-  const updateAuthState = useCallback(async (user: User | null, session: Session | null) => {
+  // Update authentication state - simplified and synchronous only
+  const updateAuthState = useCallback((user: User | null, session: Session | null) => {
     console.log('updateAuthState called:', { user: user?.id, session: !!session });
     
     if (user && session) {
-      // Set authenticated state immediately, fetch profile in background
       setAuthState({
         user: { ...user, profile: undefined },
         session,
@@ -177,18 +95,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
       
-      // Fetch profile in background without blocking authentication
-      fetchProfile(user.id)
-        .then(profile => {
-          setAuthState(prev => ({
-            ...prev,
-            user: { ...user, profile: profile || undefined },
-            profile: profile || null,
-          }));
-        })
-        .catch(error => {
-          console.error('Profile fetch error:', error);
-        });
+      // Fetch profile separately with setTimeout to avoid blocking
+      setTimeout(() => {
+        fetchProfile(user.id)
+          .then(profile => {
+            setAuthState(prev => ({
+              ...prev,
+              user: { ...user, profile: profile || undefined },
+              profile: profile || null,
+            }));
+          })
+          .catch(error => {
+            console.error('Profile fetch error:', error);
+          });
+      }, 0);
     } else {
       setAuthState({
         user: null,
@@ -199,14 +119,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
     }
-  }, []);
+  }, [fetchProfile]);
 
-  // Sign up new user
+  // Sign up new user - simplified
   const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Enhanced password validation
       const passwordValidation = validatePassword(password);
       if (!passwordValidation.isValid) {
         const errorMessage = passwordValidation.errors.join('. ');
@@ -240,17 +159,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [mapAuthError, validatePassword]);
 
-  // Sign in existing user
+  // Sign in existing user - simplified
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-
-      // Check for account lockout
-      if (isAccountLocked(email)) {
-        const errorMessage = 'Account temporarily locked due to multiple failed attempts. Please try again in 15 minutes.';
-        setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
-        return { error: errorMessage };
-      }
 
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -258,40 +170,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
-        // Record failed attempt
-        recordFailedAttempt(email);
-        
         const errorMessage = mapAuthError(error);
         setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
         return { error: errorMessage };
       }
 
-      // Clear failed attempts on successful login
-      clearFailedAttempts(email);
-      
-      // Setup session timeout
-      setupSessionTimeout();
-
       return { error: null };
     } catch (error) {
-      recordFailedAttempt(email);
       const errorMessage = mapAuthError(error as Error);
       setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
       return { error: errorMessage };
     }
-  }, [mapAuthError, isAccountLocked, recordFailedAttempt, clearFailedAttempts, setupSessionTimeout]);
+  }, [mapAuthError]);
 
-  // Sign out user with complete cleanup
+  // Sign out user - simplified
   const signOut = useCallback(async () => {
     try {
       console.log('AuthProvider: Signing out user');
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-
-      // Clear session timeout first
-      if (sessionTimeout) {
-        clearTimeout(sessionTimeout);
-        setSessionTimeout(null);
-      }
 
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
@@ -312,17 +208,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
 
-      // Clear any failed attempts
-      setFailedAttempts(new Map());
-
-      // Clear localStorage items that might persist auth state
-      try {
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('sb-auth-token');
-      } catch (e) {
-        console.warn('Could not clear localStorage:', e);
-      }
-
       console.log('AuthProvider: Sign out completed successfully');
       return { error: null };
     } catch (error) {
@@ -330,9 +215,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
       return { error: errorMessage };
     }
-  }, [mapAuthError, sessionTimeout]);
+  }, [mapAuthError]);
 
-  // Sign out from all devices
+  // Sign out from all devices - simplified
   const signOutFromAllDevices = useCallback(async () => {
     try {
       console.log('AuthProvider: Signing out from all devices');
@@ -356,17 +241,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: false,
         error: null,
       });
-
-      // Clear any failed attempts
-      setFailedAttempts(new Map());
-
-      // Clear localStorage items that might persist auth state
-      try {
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('sb-auth-token');
-      } catch (e) {
-        console.warn('Could not clear localStorage:', e);
-      }
 
       console.log('AuthProvider: Global sign out completed successfully');
       return { error: null };
@@ -462,75 +336,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event, { session: !!session });
       
-      // Handle different auth events
+      // Handle auth events synchronously
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         updateAuthState(session?.user || null, session || null);
-        if (session) {
-          setupSessionTimeout();
-        }
       } else if (event === 'SIGNED_OUT') {
         updateAuthState(null, null);
-        if (sessionTimeout) {
-          clearTimeout(sessionTimeout);
-          setSessionTimeout(null);
-        }
       }
     });
 
     // Then check for existing session
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error) }));
-          return;
-        }
-        
-        console.log('Initial session check:', { session: !!session });
-        updateAuthState(session?.user || null, session || null);
-        
-        if (session) {
-          setupSessionTimeout();
-        }
-      } catch (error) {
-        console.error('Session check error:', error);
-        setAuthState(prev => ({ ...prev, isLoading: false, error: 'Failed to check authentication' }));
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error) }));
+        return;
       }
-    };
-    
-    // Small delay to ensure listener is ready
-    setTimeout(checkSession, 100);
+      
+      console.log('Initial session check:', { session: !!session });
+      updateAuthState(session?.user || null, session || null);
+    });
 
-    // Cleanup
-    return () => {
-      console.log('AuthProvider: Cleaning up');
-      subscription.unsubscribe();
-      if (sessionTimeout) {
-        clearTimeout(sessionTimeout);
-      }
-    };
-  }, []);
-
-  // Set up activity listeners for session timeout reset
-  useEffect(() => {
-    if (!authState.isAuthenticated) return;
-
-    const handleActivity = () => resetSessionTimeout();
-    
-    window.addEventListener('mousedown', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('scroll', handleActivity);
-    window.addEventListener('touchstart', handleActivity);
-
-    return () => {
-      window.removeEventListener('mousedown', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
-    };
-  }, [authState.isAuthenticated, resetSessionTimeout]);
+    return () => subscription.unsubscribe();
+  }, [updateAuthState, mapAuthError]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
