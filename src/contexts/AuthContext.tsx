@@ -75,17 +75,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
     if (user && session) {
-      // Fetch user profile
-      const profile = await fetchProfile(user.id);
-      
-      setAuthState({
-        user: { ...user, profile: profile || undefined },
-        session,
-        profile,
-        isLoading: false,
-        isAuthenticated: true,
-        error: null,
-      });
+      try {
+        // Inline profile fetching to avoid dependency loop
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+        }
+
+        setAuthState({
+          user: { ...user, profile: profile || undefined },
+          session,
+          profile: profile || null,
+          isLoading: false,
+          isAuthenticated: true,
+          error: null,
+        });
+      } catch (error) {
+        console.error('Profile fetch error:', error);
+        setAuthState({
+          user: { ...user, profile: undefined },
+          session,
+          profile: null,
+          isLoading: false,
+          isAuthenticated: true,
+          error: null,
+        });
+      }
     } else {
       setAuthState({
         user: null,
@@ -96,7 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         error: null,
       });
     }
-  }, [fetchProfile]);
+  }, []);
 
   // Sign up new user
   const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
@@ -286,11 +306,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (error) {
           console.error('Session retrieval error:', error);
-          setAuthState(prev => ({ 
-            ...prev, 
-            isLoading: false, 
-            error: mapAuthError(error) 
-          }));
+          if (mounted) {
+            setAuthState(prev => ({ 
+              ...prev, 
+              isLoading: false, 
+              error: mapAuthError(error) 
+            }));
+          }
           return;
         }
 
@@ -316,7 +338,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [updateAuthState, mapAuthError]);
+  }, []);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
