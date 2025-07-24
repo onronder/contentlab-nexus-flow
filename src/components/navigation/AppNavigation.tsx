@@ -91,7 +91,7 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, profile, isAuthenticated } = useAuth();
+  const { user, profile, isAuthenticated, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 
@@ -196,15 +196,14 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <div className="cursor-pointer w-full">
-            <LogoutButton 
-              variant="ghost" 
-              className="w-full justify-start h-auto px-0 py-0 font-normal"
-              showConfirmDialog={false}
-              size="sm"
-            />
-          </div>
+        <DropdownMenuItem 
+          className="cursor-pointer text-destructive focus:text-destructive"
+          onClick={() => {
+            signOut();
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Sign out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -241,16 +240,6 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
 
         {/* Right side actions */}
         <div className="flex items-center gap-4">
-          {/* Desktop logout button - prominent for authenticated users */}
-          {isAuthenticated && (
-            <div className="hidden md:flex">
-              <LogoutButton 
-                variant="outline" 
-                size="sm"
-                className="border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              />
-            </div>
-          )}
           
           {/* Mobile menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
