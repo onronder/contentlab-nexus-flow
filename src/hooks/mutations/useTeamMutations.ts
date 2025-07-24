@@ -27,7 +27,7 @@ interface UpdateTeamMemberInput {
  * Hook to invite a new team member
  */
 export function useInviteTeamMember() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -126,7 +126,7 @@ export function useInviteTeamMember() {
  * Hook to update team member role or permissions
  */
 export function useUpdateTeamMember() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -187,7 +187,7 @@ export function useUpdateTeamMember() {
  * Hook to remove team member from project
  */
 export function useRemoveTeamMember() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -259,7 +259,7 @@ export function useSearchUsers() {
  * Hook to get current user's permissions for a project
  */
 export function useUserProjectPermissions(projectId: string | null) {
-  const { user } = useAuth();
+  const user = useUser();
   
   return useMutation({
     mutationFn: async () => {

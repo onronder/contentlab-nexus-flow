@@ -47,7 +47,7 @@ interface ProjectActivityFeedProps {
 }
 
 export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
-  const { user } = useAuth();
+  const user = useUser();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');

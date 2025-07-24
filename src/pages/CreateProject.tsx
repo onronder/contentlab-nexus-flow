@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { ProjectCreationWizard } from '@/components/projects/ProjectCreationWizard';
 import { ProjectCreationInput } from '@/types/projects';
 import { createProject } from '@/services/projectService';

@@ -1,5 +1,8 @@
 // Authentication hooks
 export { useAuth } from './useAuth';
+export { useCurrentUserId } from './useCurrentUserId';
+export { useAuthOperations } from './useAuthOperations';
+export { useAuthGuard } from './useAuthGuard';
 
 // Project data hooks
 export {

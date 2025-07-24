@@ -1,5 +1,6 @@
 import { useUser, useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 export function useAuth() {
@@ -7,6 +8,27 @@ export function useAuth() {
   const session = useSession();
   const supabase = useSupabaseClient();
   const navigate = useNavigate();
+
+  // Fetch user profile
+  const { data: profile, refetch: refreshProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -76,11 +98,14 @@ export function useAuth() {
   return {
     user,
     session,
+    profile,
     isAuthenticated: !!user,
     isLoading: user === undefined,
+    error: null, // Add error state for compatibility
     signIn,
     signUp,
     signOut,
     resetPassword,
+    refreshProfile,
   };
 }

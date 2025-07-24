@@ -11,7 +11,7 @@ import { toast } from 'sonner';
  * Hook for bulk operations on projects
  */
 export function useBulkOperations() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   // Bulk archive mutation

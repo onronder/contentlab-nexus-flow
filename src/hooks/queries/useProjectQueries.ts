@@ -21,7 +21,7 @@ import { toast } from 'sonner';
  * Hook to fetch all user projects with real-time updates
  */
 export function useProjects() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -77,7 +77,7 @@ export function useProjects() {
  * Hook to fetch single project details
  */
 export function useProject(projectId: string | null) {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   const query = useQuery({

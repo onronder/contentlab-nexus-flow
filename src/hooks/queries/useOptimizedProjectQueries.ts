@@ -29,7 +29,7 @@ function useDebounce(callback: (...args: any[]) => void, delay: number) {
  * Optimized hook to fetch all user projects with intelligent caching
  */
 export function useOptimizedProjects() {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -119,7 +119,7 @@ export function useOptimizedProjects() {
  * Optimized single project hook with smart caching
  */
 export function useOptimizedProject(projectId: string | null) {
-  const { user } = useAuth();
+  const user = useUser();
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -339,7 +339,7 @@ export function useOptimizedProjectCompetitors(projectId: string | null) {
  * Infinite query for large project lists with virtual scrolling support
  */
 export function useInfiniteProjects(pageSize = 20) {
-  const { user } = useAuth();
+  const user = useUser();
 
   return useInfiniteQuery({
     queryKey: ['projects', 'infinite', user?.id, pageSize],
