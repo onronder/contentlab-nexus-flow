@@ -26,7 +26,7 @@ import {
   Users
 } from 'lucide-react';
 import { format, isToday, isYesterday, subDays } from 'date-fns';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@supabase/auth-helpers-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 

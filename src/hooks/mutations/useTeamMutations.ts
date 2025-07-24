@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@supabase/auth-helpers-react';
 import { queryKeys } from '@/lib/queryClient';
 import { supabase } from '@/integrations/supabase/client';
 import { ProjectTeamMember, TeamRole, PermissionSet } from '@/types/projects';
