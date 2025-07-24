@@ -24,6 +24,7 @@ import { devLog } from '@/utils/productionUtils';
 import { useFocusManagement } from '@/hooks/useFocusManagement';
 import { Project } from '@/types/projects';
 import { useToast } from '@/hooks/use-toast';
+import { AuthDebugPanel } from '@/components/debug/AuthDebugPanel';
 
 type ViewMode = 'grid' | 'list';
 

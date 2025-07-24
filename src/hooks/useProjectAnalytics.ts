@@ -27,14 +27,11 @@ export function useProjectAnalytics() {
           // Log specific analytics errors for debugging
           console.error(`Analytics Error [${error.code}]:`, error.message, error.details);
           
-          // Show user-friendly error messages
+          // Only show toasts for critical errors, not empty data states
           switch (error.code) {
             case 'NO_DATA':
-              toast({
-                title: "No Data Available",
-                description: "Create some projects to see analytics data.",
-                variant: "default"
-              });
+              // Don't show toast for no data - handle this gracefully in UI
+              console.log('No analytics data available - user has no projects yet');
               break;
             case 'QUERY_ERROR':
               toast({

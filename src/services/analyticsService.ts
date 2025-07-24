@@ -53,7 +53,8 @@ class AnalyticsService {
         );
       }
       
-      if (!data) {
+      // Handle null data gracefully for analytics queries - only throw if it's unexpected
+      if (!data && !errorContext.includes('team member count')) {
         throw new AnalyticsServiceError(
           'NO_DATA',
           `No data returned for ${errorContext}`,
@@ -149,6 +150,11 @@ class AnalyticsService {
         .eq('invitation_status', 'active');
 
       if (error) return { data: null, error };
+
+      // Handle case where user has no projects yet - return 0 instead of throwing error
+      if (!data || data.length === 0) {
+        return { data: 0, error: null };
+      }
 
       // Count unique team members
       const uniqueMembers = new Set(data.map(member => member.user_id));
