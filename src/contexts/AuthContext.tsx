@@ -21,9 +21,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
-  // Session timeout state
+  // Session timeout state - increased duration for better UX
   const [sessionTimeout, setSessionTimeout] = useState<NodeJS.Timeout | null>(null);
-  const SESSION_TIMEOUT_DURATION = 30 * 60 * 1000; // 30 minutes
+  const SESSION_TIMEOUT_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 
   // Failed login attempts tracking
   const [failedAttempts, setFailedAttempts] = useState<Map<string, { count: number; lastAttempt: number }>>(new Map());
@@ -389,32 +389,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     console.log('AuthProvider: Initializing authentication');
     
-    // Set up auth state listener
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event, { session: !!session });
-      updateAuthState(session?.user || null, session || null);
       
-      if (session) {
-        setupSessionTimeout();
-      } else if (sessionTimeout) {
-        clearTimeout(sessionTimeout);
-        setSessionTimeout(null);
+      // Handle different auth events
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        updateAuthState(session?.user || null, session || null);
+        if (session) {
+          setupSessionTimeout();
+        }
+      } else if (event === 'SIGNED_OUT') {
+        updateAuthState(null, null);
+        if (sessionTimeout) {
+          clearTimeout(sessionTimeout);
+          setSessionTimeout(null);
+        }
       }
     });
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-        setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error) }));
-        return;
+    // Then check for existing session
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setAuthState(prev => ({ ...prev, isLoading: false, error: mapAuthError(error) }));
+          return;
+        }
+        
+        console.log('Initial session check:', { session: !!session });
+        updateAuthState(session?.user || null, session || null);
+        
+        if (session) {
+          setupSessionTimeout();
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+        setAuthState(prev => ({ ...prev, isLoading: false, error: 'Failed to check authentication' }));
       }
-      
-      updateAuthState(session?.user || null, session || null);
-      if (session) {
-        setupSessionTimeout();
-      }
-    });
+    };
+    
+    // Small delay to ensure listener is ready
+    setTimeout(checkSession, 100);
 
     // Cleanup
     return () => {
