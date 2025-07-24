@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Projects from "./pages/Projects";
 import CreateProject from "./pages/CreateProject";
+import ProjectDetail from "./pages/ProjectDetail";
 import Content from "./pages/Content";
 import Analytics from "./pages/Analytics";
 import TeamPage from "./pages/Team";
