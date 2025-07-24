@@ -1,3 +1,4 @@
+// Cache bust fix for resetSessionTimeout error - v2024.01.24
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
