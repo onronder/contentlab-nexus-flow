@@ -89,8 +89,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     
     const timeout = setTimeout(async () => {
-      await signOut();
-      // Could trigger a toast notification here about session timeout
+      // Clear session timeout first to avoid recursion
+      setSessionTimeout(null);
+      
+      // Sign out manually to avoid circular dependency
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('Session timeout signout error:', error);
+        }
+      } catch (error) {
+        console.error('Session timeout signout error:', error);
+      }
     }, SESSION_TIMEOUT_DURATION);
     
     setSessionTimeout(timeout);
@@ -154,6 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Update authentication state
   const updateAuthState = useCallback(async (user: User | null, session: Session | null) => {
+    console.log('updateAuthState called:', { user: user?.id, session: !!session });
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
     if (user && session) {
@@ -169,34 +180,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.error('Error fetching profile:', error);
         }
 
-        setAuthState({
+        const newState = {
           user: { ...user, profile: profile || undefined },
           session,
           profile: profile || null,
           isLoading: false,
           isAuthenticated: true,
           error: null,
-        });
+        };
+        console.log('Setting authenticated state:', newState);
+        setAuthState(newState);
       } catch (error) {
         console.error('Profile fetch error:', error);
-        setAuthState({
+        const newState = {
           user: { ...user, profile: undefined },
           session,
           profile: null,
           isLoading: false,
           isAuthenticated: true,
           error: null,
-        });
+        };
+        console.log('Setting authenticated state (no profile):', newState);
+        setAuthState(newState);
       }
     } else {
-      setAuthState({
+      const newState = {
         user: null,
         session: null,
         profile: null,
         isLoading: false,
         isAuthenticated: false,
         error: null,
-      });
+      };
+      console.log('Setting unauthenticated state:', newState);
+      setAuthState(newState);
     }
   }, []);
 

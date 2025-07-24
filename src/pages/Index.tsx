@@ -12,7 +12,9 @@ const Index = () => {
 
   // Redirect authenticated users to projects dashboard
   useEffect(() => {
+    console.log('Index page auth state:', { isAuthenticated, isLoading });
     if (!isLoading && isAuthenticated) {
+      console.log('Redirecting to projects...');
       navigate('/projects', { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
