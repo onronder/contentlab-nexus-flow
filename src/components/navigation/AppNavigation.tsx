@@ -40,10 +40,10 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   {
     name: 'Dashboard',
-    href: '/',
+    href: '/projects',
     icon: Home,
-    requireAuth: false,
-    description: 'Overview and quick access'
+    requireAuth: true,
+    description: 'Project overview and management'
   },
   {
     name: 'Projects',

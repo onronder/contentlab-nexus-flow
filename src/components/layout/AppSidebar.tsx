@@ -54,16 +54,9 @@ export function AppSidebar() {
   const mainNavItems = [
     { 
       title: "Dashboard", 
-      url: "/", 
-      icon: Home,
-      description: "Overview & insights",
-      badge: null
-    },
-    { 
-      title: "Projects", 
-      url: "/projects", 
+      url: "/projects",
       icon: Building2,
-      description: "Project management",
+      description: "Project overview & management",
       badge: null
     },
     { 
