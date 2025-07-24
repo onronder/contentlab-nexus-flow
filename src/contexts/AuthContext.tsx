@@ -21,6 +21,88 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
+  // Session timeout state
+  const [sessionTimeout, setSessionTimeout] = useState<NodeJS.Timeout | null>(null);
+  const SESSION_TIMEOUT_DURATION = 30 * 60 * 1000; // 30 minutes
+
+  // Failed login attempts tracking
+  const [failedAttempts, setFailedAttempts] = useState<Map<string, { count: number; lastAttempt: number }>>(new Map());
+
+  // Enhanced password validation
+  const validatePassword = useCallback((password: string): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    if (password.length < 8) errors.push('Password must be at least 8 characters long');
+    if (!/[A-Z]/.test(password)) errors.push('Password must contain at least one uppercase letter');
+    if (!/[a-z]/.test(password)) errors.push('Password must contain at least one lowercase letter');
+    if (!/\d/.test(password)) errors.push('Password must contain at least one number');
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('Password must contain at least one special character');
+    if (/(.)\1{2,}/.test(password)) errors.push('Password cannot contain more than 2 consecutive identical characters');
+    
+    // Check against common passwords
+    const commonPasswords = ['password', '123456', 'qwerty', 'admin', 'welcome'];
+    if (commonPasswords.some(common => password.toLowerCase().includes(common))) {
+      errors.push('Password contains common words and is not secure');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }, []);
+
+  // Check for account lockout
+  const isAccountLocked = useCallback((email: string): boolean => {
+    const attempts = failedAttempts.get(email);
+    if (!attempts) return false;
+    
+    const now = Date.now();
+    const lockoutDuration = 15 * 60 * 1000; // 15 minutes lockout
+    
+    return attempts.count >= 5 && (now - attempts.lastAttempt) < lockoutDuration;
+  }, [failedAttempts]);
+
+  // Record failed login attempt
+  const recordFailedAttempt = useCallback((email: string) => {
+    const now = Date.now();
+    const current = failedAttempts.get(email) || { count: 0, lastAttempt: 0 };
+    
+    // Reset count if last attempt was more than 1 hour ago
+    if (now - current.lastAttempt > 60 * 60 * 1000) {
+      current.count = 0;
+    }
+    
+    current.count += 1;
+    current.lastAttempt = now;
+    
+    setFailedAttempts(new Map(failedAttempts.set(email, current)));
+  }, [failedAttempts]);
+
+  // Clear failed attempts on successful login
+  const clearFailedAttempts = useCallback((email: string) => {
+    const newMap = new Map(failedAttempts);
+    newMap.delete(email);
+    setFailedAttempts(newMap);
+  }, [failedAttempts]);
+
+  // Setup session timeout
+  const setupSessionTimeout = useCallback(() => {
+    if (sessionTimeout) {
+      clearTimeout(sessionTimeout);
+    }
+    
+    const timeout = setTimeout(async () => {
+      await signOut();
+      // Could trigger a toast notification here about session timeout
+    }, SESSION_TIMEOUT_DURATION);
+    
+    setSessionTimeout(timeout);
+  }, [sessionTimeout, SESSION_TIMEOUT_DURATION]);
+
+  // Reset session timeout on activity
+  const resetSessionTimeout = useCallback(() => {
+    if (authState.isAuthenticated) {
+      setupSessionTimeout();
+    }
+  }, [authState.isAuthenticated, setupSessionTimeout]);
+
   // Helper function to map Supabase errors to user-friendly messages
   const mapAuthError = useCallback((error: AuthError | Error | null): string | null => {
     if (!error) return null;
@@ -123,6 +205,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
+      // Enhanced password validation
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        const errorMessage = passwordValidation.errors.join('. ');
+        setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+        return { error: errorMessage };
+      }
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signUp({
@@ -147,12 +237,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
       return { error: errorMessage };
     }
-  }, [mapAuthError]);
+  }, [mapAuthError, validatePassword]);
 
   // Sign in existing user
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Check for account lockout
+      if (isAccountLocked(email)) {
+        const errorMessage = 'Account temporarily locked due to multiple failed attempts. Please try again in 15 minutes.';
+        setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+        return { error: errorMessage };
+      }
 
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -160,23 +257,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) {
+        // Record failed attempt
+        recordFailedAttempt(email);
+        
         const errorMessage = mapAuthError(error);
         setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
         return { error: errorMessage };
       }
 
+      // Clear failed attempts on successful login
+      clearFailedAttempts(email);
+      
+      // Setup session timeout
+      setupSessionTimeout();
+
       return { error: null };
     } catch (error) {
+      recordFailedAttempt(email);
       const errorMessage = mapAuthError(error as Error);
       setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
       return { error: errorMessage };
     }
-  }, [mapAuthError]);
+  }, [mapAuthError, isAccountLocked, recordFailedAttempt, clearFailedAttempts, setupSessionTimeout]);
 
   // Sign out user
   const signOut = useCallback(async () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Clear session timeout
+      if (sessionTimeout) {
+        clearTimeout(sessionTimeout);
+        setSessionTimeout(null);
+      }
 
       const { error } = await supabase.auth.signOut();
 
@@ -192,7 +305,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
       return { error: errorMessage };
     }
-  }, [mapAuthError]);
+  }, [mapAuthError, sessionTimeout]);
 
   // Reset password
   const resetPassword = useCallback(async (email: string) => {
@@ -288,9 +401,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           case 'TOKEN_REFRESHED':
             if (session?.user) {
               await updateAuthState(session.user, session);
+              setupSessionTimeout();
             }
             break;
           case 'SIGNED_OUT':
+            if (sessionTimeout) {
+              clearTimeout(sessionTimeout);
+              setSessionTimeout(null);
+            }
             await updateAuthState(null, null);
             break;
           default:
@@ -340,6 +458,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // Set up activity listeners for session timeout reset
+  useEffect(() => {
+    if (!authState.isAuthenticated) return;
+
+    const handleActivity = () => resetSessionTimeout();
+    
+    window.addEventListener('mousedown', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+    window.addEventListener('touchstart', handleActivity);
+
+    return () => {
+      window.removeEventListener('mousedown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [authState.isAuthenticated, resetSessionTimeout]);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     ...authState,
@@ -349,6 +486,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     updateProfile,
     refreshProfile,
+    validatePassword,
   }), [
     authState,
     signUp,
@@ -357,6 +495,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     updateProfile,
     refreshProfile,
+    validatePassword,
   ]);
 
   return (

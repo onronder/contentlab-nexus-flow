@@ -250,7 +250,7 @@ export const useSessionManager = () => {
     }
   }, [user, currentSessionId, toast, fetchSessions]);
 
-  // Log security event
+  // Log security event with enhanced tracking
   const logSecurityEvent = useCallback(async (
     eventType: string, 
     eventData: Record<string, any> = {},
@@ -259,19 +259,47 @@ export const useSessionManager = () => {
     if (!user) return;
 
     try {
+      // Get additional security context
+      const securityContext: Record<string, any> = {
+        ...eventData,
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent,
+        screen_resolution: `${screen.width}x${screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: navigator.language,
+        platform: navigator.platform,
+        session_id: currentSessionId,
+      };
+
+      // Detect suspicious patterns
+      if (eventType === 'login_failed') {
+        securityContext.consecutive_failures = true;
+        severity = 'warning';
+      }
+      
+      if (eventType === 'session_created') {
+        // Check for concurrent sessions
+        const activeSessions = sessions.filter(s => s.id !== currentSessionId);
+        if (activeSessions.length > 2) {
+          securityContext.multiple_sessions = true;
+          severity = 'warning';
+        }
+      }
+
       await supabase
         .from('security_events')
         .insert({
           user_id: user.id,
           event_type: eventType,
-          event_data: eventData,
+          event_data: securityContext,
           user_agent: navigator.userAgent,
-          severity
+          severity,
+          session_id: currentSessionId
         });
     } catch (error) {
       console.error('Error logging security event:', error);
     }
-  }, [user]);
+  }, [user, currentSessionId, sessions]);
 
   // Update session activity
   const updateSessionActivity = useCallback(async () => {
