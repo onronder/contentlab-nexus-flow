@@ -85,24 +85,43 @@ class AnalyticsService {
     archived: number;
   }> {
     return this.executeQuery(async () => {
-      // Get projects the user owns or is a member of
-      const { data: userProjects, error } = await supabase
+      // Get projects the user owns first
+      const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
+        .select('id, status, created_by')
+        .eq('created_by', userId);
+
+      if (ownedError) return { data: null, error: ownedError };
+
+      // Get projects where user is a team member
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_team_members')
         .select(`
-          id,
-          status,
-          created_by,
-          project_team_members!inner(user_id, invitation_status)
+          project_id,
+          projects!inner(id, status, created_by)
         `)
-        .or(`created_by.eq.${userId},project_team_members.user_id.eq.${userId}`)
-        .eq('project_team_members.invitation_status', 'active');
+        .eq('user_id', userId)
+        .eq('invitation_status', 'active');
 
-      if (error) return { data: null, error };
+      if (memberError) return { data: null, error: memberError };
 
-      // Deduplicate projects (user might be both owner and member)
-      const uniqueProjects = Array.from(
-        new Map(userProjects.map(p => [p.id, p])).values()
-      );
+      // Combine and deduplicate projects
+      const allProjects = new Map();
+      
+      // Add owned projects
+      ownedProjects.forEach(project => {
+        allProjects.set(project.id, project);
+      });
+      
+      // Add member projects (avoid duplicates)
+      memberProjects.forEach(member => {
+        const project = member.projects;
+        if (!allProjects.has(project.id)) {
+          allProjects.set(project.id, project);
+        }
+      });
+
+      const uniqueProjects = Array.from(allProjects.values());
 
       const counts = {
         total: uniqueProjects.length,
@@ -119,15 +138,14 @@ class AnalyticsService {
 
   async fetchTeamMemberCount(userId: string): Promise<number> {
     return this.executeQuery(async () => {
-      // Get unique team members across all user's projects
+      // Get team members from projects the user owns
       const { data, error } = await supabase
         .from('project_team_members')
         .select(`
           user_id,
-          project_id,
           projects!inner(created_by)
         `)
-        .or(`projects.created_by.eq.${userId}`)
+        .eq('projects.created_by', userId)
         .eq('invitation_status', 'active');
 
       if (error) return { data: null, error };
@@ -140,24 +158,45 @@ class AnalyticsService {
 
   async fetchProjectDurations(userId: string): Promise<number> {
     return this.executeQuery(async () => {
-      const { data, error } = await supabase
+      // Get owned projects with dates
+      const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
-        .select(`
-          start_date,
-          actual_end_date,
-          target_end_date,
-          status,
-          created_by,
-          project_team_members!inner(user_id, invitation_status)
-        `)
-        .or(`created_by.eq.${userId},project_team_members.user_id.eq.${userId}`)
-        .eq('project_team_members.invitation_status', 'active')
+        .select('start_date, actual_end_date, target_end_date, status')
+        .eq('created_by', userId)
         .not('start_date', 'is', null);
 
-      if (error) return { data: null, error };
+      if (ownedError) return { data: null, error: ownedError };
 
-      // Calculate durations for completed projects or current duration for active projects
-      const durations = data
+      // Get member projects with dates
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_team_members')
+        .select(`
+          projects!inner(start_date, actual_end_date, target_end_date, status, id)
+        `)
+        .eq('user_id', userId)
+        .eq('invitation_status', 'active')
+        .not('projects.start_date', 'is', null);
+
+      if (memberError) return { data: null, error: memberError };
+
+      // Combine and deduplicate projects
+      const allProjects = new Map();
+      
+      ownedProjects.forEach(project => {
+        allProjects.set(`owned_${project.start_date}`, project);
+      });
+      
+      memberProjects.forEach(member => {
+        const project = member.projects;
+        if (!allProjects.has(`owned_${project.start_date}`)) {
+          allProjects.set(`member_${project.id}`, project);
+        }
+      });
+
+      const uniqueProjects = Array.from(allProjects.values());
+
+      // Calculate durations
+      const durations = uniqueProjects
         .map(project => {
           if (!project.start_date) return null;
           
@@ -200,36 +239,63 @@ class AnalyticsService {
 
   async fetchProjectsByPriority(userId: string): Promise<Array<{ priority: string; count: number; percentage: number }>> {
     return this.executeQuery(async () => {
-      const { data, error } = await supabase
+      // Get owned projects
+      const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
-        .select(`
-          priority,
-          created_by,
-          project_team_members!inner(user_id, invitation_status)
-        `)
-        .or(`created_by.eq.${userId},project_team_members.user_id.eq.${userId}`)
-        .eq('project_team_members.invitation_status', 'active');
+        .select('id, priority')
+        .eq('created_by', userId);
 
-      if (error) return { data: null, error };
+      if (ownedError) return { data: null, error: ownedError };
+
+      // Get member projects
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_team_members')
+        .select(`
+          projects!inner(id, priority)
+        `)
+        .eq('user_id', userId)
+        .eq('invitation_status', 'active');
+
+      if (memberError) return { data: null, error: memberError };
+
+      // Combine and deduplicate projects
+      const allProjects = new Map();
+      
+      ownedProjects.forEach(project => {
+        allProjects.set(project.id, project);
+      });
+      
+      memberProjects.forEach(member => {
+        const project = member.projects;
+        if (!allProjects.has(project.id)) {
+          allProjects.set(project.id, project);
+        }
+      });
+
+      const uniqueProjects = Array.from(allProjects.values());
 
       // Count by priority
-      const priorityCounts = data.reduce((acc, project) => {
+      const priorityCounts = uniqueProjects.reduce((acc, project: any) => {
         const priority = project.priority || 'medium';
         acc[priority] = (acc[priority] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      const total = Object.values(priorityCounts).reduce((sum, count) => sum + count, 0);
+      const total = Object.values(priorityCounts).reduce((sum: number, count: unknown) => sum + (count as number), 0);
       
       if (total === 0) {
         return { data: [], error: null };
       }
 
-      const result = Object.entries(priorityCounts).map(([priority, count]) => ({
-        priority: priority.charAt(0).toUpperCase() + priority.slice(1),
-        count,
-        percentage: Math.round((count / total) * 100)
-      }));
+      const result = Object.entries(priorityCounts).map(([priority, count]) => {
+        const countNum = count as number;
+        const totalNum = total as number;
+        return {
+          priority: priority.charAt(0).toUpperCase() + priority.slice(1),
+          count: countNum,
+          percentage: Math.round((countNum / totalNum) * 100)
+        };
+      });
 
       return { data: result, error: null };
     }, 'projects by priority');
@@ -237,37 +303,64 @@ class AnalyticsService {
 
   async fetchProjectsByIndustry(userId: string): Promise<Array<{ industry: string; count: number; percentage: number }>> {
     return this.executeQuery(async () => {
-      const { data, error } = await supabase
+      // Get owned projects
+      const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
-        .select(`
-          industry,
-          created_by,
-          project_team_members!inner(user_id, invitation_status)
-        `)
-        .or(`created_by.eq.${userId},project_team_members.user_id.eq.${userId}`)
-        .eq('project_team_members.invitation_status', 'active');
+        .select('id, industry')
+        .eq('created_by', userId);
 
-      if (error) return { data: null, error };
+      if (ownedError) return { data: null, error: ownedError };
+
+      // Get member projects
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_team_members')
+        .select(`
+          projects!inner(id, industry)
+        `)
+        .eq('user_id', userId)
+        .eq('invitation_status', 'active');
+
+      if (memberError) return { data: null, error: memberError };
+
+      // Combine and deduplicate projects
+      const allProjects = new Map();
+      
+      ownedProjects.forEach(project => {
+        allProjects.set(project.id, project);
+      });
+      
+      memberProjects.forEach(member => {
+        const project = member.projects;
+        if (!allProjects.has(project.id)) {
+          allProjects.set(project.id, project);
+        }
+      });
+
+      const uniqueProjects = Array.from(allProjects.values());
 
       // Count by industry
-      const industryCounts = data.reduce((acc, project) => {
+      const industryCounts = uniqueProjects.reduce((acc, project: any) => {
         const industry = project.industry || 'Other';
         acc[industry] = (acc[industry] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      const total = Object.values(industryCounts).reduce((sum, count) => sum + count, 0);
+      const total = Object.values(industryCounts).reduce((sum: number, count: unknown) => sum + (count as number), 0);
       
       if (total === 0) {
         return { data: [], error: null };
       }
 
       const result = Object.entries(industryCounts)
-        .map(([industry, count]) => ({
-          industry,
-          count,
-          percentage: Math.round((count / total) * 100)
-        }))
+        .map(([industry, count]) => {
+          const countNum = count as number;
+          const totalNum = total as number;
+          return {
+            industry,
+            count: countNum,
+            percentage: Math.round((countNum / totalNum) * 100)
+          };
+        })
         .sort((a, b) => b.count - a.count)
         .slice(0, 10); // Top 10 industries
 
@@ -284,26 +377,46 @@ class AnalyticsService {
     progress: number;
   }>> {
     return this.executeQuery(async () => {
-      const { data, error } = await supabase
+      // Get owned projects with timeline data
+      const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
-        .select(`
-          id,
-          name,
-          start_date,
-          target_end_date,
-          actual_end_date,
-          status,
-          created_by,
-          project_team_members!inner(user_id, invitation_status)
-        `)
-        .or(`created_by.eq.${userId},project_team_members.user_id.eq.${userId}`)
-        .eq('project_team_members.invitation_status', 'active')
+        .select('id, name, start_date, target_end_date, actual_end_date, status')
+        .eq('created_by', userId)
         .not('start_date', 'is', null)
         .order('start_date', { ascending: true });
 
-      if (error) return { data: null, error };
+      if (ownedError) return { data: null, error: ownedError };
 
-      const timeline = data.map(project => {
+      // Get member projects with timeline data
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_team_members')
+        .select(`
+          projects!inner(id, name, start_date, target_end_date, actual_end_date, status)
+        `)
+        .eq('user_id', userId)
+        .eq('invitation_status', 'active')
+        .not('projects.start_date', 'is', null);
+
+      if (memberError) return { data: null, error: memberError };
+
+      // Combine and deduplicate projects
+      const allProjects = new Map();
+      
+      ownedProjects.forEach(project => {
+        allProjects.set(project.id, project);
+      });
+      
+      memberProjects.forEach(member => {
+        const project = member.projects;
+        if (!allProjects.has(project.id)) {
+          allProjects.set(project.id, project);
+        }
+      });
+
+      const uniqueProjects = Array.from(allProjects.values())
+        .sort((a: any, b: any) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+
+      const timeline = uniqueProjects.map((project: any) => {
         // Calculate progress based on status and dates
         let progress = 0;
         if (project.status === 'completed') {
