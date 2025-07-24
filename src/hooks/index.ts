@@ -31,3 +31,4 @@ export { useToast } from './use-toast';
 export { useStepperState } from './useStepperState';
 export { useSessionManager } from './useSessionManager';
 export { useSecurityMonitoring } from './useSecurityMonitoring';
+export { useBulkOperations } from './useBulkOperations';

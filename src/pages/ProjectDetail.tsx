@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Archive, Trash2, Share2, Download, MoreVertical } from 'lucide-react';
 import { useProject, useProjectAnalytics, useProjectTeamMembers } from '@/hooks/queries/useProjectQueries';
+import { useUpdateProject, useArchiveProject, useDeleteProject } from '@/hooks/mutations/useProjectMutations';
 import { useAuth } from '@/contexts/AuthContext';
+import { exportProjectDetails } from '@/utils/exportUtils';
+import { logError } from '@/utils/productionUtils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,50 +33,115 @@ export default function ProjectDetail() {
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId || null);
   const { data: analytics, isLoading: analyticsLoading } = useProjectAnalytics(projectId || null);
   const { data: teamMembers, isLoading: teamLoading } = useProjectTeamMembers(projectId || null);
+  
+  const updateProjectMutation = useUpdateProject();
+  const archiveProjectMutation = useArchiveProject();
+  const deleteProjectMutation = useDeleteProject();
 
   const handleBackToProjects = () => {
     navigate('/projects');
   };
 
   const handleEditProject = () => {
-    // TODO: Open edit modal or navigate to edit page
-    toast({
-      title: "Edit Project",
-      description: "Edit functionality will be implemented soon.",
-    });
+    // Navigate to edit page or open edit modal
+    navigate(`/projects/${projectId}/edit`);
   };
 
-  const handleArchiveProject = () => {
-    // TODO: Implement archive functionality
-    toast({
-      title: "Archive Project",
-      description: "Archive functionality will be implemented soon.",
-    });
+  const handleArchiveProject = async () => {
+    if (!project) return;
+    
+    const confirmed = confirm(`Are you sure you want to archive "${project.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await archiveProjectMutation.mutateAsync(project.id);
+      toast({
+        title: "Project Archived",
+        description: `${project.name} has been archived successfully.`,
+      });
+    } catch (error) {
+      logError(error as Error, 'Archive Project');
+      toast({
+        title: "Archive Failed",
+        description: "Failed to archive the project. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteProject = () => {
-    // TODO: Implement delete functionality with confirmation
-    toast({
-      title: "Delete Project",
-      description: "Delete functionality will be implemented soon.",
-      variant: "destructive",
-    });
+  const handleDeleteProject = async () => {
+    if (!project) return;
+    
+    const confirmed = confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await deleteProjectMutation.mutateAsync(project.id);
+      toast({
+        title: "Project Deleted",
+        description: `${project.name} has been deleted successfully.`,
+      });
+      navigate('/projects');
+    } catch (error) {
+      logError(error as Error, 'Delete Project');
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the project. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleShareProject = () => {
-    // TODO: Implement sharing functionality
-    toast({
-      title: "Share Project",
-      description: "Share functionality will be implemented soon.",
+    if (!project) return;
+    
+    const shareUrl = `${window.location.origin}/projects/${project.id}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: project.name,
+        text: project.description,
+        url: shareUrl,
+      }).catch((error) => {
+        logError(error, 'Share Project');
+        fallbackShare(shareUrl);
+      });
+    } else {
+      fallbackShare(shareUrl);
+    }
+  };
+
+  const fallbackShare = (url: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        title: "Link Copied",
+        description: "Project link has been copied to clipboard.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Share Project",
+        description: `Share this link: ${url}`,
+      });
     });
   };
 
   const handleExportProject = () => {
-    // TODO: Implement export functionality
-    toast({
-      title: "Export Project",
-      description: "Export functionality will be implemented soon.",
-    });
+    if (!project) return;
+    
+    try {
+      exportProjectDetails(project);
+      toast({
+        title: "Export Complete",
+        description: `${project.name} has been exported successfully.`,
+      });
+    } catch (error) {
+      logError(error as Error, 'Export Project');
+      toast({
+        title: "Export Failed",
+        description: "Failed to export the project. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (projectLoading) {

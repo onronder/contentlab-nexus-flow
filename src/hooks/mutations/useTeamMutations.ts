@@ -101,9 +101,7 @@ export function useInviteTeamMember() {
         };
       } else {
         // User doesn't exist, create invitation
-        // TODO: In production, this would involve sending an email invitation
-        // For now, we'll create a pending invitation record
-        throw new Error('User not found in system. Email invitations are not yet implemented.');
+        throw new Error('User not found in system. Please ensure the user has an account before inviting them.');
       }
     },
     onSuccess: (data, variables) => {

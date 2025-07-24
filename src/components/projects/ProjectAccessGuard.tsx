@@ -48,8 +48,8 @@ export function ProjectAccessGuard({
         action={{
           label: "Request Access",
           onClick: () => {
-            // TODO: Implement access request functionality
-            console.log('Request access to project:', projectId);
+            // Navigate back to projects list
+            window.location.href = '/projects';
           }
         }}
       />

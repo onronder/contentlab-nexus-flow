@@ -19,6 +19,8 @@ import { useProjects, useCurrentUserId } from '@/hooks';
 import { useAdvancedProjectFilters } from '@/hooks/useAdvancedProjectFilters';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAccessibleAnnouncement } from '@/hooks/useAccessibleAnnouncement';
+import { useBulkOperations } from '@/hooks/useBulkOperations';
+import { devLog } from '@/utils/productionUtils';
 import { useFocusManagement } from '@/hooks/useFocusManagement';
 import { Project } from '@/types/projects';
 import { useToast } from '@/hooks/use-toast';
@@ -131,42 +133,37 @@ const Projects = () => {
     announceSelectionChange(0, filteredProjects.length, 'projects');
   }, [filteredProjects.length, announceSelectionChange]);
 
+  // Bulk operations hook
+  const {
+    handleBulkArchive: bulkArchive,
+    handleBulkDelete: bulkDelete,
+    handleBulkStatusChange: bulkStatusChange,
+    handleBulkExport: bulkExport,
+    isArchiving,
+    isDeleting,
+    isUpdatingStatus,
+  } = useBulkOperations();
+
   // Bulk action handlers
   const handleBulkArchive = useCallback(() => {
-    // TODO: Implement bulk archive
-    toast({
-      title: "Archive Projects",
-      description: `${selectedProjects.length} projects will be archived.`,
-    });
+    bulkArchive(selectedProjects);
     setSelectedProjects([]);
-  }, [selectedProjects, toast]);
+  }, [selectedProjects, bulkArchive]);
 
   const handleBulkDelete = useCallback(() => {
-    // TODO: Implement bulk delete with confirmation
-    toast({
-      title: "Delete Projects",
-      description: `${selectedProjects.length} projects will be deleted.`,
-      variant: "destructive",
-    });
+    bulkDelete(selectedProjects);
     setSelectedProjects([]);
-  }, [selectedProjects, toast]);
+  }, [selectedProjects, bulkDelete]);
 
   const handleBulkStatusChange = useCallback((status: string) => {
-    // TODO: Implement bulk status change
-    toast({
-      title: "Status Updated",
-      description: `${selectedProjects.length} projects status changed to ${status}.`,
-    });
+    bulkStatusChange(selectedProjects, status as Project['status']);
     setSelectedProjects([]);
-  }, [selectedProjects, toast]);
+  }, [selectedProjects, bulkStatusChange]);
 
   const handleBulkExport = useCallback(() => {
-    // TODO: Implement bulk export
-    toast({
-      title: "Export Projects",
-      description: `${selectedProjects.length} projects exported successfully.`,
-    });
-  }, [selectedProjects, toast]);
+    const selectedProjectData = filteredProjects.filter(p => selectedProjects.includes(p.id));
+    bulkExport(selectedProjectData);
+  }, [selectedProjects, filteredProjects, bulkExport]);
 
   // Navigation to create project page
   const handleCreateProject = useCallback(() => {
@@ -176,9 +173,9 @@ const Projects = () => {
 
   // Project click handler
   const handleProjectClick = useCallback((project: Project) => {
-    // TODO: Navigate to project detail page
-    console.log('Navigate to project:', project.id);
-  }, []);
+    devLog('Navigating to project:', project.id);
+    navigate(`/projects/${project.id}`);
+  }, [navigate]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
