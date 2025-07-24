@@ -506,6 +506,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_project_team: {
+        Args: { project_id: string; user_id: string }
+        Returns: boolean
+      }
+      can_view_project_team: {
+        Args: { project_id: string; user_id: string }
+        Returns: boolean
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
