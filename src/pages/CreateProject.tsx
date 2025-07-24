@@ -39,9 +39,27 @@ export function CreateProjectPage() {
       navigate(`/projects/${project.id}`);
     } catch (error) {
       console.error('Error creating project:', error);
+      
+      let errorMessage = "Failed to create project. Please try again.";
+      
+      if (error instanceof Error) {
+        // Handle specific error cases with more helpful messages
+        if (error.message.includes('Authentication failed') || error.message.includes('session')) {
+          errorMessage = "Your session has expired. Please refresh the page and try again.";
+        } else if (error.message.includes('duplicate key') || error.message.includes('already exists')) {
+          errorMessage = "A project with this name already exists. Please choose a different name.";
+        } else if (error.message.includes('Invalid project data')) {
+          errorMessage = "Some project information is invalid. Please check your inputs and try again.";
+        } else if (error.message.includes('mismatch')) {
+          errorMessage = "Authentication error. Please refresh the page and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Project Creation Failed",
-        description: error instanceof Error ? error.message : "Failed to create project. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { validateAndRefreshSession } from '@/utils/sessionUtils';
 import { 
   Project, 
   ProjectCreationInput, 
@@ -23,8 +24,17 @@ interface ProjectAnalyticsData {
   keyMetrics: Record<string, any>;
 }
 
+
 export async function createProject(userId: string, projectData: ProjectCreationInput): Promise<Project> {
   try {
+    // Validate session before creating project
+    const validatedUserId = await validateAndRefreshSession();
+    
+    // Ensure the validated user ID matches the provided user ID
+    if (validatedUserId !== userId) {
+      throw new Error('User session mismatch. Please log in again.');
+    }
+
     const { data, error } = await supabase
       .from('projects')
       .insert({
@@ -43,7 +53,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
         tags: projectData.tags,
         start_date: projectData.startDate?.toISOString(),
         target_end_date: projectData.targetEndDate?.toISOString(),
-        // created_by will be automatically set by database default (auth.uid())
+        created_by: validatedUserId, // Explicitly set created_by
         status: 'planning',
         priority: 'medium'
       })
@@ -51,15 +61,26 @@ export async function createProject(userId: string, projectData: ProjectCreation
       .single();
 
     if (error) {
+      console.error('Project creation error:', error);
+      
+      // Handle specific error cases
+      if (error.message.includes('row-level security policy')) {
+        throw new Error('Authentication failed. Please log out and log in again to refresh your session.');
+      } else if (error.message.includes('violates check constraint')) {
+        throw new Error('Invalid project data. Please check your input and try again.');
+      } else if (error.message.includes('duplicate key')) {
+        throw new Error('A project with this name already exists. Please choose a different name.');
+      }
+      
       throw new Error(`Failed to create project: ${error.message}`);
     }
 
     // Add creator as project owner
-    await supabase
+    const { error: teamError } = await supabase
       .from('project_team_members')
       .insert({
         project_id: data.id,
-        user_id: userId,
+        user_id: validatedUserId,
         role: 'owner',
         invitation_status: 'active',
         permissions: {
@@ -72,6 +93,12 @@ export async function createProject(userId: string, projectData: ProjectCreation
           manageSettings: true
         }
       });
+
+    if (teamError) {
+      console.error('Team member creation error:', teamError);
+      // Don't fail the project creation if team member addition fails
+      // The user can still manage the project as the owner
+    }
 
     return {
       id: data.id,
