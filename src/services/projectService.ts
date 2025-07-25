@@ -50,20 +50,25 @@ export async function createProject(userId: string, projectData: ProjectCreation
     
     console.log('About to call supabase.from("projects").insert...');
     
-    // Test RLS policy function first
+    // Test auth context after setting session
     try {
-      const { data: testUser, error: testError } = await supabase
-        .from('projects')
-        .select('id')
-        .limit(1);
+      const { data: authUid, error: authError } = await supabase.rpc('test_auth_uid');
+      console.log('Database auth.uid() test result:', { authUid, authError });
       
-      console.log('RLS test query result:', { testUser, testError });
-      
-      if (testError && testError.message.includes('row-level security')) {
-        throw new Error('Authentication failed: RLS policies are blocking access. Please log out and log in again.');
+      if (authError) {
+        console.error('Auth context test failed:', authError);
+        throw new Error('Failed to establish authentication context. Please sign in again.');
       }
+      
+      if (!authUid || authUid !== userId) {
+        console.error('Auth UID mismatch - Database:', authUid, 'Expected:', userId);
+        throw new Error('Authentication context mismatch. Please sign out and sign in again.');
+      }
+      
+      console.log('Auth context verified successfully');
     } catch (testError) {
-      console.error('RLS test failed:', testError);
+      console.error('Auth context test failed:', testError);
+      throw new Error('Authentication failed: Unable to verify user context. Please sign out and sign in again.');
     }
     
     // Simplified project data to avoid potential JSON field issues

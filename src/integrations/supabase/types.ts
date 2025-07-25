@@ -534,6 +534,10 @@ export type Database = {
         Args: { project_id: string; user_id: string }
         Returns: boolean
       }
+      test_auth_uid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
