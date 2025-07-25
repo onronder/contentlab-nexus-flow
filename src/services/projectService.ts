@@ -87,48 +87,46 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error('Authentication failed: Unable to verify user context. Please sign out and sign in again.');
     }
     
-    // Simplified project data to avoid potential JSON field issues
-    const simplifiedData = {
+    // Simplified project data for the secure function
+    const projectParams = {
       name: projectData.name,
       description: projectData.description || '',
       industry: projectData.industry,
-      project_type: projectData.projectType,
-      created_by: userId,
+      project_type: projectData.projectType || 'competitive_analysis',
       status: 'planning',
       priority: 'medium'
     };
     
-    console.log('Simplified project data:', simplifiedData);
-    
-    // Use the authenticated client for the insert
-    const { data, error } = await supabase
-      .from('projects')
-      .insert(simplifiedData)
-      .select()
+    console.log('Calling secure project creation function with:', projectParams);
+
+    // Use the secure function to create the project
+    const { data: project, error: projectError } = await supabase
+      .rpc('create_project_secure', {
+        project_name: projectParams.name,
+        project_description: projectParams.description,
+        project_industry: projectParams.industry,
+        project_type_param: projectParams.project_type,
+        project_status: projectParams.status,
+        project_priority: projectParams.priority
+      })
       .single();
 
-    console.log('Project creation result:', { data, error });
+    console.log('Project creation result:', { project, projectError });
 
-    if (error) {
-      console.error('Project creation error:', error);
-      
-      // Handle specific error cases
-      if (error.message.includes('row-level security policy') || error.code === '42501') {
-        throw new Error('Authentication failed. Please log out and log in again to refresh your session.');
-      } else if (error.message.includes('violates check constraint')) {
-        throw new Error('Invalid project data. Please check your input and try again.');
-      } else if (error.message.includes('duplicate key')) {
-        throw new Error('A project with this name already exists. Please choose a different name.');
-      }
-      
-      throw new Error(`Failed to create project: ${error.message}`);
+    if (projectError) {
+      console.error('Project creation error:', projectError);
+      throw new Error(`Failed to create project: ${projectError.message}`);
+    }
+
+    if (!project) {
+      throw new Error('Project creation failed: No data returned');
     }
 
     // Add creator as project owner using the authenticated client
     const { error: teamError } = await supabase
       .from('project_team_members')
       .insert({
-        project_id: data.id,
+        project_id: project.id,
         user_id: userId,
         role: 'owner',
         invitation_status: 'active',
@@ -150,34 +148,30 @@ export async function createProject(userId: string, projectData: ProjectCreation
     }
 
     return {
-      id: data.id,
-      name: data.name,
-      description: data.description || '',
-      industry: data.industry,
-      projectType: data.project_type as ProjectCreationInput['projectType'],
-      targetMarket: data.target_market || '',
-      primaryObjectives: Array.isArray(data.primary_objectives) ? 
-        data.primary_objectives.filter((obj): obj is string => typeof obj === 'string') : [],
-      successMetrics: Array.isArray(data.success_metrics) ? 
-        data.success_metrics.filter((metric): metric is string => typeof metric === 'string') : [],
-      status: data.status as Project['status'],
-      priority: data.priority as Project['priority'],
-      startDate: data.start_date ? new Date(data.start_date) : undefined,
-      targetEndDate: data.target_end_date ? new Date(data.target_end_date) : undefined,
-      actualEndDate: data.actual_end_date ? new Date(data.actual_end_date) : undefined,
-      isPublic: data.is_public,
-      allowTeamAccess: data.allow_team_access,
-      autoAnalysisEnabled: data.auto_analysis_enabled,
-      notificationSettings: typeof data.notification_settings === 'object' && data.notification_settings ? 
-        (data.notification_settings as unknown as Project['notificationSettings']) : 
+      id: project.id,
+      name: project.name,
+      description: project.description || '',
+      industry: project.industry,
+      projectType: project.project_type as ProjectCreationInput['projectType'],
+      targetMarket: projectData.targetMarket || '',
+      primaryObjectives: projectData.primaryObjectives || [],
+      successMetrics: projectData.successMetrics || [],
+      status: project.status as Project['status'],
+      priority: project.priority as Project['priority'],
+      startDate: projectData.startDate,
+      targetEndDate: projectData.targetEndDate,
+      actualEndDate: undefined,
+      isPublic: projectData.isPublic || false,
+      allowTeamAccess: projectData.allowTeamAccess !== false,
+      autoAnalysisEnabled: projectData.autoAnalysisEnabled !== false,
+      notificationSettings: projectData.notificationSettings || 
         { email: true, inApp: true, frequency: 'daily' },
-      customFields: typeof data.custom_fields === 'object' && data.custom_fields ? 
-        data.custom_fields as Record<string, any> : {},
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      createdBy: data.created_by,
-      organizationId: data.organization_id,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
+      customFields: projectData.customFields || {},
+      tags: projectData.tags || [],
+      createdBy: project.created_by,
+      organizationId: undefined,
+      createdAt: new Date(project.created_at),
+      updatedAt: new Date(project.updated_at),
       competitorCount: 0,
       analysisCount: 0,
       teamMemberCount: 1

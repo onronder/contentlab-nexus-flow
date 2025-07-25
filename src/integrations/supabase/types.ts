@@ -518,6 +518,28 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_project_secure: {
+        Args: {
+          project_name: string
+          project_description: string
+          project_industry: string
+          project_type_param: string
+          project_status: string
+          project_priority: string
+        }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          industry: string
+          project_type: string
+          created_by: string
+          status: string
+          priority: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_avatar_url: {
         Args: { user_id: string; full_name: string }
         Returns: string
