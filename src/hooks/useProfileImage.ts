@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth, useAuthOperations } from '@/hooks';
+import { useAuth } from '@/hooks';
 
 interface UseProfileImageReturn {
   isUploading: boolean;
@@ -15,7 +15,6 @@ interface UseProfileImageReturn {
  */
 export const useProfileImage = (): UseProfileImageReturn => {
   const { user } = useAuth();
-  const { updateUserProfile } = useAuthOperations();
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);

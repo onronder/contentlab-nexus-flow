@@ -10,7 +10,8 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useAuth, useAuthOperations, useAuthGuard, useProfileImage } from '@/hooks';
+import { useAuth, useProfileImage } from '@/hooks';
+import { useSupabaseClient } from '@/contexts';
 import { useToast } from '@/hooks/use-toast';
 import { 
   User, 
@@ -45,9 +46,18 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, profile, refreshProfile } = useAuth();
-  const { updateUserProfile, isSubmitting: isUpdatingProfile } = useAuthOperations();
+  const supabase = useSupabaseClient();
   const { uploadImage, deleteImage, isUploading: isUploadingImage, uploadError } = useProfileImage();
-  const { shouldRender } = useAuthGuard({ requireAuth: true });
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  
+  // Simple auth guard
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -151,9 +161,11 @@ const Profile = () => {
 
       if (publicUrl) {
         // Update profile with new avatar URL
-        const success = await updateUserProfile({ avatar_url: publicUrl });
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ id: user.id, avatar_url: publicUrl });
 
-        if (success) {
+        if (!error) {
           await refreshProfile();
           toast({
             title: "Avatar updated",
@@ -186,9 +198,11 @@ const Profile = () => {
 
       if (success) {
         // Update profile to remove avatar URL
-        const updateSuccess = await updateUserProfile({ avatar_url: null });
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ id: user.id, avatar_url: null });
 
-        if (updateSuccess) {
+        if (!error) {
           await refreshProfile();
           setAvatarPreview(null);
           toast({
@@ -225,21 +239,34 @@ const Profile = () => {
       return;
     }
 
-    const success = await updateUserProfile(formData);
+    setIsUpdatingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, ...formData });
 
-    if (success) {
-      await refreshProfile();
-      setIsEditing(false);
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully",
-      });
-    } else {
+      if (!error) {
+        await refreshProfile();
+        setIsEditing(false);
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully",
+        });
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Failed to update profile. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
         title: "Update failed",
         description: "Failed to update profile. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsUpdatingProfile(false);
     }
   };
 
@@ -265,13 +292,6 @@ const Profile = () => {
       .slice(0, 2);
   };
 
-  if (!shouldRender) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
 
   if (!profile) {
     return (

@@ -106,6 +106,7 @@ export function useAuth() {
     profile,
     isAuthenticated: !!user,
     isLoading: user === undefined,
+    loading: user === undefined, // Add loading for compatibility
     error: null, // Add error state for compatibility
     signIn,
     signUp,
