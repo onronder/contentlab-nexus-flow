@@ -27,15 +27,6 @@ interface ProjectAnalyticsData {
 export async function createProject(userId: string, projectData: ProjectCreationInput): Promise<Project> {
   try {
     console.log('Creating project for user:', userId);
-    
-    // Verify current session before creating project
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session?.access_token) {
-      console.error('Session verification failed:', sessionError);
-      throw new Error('Authentication failed. Please log out and log in again to refresh your session.');
-    }
-    
-    console.log('Session verified, access token present:', !!session.access_token);
 
     const { data, error } = await supabase
       .from('projects')
@@ -55,12 +46,14 @@ export async function createProject(userId: string, projectData: ProjectCreation
         tags: projectData.tags,
         start_date: projectData.startDate?.toISOString(),
         target_end_date: projectData.targetEndDate?.toISOString(),
-        // Let RLS policy handle created_by using auth.uid()
+        created_by: userId, // Explicitly set the user ID
         status: 'planning',
         priority: 'medium'
       })
       .select()
       .single();
+
+    console.log('Project creation result:', { data, error });
 
     if (error) {
       console.error('Project creation error:', error);
