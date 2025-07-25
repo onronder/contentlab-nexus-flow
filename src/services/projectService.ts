@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, createAuthenticatedClient } from '@/integrations/supabase/client';
 import { 
   Project, 
   ProjectCreationInput, 
@@ -57,11 +57,21 @@ export async function createProject(userId: string, projectData: ProjectCreation
     
     console.log('Simplified project data:', simplifiedData);
     
-    const { data, error } = await supabase
+    // Create authenticated client with session token
+    const authenticatedClient = createAuthenticatedClient(session);
+    
+    // Add timeout to prevent hanging
+    const insertPromise = authenticatedClient
       .from('projects')
       .insert(simplifiedData)
       .select()
       .single();
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Project creation timed out after 10 seconds')), 10000);
+    });
+
+    const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
 
     console.log('Project creation result:', { data, error });
 
@@ -81,7 +91,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
     }
 
     // Add creator as project owner
-    const { error: teamError } = await supabase
+    const { error: teamError } = await authenticatedClient
       .from('project_team_members')
       .insert({
         project_id: data.id,
