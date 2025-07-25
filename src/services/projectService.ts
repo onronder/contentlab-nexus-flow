@@ -57,21 +57,12 @@ export async function createProject(userId: string, projectData: ProjectCreation
     
     console.log('Simplified project data:', simplifiedData);
     
-    // Create authenticated client with session token
-    const authenticatedClient = createAuthenticatedClient(session);
-    
-    // Add timeout to prevent hanging
-    const insertPromise = authenticatedClient
+    // Use existing client with session token in headers
+    const { data, error } = await supabase
       .from('projects')
       .insert(simplifiedData)
       .select()
       .single();
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Project creation timed out after 10 seconds')), 10000);
-    });
-
-    const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
 
     console.log('Project creation result:', { data, error });
 
@@ -91,7 +82,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
     }
 
     // Add creator as project owner
-    const { error: teamError } = await authenticatedClient
+    const { error: teamError } = await supabase
       .from('project_team_members')
       .insert({
         project_id: data.id,
