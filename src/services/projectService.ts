@@ -1,4 +1,4 @@
-import { supabase, createAuthenticatedClient, validateAndRefreshSession } from '@/integrations/supabase/client';
+import { supabase, ensureAuthenticatedSession, validateAndRefreshSession } from '@/integrations/supabase/client';
 import { 
   Project, 
   ProjectCreationInput, 
@@ -45,14 +45,16 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error('Authentication mismatch. Please sign in again.');
     }
 
-    // Create authenticated client for database operations
-    const authenticatedClient = createAuthenticatedClient(validSession);
-    console.log('Created authenticated client with session token');
+    // Ensure session is properly set on the client
+    const sessionSet = await ensureAuthenticatedSession(validSession);
+    if (!sessionSet) {
+      throw new Error('Failed to set authenticated session on client');
+    }
     
     // Test auth context with both RPC and REST operations
     try {
       // Test RPC call first
-      const { data: authUid, error: authError } = await authenticatedClient.rpc('test_auth_uid');
+      const { data: authUid, error: authError } = await supabase.rpc('test_auth_uid');
       console.log('RPC auth.uid() test result:', { authUid, authError });
       
       if (authError) {
@@ -66,7 +68,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
       }
       
       // Test REST API context with a simple SELECT
-      const { data: testProjects, error: testError } = await authenticatedClient
+      const { data: testProjects, error: testError } = await supabase
         .from('projects')
         .select('id')
         .eq('created_by', userId)
@@ -98,8 +100,8 @@ export async function createProject(userId: string, projectData: ProjectCreation
     
     console.log('Simplified project data:', simplifiedData);
     
-    // Use authenticated client for the insert
-    const { data, error } = await authenticatedClient
+    // Use the authenticated client for the insert
+    const { data, error } = await supabase
       .from('projects')
       .insert(simplifiedData)
       .select()
@@ -123,7 +125,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
     }
 
     // Add creator as project owner using the authenticated client
-    const { error: teamError } = await authenticatedClient
+    const { error: teamError } = await supabase
       .from('project_team_members')
       .insert({
         project_id: data.id,
