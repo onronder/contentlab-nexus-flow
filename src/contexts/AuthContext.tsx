@@ -17,12 +17,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Function to clear invalid session data
+  const clearInvalidSession = () => {
+    try {
+      // Clear Supabase session data from localStorage
+      localStorage.removeItem('sb-ijvhqqdfthchtittyvnt-auth-token');
+      localStorage.removeItem('supabase.auth.token');
+      // Clear any other auth-related localStorage items
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+      console.log('Cleared invalid session data from localStorage');
+    } catch (error) {
+      console.error('Error clearing session data:', error);
+    }
+  };
+
   // Session validation function
   const validateSession = async (): Promise<boolean> => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
         console.error('Session validation error:', error);
+        // Clear invalid tokens on validation error
+        if (error.message?.includes('refresh_token_not_found') || 
+            error.message?.includes('Invalid Refresh Token')) {
+          clearInvalidSession();
+        }
         return false;
       }
       
@@ -35,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     } catch (error) {
       console.error('Session validation failed:', error);
+      clearInvalidSession();
       return false;
     }
   };
@@ -49,6 +73,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Auth state changed:', event, session);
         console.log('JWT token present:', !!session?.access_token);
+        
+        // Handle refresh token errors by clearing session
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('Token refresh failed, clearing stored session');
+          clearInvalidSession();
+        }
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -65,6 +95,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error('Error getting initial session:', error);
+          // If it's a refresh token error, clear the invalid session
+          if (error.message?.includes('refresh_token_not_found') || 
+              error.message?.includes('Invalid Refresh Token')) {
+            console.warn('Invalid refresh token detected, clearing session');
+            clearInvalidSession();
+          }
         } else {
           console.log('Initial session loaded:', !!session);
           console.log('JWT token present:', !!session?.access_token);
@@ -73,6 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Failed to get initial session:', error);
+        // Clear session on any authentication error
+        clearInvalidSession();
       } finally {
         if (mounted) {
           setLoading(false);

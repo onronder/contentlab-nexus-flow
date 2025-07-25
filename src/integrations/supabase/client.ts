@@ -33,6 +33,22 @@ export const setSupabaseSession = async (session: any) => {
   return supabase;
 };
 
+// Function to clear invalid session data from localStorage
+const clearInvalidSessionData = () => {
+  try {
+    localStorage.removeItem('sb-ijvhqqdfthchtittyvnt-auth-token');
+    localStorage.removeItem('supabase.auth.token');
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('supabase') || key.includes('auth')) {
+        localStorage.removeItem(key);
+      }
+    });
+    console.log('Cleared invalid session data from localStorage');
+  } catch (error) {
+    console.error('Error clearing session data:', error);
+  }
+};
+
 // Validate session and refresh if needed
 export const validateAndRefreshSession = async (): Promise<Session | null> => {
   try {
@@ -40,6 +56,12 @@ export const validateAndRefreshSession = async (): Promise<Session | null> => {
     
     if (error) {
       console.error('Session validation error:', error);
+      // Clear invalid tokens on specific errors
+      if (error.message?.includes('refresh_token_not_found') || 
+          error.message?.includes('Invalid Refresh Token')) {
+        console.warn('Invalid refresh token detected, clearing session data');
+        clearInvalidSessionData();
+      }
       return null;
     }
 
@@ -58,6 +80,11 @@ export const validateAndRefreshSession = async (): Promise<Session | null> => {
       
       if (refreshError) {
         console.error('Session refresh error:', refreshError);
+        // Clear invalid tokens on refresh failure
+        if (refreshError.message?.includes('refresh_token_not_found') || 
+            refreshError.message?.includes('Invalid Refresh Token')) {
+          clearInvalidSessionData();
+        }
         return null;
       }
 
@@ -67,6 +94,7 @@ export const validateAndRefreshSession = async (): Promise<Session | null> => {
     return session;
   } catch (error) {
     console.error('Session validation failed:', error);
+    clearInvalidSessionData();
     return null;
   }
 };
