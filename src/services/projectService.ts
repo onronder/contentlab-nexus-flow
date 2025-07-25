@@ -1,4 +1,4 @@
-import { supabase, getAuthenticatedSupabase, validateAndRefreshSession } from '@/integrations/supabase/client';
+import { supabase, setSupabaseSession, validateAndRefreshSession } from '@/integrations/supabase/client';
 import { 
   Project, 
   ProjectCreationInput, 
@@ -45,14 +45,14 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error('Authentication mismatch. Please sign in again.');
     }
 
-    // Get authenticated Supabase client with proper session handling
-    const authSupabase = getAuthenticatedSupabase(validSession);
+    // Set session on the main Supabase client to ensure authentication
+    await setSupabaseSession(validSession);
     
-    console.log('About to call authenticated supabase.from("projects").insert...');
+    console.log('About to call supabase.from("projects").insert...');
     
     // Test RLS policy function first
     try {
-      const { data: testUser, error: testError } = await authSupabase
+      const { data: testUser, error: testError } = await supabase
         .from('projects')
         .select('id')
         .limit(1);
@@ -79,8 +79,8 @@ export async function createProject(userId: string, projectData: ProjectCreation
     
     console.log('Simplified project data:', simplifiedData);
     
-    // Use authenticated client for the insert
-    const { data, error } = await authSupabase
+    // Use main supabase client for the insert (session is already set)
+    const { data, error } = await supabase
       .from('projects')
       .insert(simplifiedData)
       .select()
@@ -103,8 +103,8 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error(`Failed to create project: ${error.message}`);
     }
 
-    // Add creator as project owner using the authenticated client
-    const { error: teamError } = await authSupabase
+    // Add creator as project owner using the main supabase client
+    const { error: teamError } = await supabase
       .from('project_team_members')
       .insert({
         project_id: data.id,

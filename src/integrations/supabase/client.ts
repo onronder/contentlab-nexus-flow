@@ -21,27 +21,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Utility function to get authenticated supabase instance with proper session handling
-export const getAuthenticatedSupabase = (session?: any) => {
+// Utility function to set session token on the main client
+export const setSupabaseSession = async (session: any) => {
   if (!session?.access_token) {
-    console.warn('No session token provided, using default client');
+    console.warn('No session token provided');
     return supabase;
   }
 
-  // Create a new client instance with proper session token
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      storage: localStorage,
-      persistSession: true,
-      autoRefreshToken: true
-    },
-    global: {
-      headers: {
-        'x-client-info': 'lovable-app',
-        'Authorization': `Bearer ${session.access_token}`
-      }
-    }
-  });
+  // Set the session on the existing client instance
+  await supabase.auth.setSession(session);
+  return supabase;
 };
 
 // Validate session and refresh if needed
