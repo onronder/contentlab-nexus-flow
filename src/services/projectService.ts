@@ -29,6 +29,22 @@ export async function createProject(userId: string, projectData: ProjectCreation
     console.log('Creating project for user:', userId);
     console.log('Project data:', projectData);
 
+    // Validate session before attempting database operation
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('Session validation failed before project creation:', sessionError);
+      throw new Error('Authentication session expired. Please sign in again.');
+    }
+    
+    console.log('Session validated, JWT token present:', !!session.access_token);
+    console.log('Session user ID:', session.user.id, 'Expected user ID:', userId);
+    
+    if (session.user.id !== userId) {
+      console.error('User ID mismatch - Session:', session.user.id, 'Expected:', userId);
+      throw new Error('Authentication mismatch. Please sign in again.');
+    }
+
     console.log('About to call supabase.from("projects").insert...');
     
     // Simplified project data to avoid potential JSON field issues

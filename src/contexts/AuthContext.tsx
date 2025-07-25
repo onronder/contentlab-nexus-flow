@@ -6,6 +6,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isAuthenticated: boolean;
+  validateSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,33 +17,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+  // Session validation function
+  const validateSession = async (): Promise<boolean> => {
+    try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        console.error('Error getting initial session:', error);
-      } else {
-        console.log('Initial session:', session);
-        setSession(session);
-        setUser(session?.user ?? null);
+        console.error('Session validation error:', error);
+        return false;
       }
-      setLoading(false);
-    };
+      
+      if (session) {
+        console.log('Session validated successfully, expires at:', session.expires_at);
+        return true;
+      }
+      
+      console.warn('No active session found during validation');
+      return false;
+    } catch (error) {
+      console.error('Session validation failed:', error);
+      return false;
+    }
+  };
 
-    getInitialSession();
+  useEffect(() => {
+    let mounted = true;
 
-    // Listen for auth changes
+    // Setup auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event, session);
+        console.log('JWT token present:', !!session?.access_token);
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
+    // Then get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+        } else {
+          console.log('Initial session loaded:', !!session);
+          console.log('JWT token present:', !!session?.access_token);
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.error('Failed to get initial session:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
+
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -50,6 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    isAuthenticated: !!user && !!session,
+    validateSession,
   };
 
   return (
