@@ -21,8 +21,14 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: async (projectData: ProjectCreationInput) => {
+      console.log('Creating project mutation started');
+      console.log('User:', !!user?.id, user?.id);
+      console.log('Session:', !!session, session?.access_token ? 'has token' : 'no token');
+      
       if (!user?.id) throw new Error('User not authenticated');
       if (!session) throw new Error('No session available');
+      if (!session.access_token) throw new Error('Session missing access token');
+      
       return createProject(user.id, projectData, session);
     },
     onMutate: async (newProject) => {

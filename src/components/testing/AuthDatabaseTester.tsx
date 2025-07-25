@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks';
 import { useUser, useSession, useSupabaseClient } from '@/contexts';
-import { createProject } from '@/services/projectService';
+import { useCreateProject } from '@/hooks/mutations/useProjectMutations';
 import { useToast } from '@/hooks/use-toast';
 import { 
   CheckCircle, 
@@ -35,6 +35,7 @@ export function AuthDatabaseTester() {
   const session = useSession();
   const supabase = useSupabaseClient();
   const { toast } = useToast();
+  const createProjectMutation = useCreateProject();
   
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isRunningTests, setIsRunningTests] = useState(false);
@@ -217,7 +218,7 @@ export function AuthDatabaseTester() {
           tags: ['auth-test']
         };
 
-        const project = await createProject(user.id, projectData);
+        const project = await createProjectMutation.mutateAsync(projectData);
 
         updateTestResult('Project Creation', {
           status: 'success',

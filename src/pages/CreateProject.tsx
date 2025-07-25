@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks';
 import { ProjectCreationWizard } from '@/components/projects/ProjectCreationWizard';
 import { ProjectCreationInput } from '@/types/projects';
-import { createProject } from '@/services/projectService';
+import { useCreateProject } from '@/hooks/mutations/useProjectMutations';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +12,7 @@ export function CreateProjectPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isCreating, setIsCreating] = useState(false);
+  const createProjectMutation = useCreateProject();
 
   const handleProjectCreation = async (projectData: ProjectCreationInput) => {
     if (!user) {
@@ -24,10 +24,8 @@ export function CreateProjectPage() {
       return;
     }
 
-    setIsCreating(true);
-
     try {
-      const project = await createProject(user.id, projectData);
+      const project = await createProjectMutation.mutateAsync(projectData);
       
       toast({
         title: "Project Created Successfully",
@@ -62,8 +60,6 @@ export function CreateProjectPage() {
         description: errorMessage,
         variant: "destructive"
       });
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -98,7 +94,7 @@ export function CreateProjectPage() {
         <ProjectCreationWizard
           onProjectCreated={handleProjectCreation}
           onCancel={handleCancel}
-          isSubmitting={isCreating}
+          isSubmitting={createProjectMutation.isPending}
         />
       </div>
     </div>

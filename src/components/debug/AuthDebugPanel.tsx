@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks';
 import { AuthDebugger } from '@/utils/authDebugger';
-import { createProject } from '@/services/projectService';
+import { useCreateProject } from '@/hooks/mutations/useProjectMutations';
 import { useToast } from '@/hooks/use-toast';
 
 export function AuthDebugPanel() {
   const { user, session, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const createProjectMutation = useCreateProject();
   const [testResults, setTestResults] = useState<string[]>([]);
   const [isTestingAuth, setIsTestingAuth] = useState(false);
   const [isTestingProject, setIsTestingProject] = useState(false);
@@ -57,7 +58,7 @@ export function AuthDebugPanel() {
         tags: ['debug', 'test']
       };
 
-      const project = await createProject(user.id, testProjectData);
+      const project = await createProjectMutation.mutateAsync(testProjectData);
       addTestResult(`✅ Project created successfully: ${project.id}`);
       
       toast({
