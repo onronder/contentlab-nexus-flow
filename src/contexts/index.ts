@@ -1,2 +1,2 @@
-// Export standard Supabase auth hooks
-export { useUser, useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+// Export our custom auth hooks
+export { useUser, useSession, useSupabaseClient, useAuth, AuthProvider } from './AuthContext';
