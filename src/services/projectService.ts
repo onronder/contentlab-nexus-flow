@@ -31,38 +31,24 @@ export async function createProject(userId: string, projectData: ProjectCreation
 
     console.log('About to call supabase.from("projects").insert...');
     
-    // Create a timeout promise to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Database operation timed out after 30 seconds')), 30000);
-    });
+    // Simplified project data to avoid potential JSON field issues
+    const simplifiedData = {
+      name: projectData.name,
+      description: projectData.description || '',
+      industry: projectData.industry,
+      project_type: projectData.projectType,
+      created_by: userId,
+      status: 'planning',
+      priority: 'medium'
+    };
     
-    const insertPromise = supabase
+    console.log('Simplified project data:', simplifiedData);
+    
+    const { data, error } = await supabase
       .from('projects')
-      .insert({
-        name: projectData.name,
-        description: projectData.description,
-        industry: projectData.industry,
-        project_type: projectData.projectType,
-        target_market: projectData.targetMarket,
-        primary_objectives: projectData.primaryObjectives,
-        success_metrics: projectData.successMetrics,
-        is_public: projectData.isPublic,
-        allow_team_access: projectData.allowTeamAccess,
-        auto_analysis_enabled: projectData.autoAnalysisEnabled,
-        notification_settings: projectData.notificationSettings as any,
-        custom_fields: projectData.customFields as any,
-        tags: projectData.tags,
-        start_date: projectData.startDate?.toISOString(),
-        target_end_date: projectData.targetEndDate?.toISOString(),
-        created_by: userId, // Explicitly set the user ID
-        status: 'planning',
-        priority: 'medium'
-      })
+      .insert(simplifiedData)
       .select()
       .single();
-    
-    console.log('Waiting for database response...');
-    const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
 
     console.log('Project creation result:', { data, error });
 
