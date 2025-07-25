@@ -7,6 +7,7 @@ import { Layout } from "@/components/layout/Layout";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProtectedRoute, PublicRoute } from "@/components/routing";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -83,6 +84,16 @@ const App = () => (
         />
         
         {/* Protected routes with main layout */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/profile" 
           element={

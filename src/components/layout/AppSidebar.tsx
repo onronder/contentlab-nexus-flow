@@ -55,9 +55,16 @@ export function AppSidebar() {
   const mainNavItems = [
     { 
       title: "Dashboard", 
-      url: "/projects",
+      url: "/dashboard",
       icon: Building2,
-      description: "Project overview & management",
+      description: "Overview & quick stats",
+      badge: null
+    },
+    { 
+      title: "Projects", 
+      url: "/projects",
+      icon: Target,
+      description: "Project management",
       badge: null
     },
     { 
@@ -77,7 +84,7 @@ export function AppSidebar() {
     { 
       title: "Competitive", 
       url: "/competitive", 
-      icon: Target,
+      icon: TrendingUp,
       description: "Competitor analysis",
       badge: null
     },

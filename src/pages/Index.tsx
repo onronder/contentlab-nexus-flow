@@ -10,12 +10,12 @@ const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect authenticated users to projects dashboard
+  // Redirect authenticated users to dashboard
   useEffect(() => {
     console.log('Index page auth state:', { isAuthenticated, isLoading });
     if (!isLoading && isAuthenticated) {
-      console.log('Redirecting to projects...');
-      navigate('/projects', { replace: true });
+      console.log('Redirecting to dashboard...');
+      navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
