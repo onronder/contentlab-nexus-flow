@@ -123,7 +123,26 @@ export function AuthDatabaseTester() {
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Auth getUser() timed out after 10 seconds')), 10000);
+      });
+      
+      const getUserPromise = supabase.auth.getUser();
+      
+      let authData, authError;
+      try {
+        const result = await Promise.race([getUserPromise, timeoutPromise]) as any;
+        authData = result.data;
+        authError = result.error;
+      } catch (error) {
+        updateTestResult('Supabase Client Auth', {
+          status: 'error',
+          message: 'Supabase client auth timed out',
+          details: error instanceof Error ? error.message : 'Unknown timeout error'
+        });
+        return;
+      }
       
       if (authError || !authData.user) {
         updateTestResult('Supabase Client Auth', {
