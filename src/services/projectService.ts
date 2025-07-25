@@ -27,8 +27,16 @@ interface ProjectAnalyticsData {
 export async function createProject(userId: string, projectData: ProjectCreationInput): Promise<Project> {
   try {
     console.log('Creating project for user:', userId);
+    console.log('Project data:', projectData);
 
-    const { data, error } = await supabase
+    console.log('About to call supabase.from("projects").insert...');
+    
+    // Create a timeout promise to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database operation timed out after 30 seconds')), 30000);
+    });
+    
+    const insertPromise = supabase
       .from('projects')
       .insert({
         name: projectData.name,
@@ -52,6 +60,9 @@ export async function createProject(userId: string, projectData: ProjectCreation
       })
       .select()
       .single();
+    
+    console.log('Waiting for database response...');
+    const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
 
     console.log('Project creation result:', { data, error });
 
