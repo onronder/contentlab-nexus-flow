@@ -1,4 +1,4 @@
-import { supabase, createAuthenticatedClient } from '@/integrations/supabase/client';
+import { supabase, getAuthenticatedSupabase, validateAndRefreshSession } from '@/integrations/supabase/client';
 import { 
   Project, 
   ProjectCreationInput, 
@@ -30,19 +30,41 @@ export async function createProject(userId: string, projectData: ProjectCreation
     console.log('Project data:', projectData);
     console.log('Session provided:', !!session);
 
-    if (!session) {
-      throw new Error('No session provided. Please sign in again.');
+    // Validate and refresh session if needed
+    const validSession = session || await validateAndRefreshSession();
+    
+    if (!validSession) {
+      throw new Error('No valid session found. Please sign in again.');
     }
 
-    console.log('Using provided session, JWT token present:', !!session.access_token);
-    console.log('Session user ID:', session.user.id, 'Expected user ID:', userId);
+    console.log('Using validated session, JWT token present:', !!validSession.access_token);
+    console.log('Session user ID:', validSession.user.id, 'Expected user ID:', userId);
     
-    if (session.user.id !== userId) {
-      console.error('User ID mismatch - Session:', session.user.id, 'Expected:', userId);
+    if (validSession.user.id !== userId) {
+      console.error('User ID mismatch - Session:', validSession.user.id, 'Expected:', userId);
       throw new Error('Authentication mismatch. Please sign in again.');
     }
 
-    console.log('About to call supabase.from("projects").insert...');
+    // Get authenticated Supabase client with proper session handling
+    const authSupabase = getAuthenticatedSupabase(validSession);
+    
+    console.log('About to call authenticated supabase.from("projects").insert...');
+    
+    // Test RLS policy function first
+    try {
+      const { data: testUser, error: testError } = await authSupabase
+        .from('projects')
+        .select('id')
+        .limit(1);
+      
+      console.log('RLS test query result:', { testUser, testError });
+      
+      if (testError && testError.message.includes('row-level security')) {
+        throw new Error('Authentication failed: RLS policies are blocking access. Please log out and log in again.');
+      }
+    } catch (testError) {
+      console.error('RLS test failed:', testError);
+    }
     
     // Simplified project data to avoid potential JSON field issues
     const simplifiedData = {
@@ -57,8 +79,8 @@ export async function createProject(userId: string, projectData: ProjectCreation
     
     console.log('Simplified project data:', simplifiedData);
     
-    // Use existing client with session token in headers
-    const { data, error } = await supabase
+    // Use authenticated client for the insert
+    const { data, error } = await authSupabase
       .from('projects')
       .insert(simplifiedData)
       .select()
@@ -81,8 +103,8 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error(`Failed to create project: ${error.message}`);
     }
 
-    // Add creator as project owner
-    const { error: teamError } = await supabase
+    // Add creator as project owner using the authenticated client
+    const { error: teamError } = await authSupabase
       .from('project_team_members')
       .insert({
         project_id: data.id,
