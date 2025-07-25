@@ -16,7 +16,7 @@ import { ProjectBulkActions } from '@/components/projects/ProjectBulkActions';
 import { ProjectGridView } from '@/components/projects/ProjectGridView';
 import { ProjectListView } from '@/components/projects/ProjectListView';
 import { useProjects } from '@/hooks';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser } from '@/contexts';
 import { useAdvancedProjectFilters } from '@/hooks/useAdvancedProjectFilters';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAccessibleAnnouncement } from '@/hooks/useAccessibleAnnouncement';

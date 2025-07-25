@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser } from '@/contexts';
 import { queryKeys } from '@/lib/queryClient';
 import { Project } from '@/types/projects';
 import { updateProject, archiveProject, deleteProject } from '@/services/projectService';

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser } from '@/contexts';
 import { queryKeys } from '@/lib/queryClient';
 import { 
   createProject, 

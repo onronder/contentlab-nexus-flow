@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser } from '@/contexts';
 import { useSessionManager } from './useSessionManager';
 
 /**

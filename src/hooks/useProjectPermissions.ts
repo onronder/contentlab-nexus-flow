@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser } from '@/contexts';
 import { ProjectTeamMember, PermissionSet } from '@/types/projects';
 import { supabase } from '@/integrations/supabase/client';
 

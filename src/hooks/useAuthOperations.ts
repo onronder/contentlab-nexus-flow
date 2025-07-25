@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSupabaseClient } from '@/contexts';
 import { toast } from 'sonner';
 
 export function useAuthOperations() {

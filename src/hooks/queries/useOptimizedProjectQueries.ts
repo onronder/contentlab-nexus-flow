@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser } from '@/contexts';
 import { queryKeys, performanceMonitor } from '@/lib/queryClient';
 import { fetchUserProjects, fetchProjectAnalytics, fetchProjectTeamMembers, fetchProjectCompetitors } from '@/services/projectService';
 import { Project } from '@/types/projects';

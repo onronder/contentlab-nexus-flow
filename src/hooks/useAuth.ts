@@ -1,4 +1,4 @@
-import { useUser, useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useUser, useSession, useSupabaseClient } from '@/contexts';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
