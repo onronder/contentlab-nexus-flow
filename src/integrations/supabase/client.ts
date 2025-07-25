@@ -21,7 +21,34 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Utility function to set session token on the main client
+// Create an authenticated client instance for database operations
+export const createAuthenticatedClient = (session: any) => {
+  if (!session?.access_token) {
+    console.warn('No session token provided for authenticated client');
+    return supabase;
+  }
+
+  console.log('Creating authenticated client with JWT token');
+  
+  // Create a new client instance with the session token in headers
+  const authenticatedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: {
+      storage: localStorage,
+      persistSession: false, // Don't persist on this instance
+      autoRefreshToken: false // Don't auto-refresh on this instance
+    },
+    global: {
+      headers: {
+        'x-client-info': 'lovable-app',
+        'Authorization': `Bearer ${session.access_token}`
+      }
+    }
+  });
+
+  return authenticatedClient;
+};
+
+// Utility function to set session token on the main client (kept for compatibility)
 export const setSupabaseSession = async (session: any) => {
   if (!session?.access_token) {
     console.warn('No session token provided');

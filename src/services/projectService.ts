@@ -1,4 +1,4 @@
-import { supabase, setSupabaseSession, validateAndRefreshSession } from '@/integrations/supabase/client';
+import { supabase, createAuthenticatedClient, validateAndRefreshSession } from '@/integrations/supabase/client';
 import { 
   Project, 
   ProjectCreationInput, 
@@ -45,29 +45,43 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error('Authentication mismatch. Please sign in again.');
     }
 
-    // Set session on the main Supabase client to ensure authentication
-    await setSupabaseSession(validSession);
+    // Create authenticated client for database operations
+    const authenticatedClient = createAuthenticatedClient(validSession);
+    console.log('Created authenticated client with session token');
     
-    console.log('About to call supabase.from("projects").insert...');
-    
-    // Test auth context after setting session
+    // Test auth context with both RPC and REST operations
     try {
-      const { data: authUid, error: authError } = await supabase.rpc('test_auth_uid');
-      console.log('Database auth.uid() test result:', { authUid, authError });
+      // Test RPC call first
+      const { data: authUid, error: authError } = await authenticatedClient.rpc('test_auth_uid');
+      console.log('RPC auth.uid() test result:', { authUid, authError });
       
       if (authError) {
-        console.error('Auth context test failed:', authError);
-        throw new Error('Failed to establish authentication context. Please sign in again.');
+        console.error('RPC auth context test failed:', authError);
+        throw new Error('Failed to establish RPC authentication context. Please sign in again.');
       }
       
       if (!authUid || authUid !== userId) {
-        console.error('Auth UID mismatch - Database:', authUid, 'Expected:', userId);
-        throw new Error('Authentication context mismatch. Please sign out and sign in again.');
+        console.error('RPC Auth UID mismatch - Database:', authUid, 'Expected:', userId);
+        throw new Error('RPC authentication context mismatch. Please sign out and sign in again.');
       }
       
-      console.log('Auth context verified successfully');
+      // Test REST API context with a simple SELECT
+      const { data: testProjects, error: testError } = await authenticatedClient
+        .from('projects')
+        .select('id')
+        .eq('created_by', userId)
+        .limit(1);
+        
+      console.log('REST API test result:', { count: testProjects?.length || 0, testError });
+      
+      if (testError && testError.message.includes('row-level security')) {
+        console.error('REST API auth context failed:', testError);
+        throw new Error('REST API authentication context failed. Please sign out and sign in again.');
+      }
+      
+      console.log('Both RPC and REST API auth contexts verified successfully');
     } catch (testError) {
-      console.error('Auth context test failed:', testError);
+      console.error('Auth context verification failed:', testError);
       throw new Error('Authentication failed: Unable to verify user context. Please sign out and sign in again.');
     }
     
@@ -84,8 +98,8 @@ export async function createProject(userId: string, projectData: ProjectCreation
     
     console.log('Simplified project data:', simplifiedData);
     
-    // Use main supabase client for the insert (session is already set)
-    const { data, error } = await supabase
+    // Use authenticated client for the insert
+    const { data, error } = await authenticatedClient
       .from('projects')
       .insert(simplifiedData)
       .select()
@@ -108,8 +122,8 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error(`Failed to create project: ${error.message}`);
     }
 
-    // Add creator as project owner using the main supabase client
-    const { error: teamError } = await supabase
+    // Add creator as project owner using the authenticated client
+    const { error: teamError } = await authenticatedClient
       .from('project_team_members')
       .insert({
         project_id: data.id,
