@@ -27,7 +27,10 @@ const Login = () => {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (user) {
-      navigate(location.state?.from?.pathname || '/');
+      const searchParams = new URLSearchParams(location.search);
+      const returnUrl = searchParams.get('returnUrl') || location.state?.from?.pathname || '/';
+      console.log('User authenticated, redirecting to:', returnUrl);
+      navigate(returnUrl, { replace: true });
     }
   }, [user, navigate, location]);
 
@@ -85,17 +88,13 @@ const Login = () => {
           description: error.message,
         });
       } else {
-        console.log('Sign in successful, redirecting...');
+        console.log('Sign in successful, waiting for auth state change...');
         toast({
           title: "Welcome back!",
           description: "You have been successfully signed in.",
         });
         
-        // Redirect to intended page or dashboard
-        const searchParams = new URLSearchParams(location.search);
-        const returnUrl = searchParams.get('returnUrl') || location.state?.from?.pathname || '/';
-        console.log('Redirecting to:', returnUrl);
-        navigate(returnUrl, { replace: true });
+        // Don't redirect immediately - let the useEffect handle it when user state updates
       }
     } catch (error) {
       console.error('Login error:', error);
