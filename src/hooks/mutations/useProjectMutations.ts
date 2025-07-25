@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@/contexts';
+import { useUser, useSession } from '@/contexts';
 import { queryKeys } from '@/lib/queryClient';
 import { 
   createProject, 
@@ -16,12 +16,14 @@ import { toast } from 'sonner';
  */
 export function useCreateProject() {
   const user = useUser();
+  const session = useSession();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (projectData: ProjectCreationInput) => {
       if (!user?.id) throw new Error('User not authenticated');
-      return createProject(user.id, projectData);
+      if (!session) throw new Error('No session available');
+      return createProject(user.id, projectData, session);
     },
     onMutate: async (newProject) => {
       if (!user?.id) return;

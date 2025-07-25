@@ -24,20 +24,17 @@ interface ProjectAnalyticsData {
 }
 
 
-export async function createProject(userId: string, projectData: ProjectCreationInput): Promise<Project> {
+export async function createProject(userId: string, projectData: ProjectCreationInput, session?: any): Promise<Project> {
   try {
     console.log('Creating project for user:', userId);
     console.log('Project data:', projectData);
+    console.log('Session provided:', !!session);
 
-    // Validate session before attempting database operation
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) {
-      console.error('Session validation failed before project creation:', sessionError);
-      throw new Error('Authentication session expired. Please sign in again.');
+    if (!session) {
+      throw new Error('No session provided. Please sign in again.');
     }
-    
-    console.log('Session validated, JWT token present:', !!session.access_token);
+
+    console.log('Using provided session, JWT token present:', !!session.access_token);
     console.log('Session user ID:', session.user.id, 'Expected user ID:', userId);
     
     if (session.user.id !== userId) {

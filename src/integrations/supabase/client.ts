@@ -12,9 +12,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     storage: localStorage,
     persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
+    autoRefreshToken: true
   },
   global: {
     headers: {
@@ -22,3 +20,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     }
   }
 });
+
+// Utility function to create authenticated client with session
+export const createAuthenticatedClient = (session: any) => {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true
+    },
+    global: {
+      headers: {
+        'x-client-info': 'lovable-app',
+        'Authorization': `Bearer ${session?.access_token}`
+      }
+    }
+  });
+};
