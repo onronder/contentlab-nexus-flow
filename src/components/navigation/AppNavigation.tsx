@@ -11,8 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useAuth } from '@/hooks';
+import { useUser, useSupabaseClient, useSession } from '@supabase/auth-helpers-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 import {
   User,
@@ -91,8 +92,52 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, profile, isAuthenticated, signOut } = useAuth();
+  const user = useUser();
+  const session = useSession();
+  const supabase = useSupabaseClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const isAuthenticated = !!user;
+
+  // Fetch user profile
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error signing out",
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Successfully signed out!",
+    });
+    navigate('/');
+  };
 
 
   const getInitials = (name: string) => {
@@ -172,7 +217,7 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
               {profile?.full_name || 'User'}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {profile?.email}
+              {user?.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -289,7 +334,7 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
                             {profile?.full_name || 'User'}
                           </p>
                           <p className="text-xs leading-none text-muted-foreground mt-1">
-                            {profile?.email}
+                            {user?.email}
                           </p>
                         </div>
                       </div>

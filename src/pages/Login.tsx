@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,8 +18,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{email?: string; password?: string; general?: string}>({});
 
-  const { signIn } = useAuth();
   const user = useUser();
+  const supabase = useSupabaseClient();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -71,16 +70,19 @@ const Login = () => {
     setErrors({});
 
     try {
-      console.log('Calling signIn function...');
-      const { error } = await signIn(email, password);
-      console.log('signIn result:', { error });
+      console.log('Calling Supabase signInWithPassword...');
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      console.log('Supabase signInWithPassword result:', { error });
 
       if (error) {
-        setErrors({ general: error });
+        setErrors({ general: error.message });
         toast({
           variant: "destructive",
           title: "Sign in failed",
-          description: error,
+          description: error.message,
         });
       } else {
         console.log('Sign in successful, redirecting...');
