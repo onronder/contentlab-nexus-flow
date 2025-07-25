@@ -28,9 +28,27 @@ export const setSupabaseSession = async (session: any) => {
     return supabase;
   }
 
-  // Set the session on the existing client instance
-  await supabase.auth.setSession(session);
-  return supabase;
+  try {
+    console.log('Setting session on Supabase client...');
+    
+    // Set the session on the existing client instance
+    const { data, error } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    });
+    
+    if (error) {
+      console.error('Error setting session on client:', error);
+      throw error;
+    }
+    
+    console.log('Session set successfully, user:', data.user?.id);
+    
+    return supabase;
+  } catch (error) {
+    console.error('Failed to set session:', error);
+    throw error;
+  }
 };
 
 // Function to clear invalid session data from localStorage
