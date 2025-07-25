@@ -14,9 +14,11 @@ import {
   Clock,
   Globe,
   ArrowRight,
-  Plus
+  Plus,
+  TestTube
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { AuthDatabaseTester } from '@/components/testing/AuthDatabaseTester';
 
 const Dashboard = () => {
   const quickStats = [
@@ -130,6 +132,13 @@ const Dashboard = () => {
       description: "Check your latest performance metrics",
       icon: BarChart3,
       href: "/analytics",
+      variant: "outline" as const
+    },
+    {
+      title: "Test Authentication",
+      description: "Verify auth & database integration",
+      icon: TestTube,
+      href: "#auth-test",
       variant: "outline" as const
     }
   ];
@@ -326,6 +335,11 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Phase 4 Testing Section */}
+      <div id="auth-test">
+        <AuthDatabaseTester />
+      </div>
     </div>
   );
 };

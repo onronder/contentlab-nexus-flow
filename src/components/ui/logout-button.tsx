@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { LogOut, Monitor } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -59,17 +59,19 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
     setIsLoading(false);
   };
 
-  const LogoutButtonContent = () => (
+  const LogoutButtonContent = React.forwardRef<HTMLButtonElement>((props, ref) => (
     <Button
+      ref={ref}
       variant={variant}
       size={size}
       className={cn("gap-2", className)}
       disabled={isLoading}
+      {...props}
     >
       {showIcon && <LogOut className="h-4 w-4" />}
       {children || "Sign out"}
     </Button>
-  );
+  ));
 
   if (!showConfirmDialog) {
     return (
