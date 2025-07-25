@@ -1,6 +1,5 @@
 import React from 'react';
-import { SessionContextProvider } from '@supabase/auth-helpers-react';
-import { supabase } from '@/integrations/supabase/client';
+import { AuthContextProvider } from './AuthContext';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -8,8 +7,8 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   return (
-    <SessionContextProvider supabaseClient={supabase}>
+    <AuthContextProvider>
       {children}
-    </SessionContextProvider>
+    </AuthContextProvider>
   );
 }

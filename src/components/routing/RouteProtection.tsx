@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -24,12 +24,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   timeout = 15000 // 15 second timeout for slower connections
 }) => {
   const location = useLocation();
-  const user = useUser();
+  const { user, loading } = useAuth();
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   
   const isAuthenticated = !!user;
-  const isLoading = user === undefined;
+  const isLoading = loading;
 
   // Add debug logging
   useEffect(() => {
@@ -167,11 +167,11 @@ export const PublicRoute: React.FC<ProtectedRouteProps> = ({
   timeout = 10000
 }) => {
   const location = useLocation();
-  const user = useUser();
+  const { user, loading } = useAuth();
   const [hasTimedOut, setHasTimedOut] = useState(false);
   
   const isAuthenticated = !!user;
-  const isLoading = user === undefined;
+  const isLoading = loading;
 
   // Handle authentication timeout
   useEffect(() => {
