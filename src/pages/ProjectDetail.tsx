@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Archive, Trash2, Share2, Download, MoreVertical } from 'lucide-react';
 import { useProject, useProjectAnalytics, useProjectTeamMembers } from '@/hooks/queries/useProjectQueries';
 import { useUpdateProject, useArchiveProject, useDeleteProject } from '@/hooks/mutations/useProjectMutations';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks';
 import { exportProjectDetails } from '@/utils/exportUtils';
 import { logError } from '@/utils/productionUtils';
 import { Button } from '@/components/ui/button';
