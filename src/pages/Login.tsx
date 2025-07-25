@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, Crown, Mail, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AuthSessionDebugger } from '@/components/debug/AuthSessionDebugger';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -300,6 +301,13 @@ const Login = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Debug Panel - Development Only */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-6">
+            <AuthSessionDebugger />
+          </div>
+        )}
 
         {/* Additional Links */}
         <div className="text-center space-y-2">
