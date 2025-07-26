@@ -528,17 +528,30 @@ export type Database = {
           project_priority: string
         }
         Returns: {
-          id: string
-          name: string
-          description: string
-          industry: string
-          project_type: string
+          actual_end_date: string | null
+          allow_team_access: boolean | null
+          auto_analysis_enabled: boolean | null
+          created_at: string | null
           created_by: string
-          status: string
+          custom_fields: Json | null
+          description: string | null
+          id: string
+          industry: string
+          is_public: boolean | null
+          name: string
+          notification_settings: Json | null
+          organization_id: string | null
+          primary_objectives: Json | null
           priority: string
-          created_at: string
-          updated_at: string
-        }[]
+          project_type: string
+          start_date: string | null
+          status: string
+          success_metrics: Json | null
+          tags: string[] | null
+          target_end_date: string | null
+          target_market: string | null
+          updated_at: string | null
+        }
       }
       get_avatar_url: {
         Args: { user_id: string; full_name: string }
