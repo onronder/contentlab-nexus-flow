@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Users, MoreVertical, Clock, CheckSquare, Square } from 'lucide-react';
+import { Calendar, Users, MoreVertical, Clock, CheckSquare, Square, Target, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,6 +8,8 @@ import { AccessibleCard } from '@/components/ui/accessible-card';
 import { AccessibleButton } from '@/components/ui/accessible-button';
 import { Project } from '@/types/projects';
 import { useFocusManagement } from '@/hooks/useFocusManagement';
+import { ProjectHealthIndicator } from './ProjectHealthIndicator';
+import { ProjectProgressBar } from './ProjectProgressBar';
 
 interface ProjectGridViewProps {
   projects: Project[];
@@ -198,6 +200,22 @@ export function ProjectGridView({
                 </div>
               </div>
 
+              {/* Progress Bar */}
+              <div className="mb-4">
+                <ProjectProgressBar project={project} showLabel size="sm" />
+              </div>
+
+              {/* Health and Objectives */}
+              <div className="flex items-center justify-between mb-4">
+                <ProjectHealthIndicator project={project} size="sm" />
+                {project.primaryObjectives && project.primaryObjectives.length > 0 && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Target className="h-3 w-3 mr-1" />
+                    {project.primaryObjectives.length} objectives
+                  </div>
+                )}
+              </div>
+
               {/* Analytics */}
               <div className="flex items-center justify-between mb-4 text-sm" aria-label="Project metrics">
                 <div className="flex items-center gap-4">
@@ -208,8 +226,9 @@ export function ProjectGridView({
                     </span>
                   </div>
                   <div className="flex items-center text-muted-foreground">
+                    <TrendingUp className="h-3 w-3 mr-1" aria-hidden="true" />
                     <span className="text-xs" aria-label={`${project.competitorCount} competitors being tracked`}>
-                      Competitors: {project.competitorCount}
+                      {project.competitorCount} competitors
                     </span>
                   </div>
                 </div>

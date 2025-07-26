@@ -15,6 +15,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Projects from "./pages/Projects";
 import CreateProject from "./pages/CreateProject";
+import { EditProject } from "./pages/EditProject";
 import ProjectDetail from "./pages/ProjectDetail";
 import Content from "./pages/Content";
 import Analytics from "./pages/Analytics";
@@ -120,6 +121,16 @@ const App = () => (
             <ProtectedRoute>
               <Layout>
                 <CreateProject />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/:projectId/edit" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <EditProject />
               </Layout>
             </ProtectedRoute>
           } 

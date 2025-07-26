@@ -1,11 +1,13 @@
 import React from 'react';
-import { Calendar, Users, MoreVertical, Clock } from 'lucide-react';
+import { Calendar, Users, MoreVertical, Clock, Target, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Project } from '@/types/projects';
+import { ProjectHealthIndicator } from './ProjectHealthIndicator';
+import { ProjectProgressBar } from './ProjectProgressBar';
 
 interface ProjectListViewProps {
   projects: Project[];
@@ -87,6 +89,8 @@ export function ProjectListView({
             <TableHead>Priority</TableHead>
             <TableHead>Industry</TableHead>
             <TableHead>Team</TableHead>
+            <TableHead>Progress</TableHead>
+            <TableHead>Health</TableHead>
             <TableHead>Updated</TableHead>
             <TableHead>Due</TableHead>
             <TableHead className="w-12"></TableHead>
@@ -152,10 +156,26 @@ export function ProjectListView({
                 </TableCell>
                 
                 <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    <span className="text-sm">{project.teamMemberCount}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      <span className="text-sm">{project.teamMemberCount}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <TrendingUp className="h-3 w-3" />
+                      <span className="text-sm">{project.competitorCount}</span>
+                    </div>
                   </div>
+                </TableCell>
+                
+                <TableCell>
+                  <div className="w-20">
+                    <ProjectProgressBar project={project} size="sm" />
+                  </div>
+                </TableCell>
+                
+                <TableCell>
+                  <ProjectHealthIndicator project={project} size="sm" />
                 </TableCell>
                 
                 <TableCell>
