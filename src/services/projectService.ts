@@ -87,29 +87,34 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error('Authentication failed: Unable to verify user context. Please sign out and sign in again.');
     }
     
-    // Simplified project data for the secure function
+    // Complete project data for the secure function
     const projectParams = {
-      name: projectData.name,
-      description: projectData.description || '',
-      industry: projectData.industry,
-      project_type: projectData.projectType || 'competitive_analysis',
-      status: 'planning',
-      priority: 'medium'
+      project_name: projectData.name,
+      project_industry: projectData.industry,
+      project_description: projectData.description || '',
+      project_type_param: projectData.projectType || 'competitive_analysis',
+      project_target_market: projectData.targetMarket || '',
+      project_primary_objectives: projectData.primaryObjectives || [],
+      project_success_metrics: projectData.successMetrics || [],
+      project_status: 'planning',
+      project_priority: 'medium',
+      project_start_date: projectData.startDate?.toISOString() || null,
+      project_target_end_date: projectData.targetEndDate?.toISOString() || null,
+      project_is_public: projectData.isPublic || false,
+      project_allow_team_access: projectData.allowTeamAccess !== false,
+      project_auto_analysis_enabled: projectData.autoAnalysisEnabled !== false,
+      project_notification_settings: projectData.notificationSettings || 
+        { email: true, inApp: true, frequency: 'daily' },
+      project_custom_fields: projectData.customFields || {},
+      project_tags: projectData.tags || []
     };
     
     console.log('Calling secure project creation function with:', projectParams);
 
-    // Use the secure function to create the project
+    // Use the secure function to create the project with all data
     const { data: project, error: projectError } = await supabase
-      .rpc('create_project_secure', {
-        project_name: projectParams.name,
-        project_description: projectParams.description,
-        project_industry: projectParams.industry,
-        project_type_param: projectParams.project_type,
-        project_status: projectParams.status,
-        project_priority: projectParams.priority
-      })
-      .single();
+      .rpc('create_project_secure', projectParams)
+      .single() as { data: any; error: any };
 
     console.log('Project creation result:', { project, projectError });
 
@@ -153,23 +158,27 @@ export async function createProject(userId: string, projectData: ProjectCreation
       description: project.description || '',
       industry: project.industry,
       projectType: project.project_type as ProjectCreationInput['projectType'],
-      targetMarket: projectData.targetMarket || '',
-      primaryObjectives: projectData.primaryObjectives || [],
-      successMetrics: projectData.successMetrics || [],
+      targetMarket: project.target_market || '',
+      primaryObjectives: Array.isArray(project.primary_objectives) ? 
+        project.primary_objectives.filter((obj): obj is string => typeof obj === 'string') : [],
+      successMetrics: Array.isArray(project.success_metrics) ? 
+        project.success_metrics.filter((metric): metric is string => typeof metric === 'string') : [],
       status: project.status as Project['status'],
       priority: project.priority as Project['priority'],
-      startDate: projectData.startDate,
-      targetEndDate: projectData.targetEndDate,
-      actualEndDate: undefined,
-      isPublic: projectData.isPublic || false,
-      allowTeamAccess: projectData.allowTeamAccess !== false,
-      autoAnalysisEnabled: projectData.autoAnalysisEnabled !== false,
-      notificationSettings: projectData.notificationSettings || 
+      startDate: project.start_date ? new Date(project.start_date) : undefined,
+      targetEndDate: project.target_end_date ? new Date(project.target_end_date) : undefined,
+      actualEndDate: project.actual_end_date ? new Date(project.actual_end_date) : undefined,
+      isPublic: project.is_public,
+      allowTeamAccess: project.allow_team_access,
+      autoAnalysisEnabled: project.auto_analysis_enabled,
+      notificationSettings: typeof project.notification_settings === 'object' && project.notification_settings ? 
+        (project.notification_settings as unknown as Project['notificationSettings']) : 
         { email: true, inApp: true, frequency: 'daily' },
-      customFields: projectData.customFields || {},
-      tags: projectData.tags || [],
+      customFields: typeof project.custom_fields === 'object' && project.custom_fields ? 
+        project.custom_fields as Record<string, any> : {},
+      tags: Array.isArray(project.tags) ? project.tags : [],
       createdBy: project.created_by,
-      organizationId: undefined,
+      organizationId: project.organization_id,
       createdAt: new Date(project.created_at),
       updatedAt: new Date(project.updated_at),
       competitorCount: 0,
