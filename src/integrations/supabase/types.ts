@@ -526,34 +526,25 @@ export type Database = {
         Returns: undefined
       }
       create_project_secure: {
-        Args:
-          | {
-              project_name: string
-              project_description: string
-              project_industry: string
-              project_type_param: string
-              project_status: string
-              project_priority: string
-            }
-          | {
-              project_name: string
-              project_industry: string
-              project_description?: string
-              project_type_param?: string
-              project_target_market?: string
-              project_primary_objectives?: string[]
-              project_success_metrics?: string[]
-              project_status?: string
-              project_priority?: string
-              project_start_date?: string
-              project_target_end_date?: string
-              project_is_public?: boolean
-              project_allow_team_access?: boolean
-              project_auto_analysis_enabled?: boolean
-              project_notification_settings?: Json
-              project_custom_fields?: Json
-              project_tags?: string[]
-            }
+        Args: {
+          project_name: string
+          project_industry: string
+          project_description?: string
+          project_type_param?: string
+          project_target_market?: string
+          project_primary_objectives?: string[]
+          project_success_metrics?: string[]
+          project_status?: string
+          project_priority?: string
+          project_start_date?: string
+          project_target_end_date?: string
+          project_is_public?: boolean
+          project_allow_team_access?: boolean
+          project_auto_analysis_enabled?: boolean
+          project_notification_settings?: Json
+          project_custom_fields?: Json
+          project_tags?: string[]
+        }
         Returns: {
           actual_end_date: string | null
           allow_team_access: boolean | null
