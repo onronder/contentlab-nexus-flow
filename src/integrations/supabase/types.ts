@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      competitor_analysis_metadata: {
+        Row: {
+          analysis_type: string
+          competitor_id: string
+          completed_at: string | null
+          confidence_score: number | null
+          created_at: string
+          id: string
+          parameters: Json | null
+          results_summary: Json | null
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_type: string
+          competitor_id: string
+          completed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          parameters?: Json | null
+          results_summary?: Json | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_type?: string
+          competitor_id?: string
+          completed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          parameters?: Json | null
+          results_summary?: Json | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_analysis_metadata_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_analysis_metadata_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "project_competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -155,13 +212,23 @@ export type Database = {
           created_at: string | null
           custom_attributes: Json | null
           data_quality_score: number | null
+          description: string | null
           domain: string
+          employee_count: string | null
+          founded_year: number | null
+          funding_status: string | null
+          headquarters: string | null
           id: string
           industry: string | null
           last_analysis_date: string | null
+          last_analyzed: string | null
+          logo_url: string | null
           market_share_estimate: number | null
+          market_size: string | null
           monitoring_enabled: boolean | null
           project_id: string
+          revenue_range: string | null
+          status: string | null
           tags: string[] | null
           threat_level: string
           updated_at: string | null
@@ -177,13 +244,23 @@ export type Database = {
           created_at?: string | null
           custom_attributes?: Json | null
           data_quality_score?: number | null
+          description?: string | null
           domain: string
+          employee_count?: string | null
+          founded_year?: number | null
+          funding_status?: string | null
+          headquarters?: string | null
           id?: string
           industry?: string | null
           last_analysis_date?: string | null
+          last_analyzed?: string | null
+          logo_url?: string | null
           market_share_estimate?: number | null
+          market_size?: string | null
           monitoring_enabled?: boolean | null
           project_id: string
+          revenue_range?: string | null
+          status?: string | null
           tags?: string[] | null
           threat_level?: string
           updated_at?: string | null
@@ -199,13 +276,23 @@ export type Database = {
           created_at?: string | null
           custom_attributes?: Json | null
           data_quality_score?: number | null
+          description?: string | null
           domain?: string
+          employee_count?: string | null
+          founded_year?: number | null
+          funding_status?: string | null
+          headquarters?: string | null
           id?: string
           industry?: string | null
           last_analysis_date?: string | null
+          last_analyzed?: string | null
+          logo_url?: string | null
           market_share_estimate?: number | null
+          market_size?: string | null
           monitoring_enabled?: boolean | null
           project_id?: string
+          revenue_range?: string | null
+          status?: string | null
           tags?: string[] | null
           threat_level?: string
           updated_at?: string | null
@@ -510,7 +597,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      competitor_details: {
+        Row: {
+          added_by: string | null
+          analysis_count: number | null
+          analysis_frequency: string | null
+          avg_confidence_score: number | null
+          company_name: string | null
+          company_size: string | null
+          competitive_tier: string | null
+          completed_analyses: number | null
+          created_at: string | null
+          custom_attributes: Json | null
+          data_quality_score: number | null
+          description: string | null
+          domain: string | null
+          employee_count: string | null
+          failed_analyses: number | null
+          founded_year: number | null
+          funding_status: string | null
+          headquarters: string | null
+          id: string | null
+          industry: string | null
+          last_analysis_completed: string | null
+          last_analysis_date: string | null
+          last_analyzed: string | null
+          logo_url: string | null
+          market_share_estimate: number | null
+          market_size: string | null
+          monitoring_enabled: boolean | null
+          project_id: string | null
+          revenue_range: string | null
+          status: string | null
+          tags: string[] | null
+          threat_level: string | null
+          total_analyses: number | null
+          updated_at: string | null
+          value_proposition: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_competitors_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_manage_project_team: {
