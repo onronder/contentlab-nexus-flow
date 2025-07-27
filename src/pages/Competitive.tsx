@@ -1,20 +1,123 @@
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Target, Users, Bell, BarChart3, Activity } from "lucide-react";
-import { mockCompetitors } from "@/data/mockData";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Building2, TrendingUp, Users, Activity, Plus, Search, Filter, MoreHorizontal, Globe, MapPin, DollarSign, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { AddCompetitorStepper } from "@/components/competitive/AddCompetitorStepper";
+import { useState } from "react";
+import { useProjects, useCompetitors, useCreateCompetitor, useToggleMonitoring, useDeleteCompetitor } from "@/hooks";
+import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { THREAT_LEVELS, COMPETITIVE_TIERS, CompetitorCreateInput } from "@/types/competitors";
+import { Competitor } from "@/types/competitors";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Competitive() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddCompetitor, setShowAddCompetitor] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterThreatLevel, setFilterThreatLevel] = useState("");
+  const [filterTier, setFilterTier] = useState("");
+  
+  const userId = useCurrentUserId();
+  const { toast } = useToast();
+  
+  // Get user's projects to determine which project we're viewing
+  const { data: projects } = useProjects(userId || '');
+  const currentProject = projects?.[0]; // For demo, use first project
+  
+  // Get competitors data
+  const { data: competitorsResult, isLoading } = useCompetitors(
+    currentProject?.id || '',
+    {
+      search: searchTerm,
+      threat_level: filterThreatLevel || undefined,
+      competitive_tier: filterTier || undefined,
+      status: 'active'
+    },
+    undefined,
+    1,
+    50,
+    !!currentProject?.id
+  );
+  
+  const createCompetitorMutation = useCreateCompetitor();
+  const toggleMonitoringMutation = useToggleMonitoring();
+  const deleteCompetitorMutation = useDeleteCompetitor();
+  
+  const competitors = competitorsResult?.competitors || [];
+  
+  // Calculate stats from real data
+  const totalCompetitors = competitors.length;
+  const activeMonitoring = competitors.filter(c => c.monitoring_enabled).length;
+  const avgMarketShare = competitors.length > 0 
+    ? (competitors.reduce((sum, c) => sum + (c.market_share_estimate || 0), 0) / totalCompetitors).toFixed(1)
+    : "0.0";
+  const avgContentVelocity = competitors.length > 0
+    ? Math.round(competitors.reduce((sum, c) => sum + (c.analysis_count || 0), 0) / totalCompetitors)
+    : 0;
+
+  const handleAddCompetitor = async (competitorData: CompetitorCreateInput) => {
+    if (!currentProject?.id) {
+      toast({
+        title: "Error",
+        description: "No project selected. Please create a project first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await createCompetitorMutation.mutateAsync({
+        projectId: currentProject.id,
+        competitorData
+      });
+      setShowAddCompetitor(false);
+    } catch (error) {
+      console.error('Error adding competitor:', error);
+    }
+  };
+
+  const handleToggleMonitoring = async (competitor: Competitor) => {
+    try {
+      await toggleMonitoringMutation.mutateAsync({
+        competitorId: competitor.id,
+        enabled: !competitor.monitoring_enabled,
+        projectId: competitor.project_id
+      });
+    } catch (error) {
+      console.error('Error toggling monitoring:', error);
+    }
+  };
+
+  const handleDeleteCompetitor = async (competitor: Competitor) => {
+    try {
+      await deleteCompetitorMutation.mutateAsync({
+        competitorId: competitor.id,
+        projectId: competitor.project_id,
+        competitorName: competitor.company_name
+      });
+    } catch (error) {
+      console.error('Error deleting competitor:', error);
+    }
+  };
+
+  const getThreatLevelColor = (level: string) => {
+    const threat = THREAT_LEVELS.find(t => t.value === level);
+    return threat?.color || 'gray';
+  };
+
+  const getTierLabel = (tier: string) => {
+    const tierObj = COMPETITIVE_TIERS.find(t => t.value === tier);
+    return tierObj?.label || tier;
+  };
 
   if (showAddCompetitor) {
     return (
       <AddCompetitorStepper 
-        onComplete={() => setShowAddCompetitor(false)}
+        onComplete={handleAddCompetitor}
         onCancel={() => setShowAddCompetitor(false)}
       />
     );
@@ -25,18 +128,14 @@ export default function Competitive() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title gradient-text">
+          <h1 className="text-3xl font-bold text-foreground">
             Competitive Intelligence
           </h1>
-          <p className="page-description">
+          <p className="text-muted-foreground">
             Monitor, analyze, and outperform your competitors with advanced intelligence
           </p>
         </div>
-        <Button 
-          onClick={() => setShowAddCompetitor(true)}
-          className="shadow-glow hover:shadow-elegant"
-          variant="hero"
-        >
+        <Button onClick={() => setShowAddCompetitor(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Competitor
         </Button>
@@ -44,184 +143,179 @@ export default function Competitive() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="shadow-elegant">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Competitors</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{mockCompetitors.length}</div>
-            <p className="text-xs text-muted-foreground">
-              +2 from last month
-            </p>
+            <div className="text-2xl font-bold text-primary">{totalCompetitors}</div>
+            <p className="text-xs text-muted-foreground">Active competitors</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-elegant">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Monitoring</CardTitle>
-            <Bell className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {mockCompetitors.filter(c => c.monitoring_enabled).length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Real-time tracking
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-elegant">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Market Share</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {Math.round(mockCompetitors.reduce((acc, c) => acc + c.metrics.market_share, 0) / mockCompetitors.length)}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Industry average
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-elegant">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Content Velocity</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {Math.round(mockCompetitors.reduce((acc, c) => acc + c.metrics.content_velocity, 0) / mockCompetitors.length)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Posts per week
-            </p>
+            <div className="text-2xl font-bold text-primary">{activeMonitoring}</div>
+            <p className="text-xs text-muted-foreground">Real-time tracking</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Market Share</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{avgMarketShare}%</div>
+            <p className="text-xs text-muted-foreground">Industry average</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Analyses Done</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{avgContentVelocity}</div>
+            <p className="text-xs text-muted-foreground">Total analyses</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="competitors" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Competitors
-          </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Alerts
-          </TabsTrigger>
-          <TabsTrigger value="analysis" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Analysis
-          </TabsTrigger>
-          <TabsTrigger value="real-time" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Real-time
-          </TabsTrigger>
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="competitors">Competitors</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
+          <TabsTrigger value="analysis">Analysis</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <Card className="shadow-elegant">
-            <CardHeader>
-              <CardTitle className="section-title">Competitive Landscape</CardTitle>
-              <CardDescription>
-                Key insights about your competitive environment
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Target className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Competitive Overview Dashboard</h3>
-                <p className="text-muted-foreground mb-6">
-                  Get insights into market positioning, content performance, and competitive gaps.
-                </p>
-                <Button variant="outline">
-                  View Detailed Analysis
+        <TabsContent value="competitors" className="mt-6">
+          {/* Search and Filter Controls */}
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search competitors..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={filterThreatLevel} onValueChange={setFilterThreatLevel}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by threat level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All threat levels</SelectItem>
+                {THREAT_LEVELS.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-4">
+            {isLoading ? (
+              <div className="text-center py-8">Loading competitors...</div>
+            ) : competitors.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No competitors found.</p>
+                <Button 
+                  onClick={() => setShowAddCompetitor(true)}
+                  className="mt-4"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Competitor
                 </Button>
               </div>
+            ) : (
+              competitors.map((competitor) => (
+                <Card key={competitor.id} className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <Building2 className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h3 className="text-lg font-semibold">{competitor.company_name}</h3>
+                          <Badge variant="outline">{competitor.threat_level}</Badge>
+                          {competitor.monitoring_enabled ? (
+                            <Eye className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-gray-400" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">{competitor.description || 'No description available'}</p>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                            <Globe className="w-4 h-4" />
+                            <span>{competitor.domain}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleToggleMonitoring(competitor)}>
+                          {competitor.monitoring_enabled ? (
+                            <>
+                              <EyeOff className="w-4 h-4 mr-2" />
+                              Disable Monitoring
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Enable Monitoring
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteCompetitor(competitor)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Competitor
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Other tabs remain unchanged for now */}
+        <TabsContent value="overview">
+          <Card>
+            <CardHeader>
+              <CardTitle>Overview</CardTitle>
+              <CardDescription>Competitive intelligence overview</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Overview content coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="competitors" className="space-y-6">
-          <div className="grid gap-6">
-            {mockCompetitors.map((competitor) => (
-              <Card key={competitor.id} className="shadow-elegant hover:shadow-stepper transition-elegant">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2 card-title">
-                        {competitor.name}
-                        <Badge 
-                          variant={competitor.priority_level === 'high' ? 'destructive' : 
-                                   competitor.priority_level === 'medium' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {competitor.priority_level} priority
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription className="font-mono text-sm">
-                        {competitor.domain}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={competitor.monitoring_enabled ? "default" : "secondary"}>
-                        {competitor.monitoring_enabled ? "Monitoring" : "Paused"}
-                      </Badge>
-                      <Badge variant="outline" className="capitalize">
-                        {competitor.industry}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">
-                        {competitor.metrics.market_share}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">Market Share</div>
-                    </div>
-                    <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">
-                        {competitor.metrics.content_velocity}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Content/Week</div>
-                    </div>
-                    <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">
-                        {competitor.metrics.social_engagement}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">Engagement</div>
-                    </div>
-                    <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">
-                        {competitor.metrics.seo_score}
-                      </div>
-                      <div className="text-xs text-muted-foreground">SEO Score</div>
-                    </div>
-                  </div>
-                  {competitor.description && (
-                    <p className="text-sm text-muted-foreground mt-4">
-                      {competitor.description}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="alerts" className="space-y-6">
-          <Card className="shadow-elegant">
+        <TabsContent value="alerts">
+          <Card>
             <CardHeader>
               <CardTitle>Alert Center</CardTitle>
               <CardDescription>
@@ -230,7 +324,7 @@ export default function Competitive() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-12">
-                <Bell className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Smart Alert System</h3>
                 <p className="text-muted-foreground mb-6">
                   Set up intelligent alerts for competitor activities, content changes, and market movements.
@@ -243,8 +337,8 @@ export default function Competitive() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analysis" className="space-y-6">
-          <Card className="shadow-elegant">
+        <TabsContent value="analysis">
+          <Card>
             <CardHeader>
               <CardTitle>Competitive Analysis</CardTitle>
               <CardDescription>
@@ -253,36 +347,13 @@ export default function Competitive() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-12">
-                <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <TrendingUp className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Advanced Analytics</h3>
                 <p className="text-muted-foreground mb-6">
                   Generate comprehensive competitive analysis reports with AI-powered insights.
                 </p>
                 <Button variant="outline">
                   Start Analysis
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="real-time" className="space-y-6">
-          <Card className="shadow-elegant">
-            <CardHeader>
-              <CardTitle>Real-time Monitoring</CardTitle>
-              <CardDescription>
-                Live feed of competitor activities and market changes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Live Activity Feed</h3>
-                <p className="text-muted-foreground mb-6">
-                  Monitor competitor activities as they happen with real-time notifications.
-                </p>
-                <Button variant="outline">
-                  View Live Feed
                 </Button>
               </div>
             </CardContent>

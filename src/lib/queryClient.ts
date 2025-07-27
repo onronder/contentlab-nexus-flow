@@ -83,10 +83,21 @@ export const queryKeys = {
     activities: (id: string, limit?: number) => 
       ['projects', 'activities', id, limit] as const,
   },
+  competitors: {
+    all: ['competitors'] as const,
+    list: (projectId: string, filters?: any, sort?: any, page?: number, limit?: number) => 
+      ['competitors', 'list', projectId, filters, sort, page, limit] as const,
+    detail: (competitorId: string) => ['competitors', 'detail', competitorId] as const,
+    analytics: (competitorId: string) => ['competitors', 'analytics', competitorId] as const,
+    search: (projectId: string, searchTerm: string, filters?: any) => 
+      ['competitors', 'search', projectId, searchTerm, filters] as const,
+    forAnalysis: (projectId: string) => ['competitors', 'forAnalysis', projectId] as const,
+  },
   // Add global invalidation helpers
   invalidateUserProjects: (userId: string) => ['projects', 'user', userId],
   invalidateProjectDetails: (projectId: string) => ['projects', 'detail', projectId],
   invalidateProjectAnalytics: (projectId: string) => ['projects', 'analytics', projectId],
+  invalidateProjectCompetitors: (projectId: string) => ['competitors', 'list', projectId],
 };
 
 // Performance monitoring utilities

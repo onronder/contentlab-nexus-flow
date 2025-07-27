@@ -20,6 +20,30 @@ export {
   useRestoreProject,
 } from './mutations/useProjectMutations';
 
+// Competitor hooks
+export {
+  useCompetitors,
+  useCompetitor,
+  useCompetitorAnalytics,
+  useCompetitorSearch,
+  useCompetitorsForAnalysis,
+  useCompetitorCount,
+  useActiveCompetitors,
+  useMonitoredCompetitors,
+  useCompetitorsByThreatLevel,
+  useCompetitorsByIndustry,
+} from './useCompetitorQueries';
+
+export {
+  useCreateCompetitor,
+  useUpdateCompetitor,
+  useDeleteCompetitor,
+  useRestoreCompetitor,
+  useBulkCreateCompetitors,
+  useToggleMonitoring,
+  useBatchUpdateCompetitors,
+} from './useCompetitorMutations';
+
 // Other hooks
 export { useProjectPermissions } from './useProjectPermissions';
 export type { ProjectPermissions } from './useProjectPermissions';

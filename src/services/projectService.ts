@@ -104,7 +104,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
       project_allow_team_access: projectData.allowTeamAccess !== false,
       project_auto_analysis_enabled: projectData.autoAnalysisEnabled !== false,
       project_notification_settings: projectData.notificationSettings || 
-        { email: true, inApp: true, frequency: 'daily' },
+        { email: true, inApp: true, frequency: 'daily' } as any,
       project_custom_fields: projectData.customFields || {},
       project_tags: projectData.tags || []
     };
