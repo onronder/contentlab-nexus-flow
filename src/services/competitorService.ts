@@ -477,16 +477,16 @@ function transformDatabaseCompetitor(dbCompetitor: any): Competitor {
     funding_status: dbCompetitor.funding_status,
     market_share_estimate: dbCompetitor.market_share_estimate,
     monitoring_enabled: dbCompetitor.monitoring_enabled,
-    last_analyzed: dbCompetitor.last_analyzed ? new Date(dbCompetitor.last_analyzed) : undefined,
-    last_analysis_date: dbCompetitor.last_analysis_date ? new Date(dbCompetitor.last_analysis_date) : undefined,
+    last_analyzed: dbCompetitor.last_analyzed,
+    last_analysis_date: dbCompetitor.last_analysis_date,
     analysis_count: dbCompetitor.analysis_count || 0,
     data_quality_score: dbCompetitor.data_quality_score,
     status: dbCompetitor.status,
     tags: dbCompetitor.tags || [],
     custom_attributes: dbCompetitor.custom_attributes || {},
     added_by: dbCompetitor.added_by,
-    created_at: new Date(dbCompetitor.created_at),
-    updated_at: new Date(dbCompetitor.updated_at)
+    created_at: dbCompetitor.created_at,
+    updated_at: dbCompetitor.updated_at
   };
 }
 

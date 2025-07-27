@@ -21,16 +21,16 @@ export interface Competitor {
   funding_status?: string;
   market_share_estimate?: number;
   monitoring_enabled: boolean;
-  last_analyzed?: Date;
-  last_analysis_date?: Date;
+  last_analyzed?: string; // Changed from Date to string to match database
+  last_analysis_date?: string; // Changed from Date to string to match database
   analysis_count: number;
   data_quality_score?: number;
-  status: 'active' | 'inactive' | 'archived';
+  status: string; // Changed from union to string to match database
   tags: string[];
-  custom_attributes?: Record<string, any>;
+  custom_attributes?: any; // Changed to any to match Json type
   added_by: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: string; // Changed from Date to string to match database
+  updated_at: string; // Changed from Date to string to match database
 }
 
 export interface CompetitorCreateInput {
@@ -100,14 +100,14 @@ export interface CompetitorAnalysisMetadata {
   id: string;
   competitor_id: string;
   analysis_type: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  started_at: Date;
-  completed_at?: Date;
+  status: string; // Changed from union to string to match database
+  started_at: string; // Changed from Date to string to match database
+  completed_at?: string; // Changed from Date to string to match database
   confidence_score?: number;
-  results_summary?: Record<string, any>;
-  parameters?: Record<string, any>;
-  created_at: Date;
-  updated_at: Date;
+  results_summary?: any; // Changed to any to match Json type
+  parameters?: any; // Changed to any to match Json type
+  created_at: string; // Changed from Date to string to match database
+  updated_at: string; // Changed from Date to string to match database
 }
 
 export interface CompetitorSearchResult {
