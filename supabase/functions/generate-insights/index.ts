@@ -1,0 +1,179 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+    const { projectId, competitors, project } = await req.json();
+
+    console.log('Generating insights for project:', project.name, 'with', competitors.length, 'competitors');
+
+    // Prepare competitor summary
+    const competitorSummary = competitors.map(comp => ({
+      name: comp.company_name,
+      domain: comp.domain,
+      industry: comp.industry,
+      size: comp.company_size,
+      tier: comp.competitive_tier,
+      threat_level: comp.threat_level,
+      description: comp.description,
+      value_proposition: comp.value_proposition
+    }));
+
+    const systemPrompt = `You are a strategic business analyst. Generate comprehensive competitive insights and strategic recommendations based on project data and competitor analysis. Provide actionable strategic guidance for competitive positioning.`;
+
+    const userPrompt = `Generate competitive insights for the project "${project.name}" in the ${project.industry} industry.
+
+Project Details:
+- Name: ${project.name}
+- Industry: ${project.industry}
+- Description: ${project.description || 'Not provided'}
+- Objectives: ${JSON.stringify(project.primary_objectives || [])}
+- Target Market: ${project.target_market || 'Not specified'}
+- Status: ${project.status}
+
+Competitors Analysis:
+${competitorSummary.map(comp => `
+- ${comp.name} (${comp.domain})
+  - Industry: ${comp.industry || 'Not specified'}
+  - Size: ${comp.size || 'Not specified'}
+  - Tier: ${comp.tier}
+  - Threat Level: ${comp.threat_level}
+  - Description: ${comp.description || 'Not provided'}
+  - Value Proposition: ${comp.value_proposition || 'Not provided'}
+`).join('\n')}
+
+Provide comprehensive analysis with:
+1. Competitive landscape overview
+2. Market opportunities identification
+3. Strategic recommendations
+4. Top competitive threats
+5. Overall confidence assessment
+
+Return response in this exact JSON format:
+{
+  "projectId": "${projectId}",
+  "competitiveOverview": "comprehensive overview of the competitive landscape",
+  "marketOpportunities": [
+    "opportunity 1 description",
+    "opportunity 2 description",
+    "opportunity 3 description"
+  ],
+  "strategicRecommendations": [
+    "strategic recommendation 1",
+    "strategic recommendation 2", 
+    "strategic recommendation 3"
+  ],
+  "topThreats": [
+    "threat 1 description",
+    "threat 2 description",
+    "threat 3 description"
+  ],
+  "confidenceScore": 0.85,
+  "generatedAt": "${new Date().toISOString()}"
+}`;
+
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.4,
+        max_tokens: 3000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    console.log('OpenAI insights response received');
+
+    // Parse JSON response
+    let insights;
+    try {
+      insights = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response as JSON:', content);
+      // Fallback to structured response
+      insights = {
+        projectId: projectId,
+        competitiveOverview: "Competitive analysis completed. " + content.substring(0, 500),
+        marketOpportunities: [
+          "Market opportunity analysis available in detailed report",
+          "Further market research recommended",
+          "Competitive positioning opportunities identified"
+        ],
+        strategicRecommendations: [
+          "Strategic recommendations available in detailed analysis",
+          "Further competitive analysis recommended",
+          "Market positioning strategy development suggested"
+        ],
+        topThreats: [
+          "Competitive threats identified in analysis",
+          "Market competition monitoring recommended",
+          "Competitive response strategy needed"
+        ],
+        confidenceScore: 0.7,
+        generatedAt: new Date().toISOString()
+      };
+    }
+
+    // Ensure all required fields are present
+    const result = {
+      projectId: insights.projectId || projectId,
+      competitiveOverview: insights.competitiveOverview || "Competitive analysis completed",
+      marketOpportunities: insights.marketOpportunities || [],
+      strategicRecommendations: insights.strategicRecommendations || [],
+      topThreats: insights.topThreats || [],
+      confidenceScore: insights.confidenceScore || 0.7,
+      generatedAt: insights.generatedAt || new Date().toISOString()
+    };
+
+    console.log('Project insights generated successfully');
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error in generate-insights function:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      status: 'failed'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
