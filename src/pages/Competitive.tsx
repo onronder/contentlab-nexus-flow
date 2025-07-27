@@ -25,7 +25,7 @@ export default function Competitive() {
   const { toast } = useToast();
   
   // Get user's projects to determine which project we're viewing
-  const { data: projects } = useProjects(userId || '');
+  const { data: projects } = useProjects();
   const currentProject = projects?.[0]; // For demo, use first project
   
   // Get competitors data

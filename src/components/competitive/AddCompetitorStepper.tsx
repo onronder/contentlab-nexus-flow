@@ -25,7 +25,7 @@ import { industries, type AddCompetitorData, initialAddCompetitorData } from "@/
 import { cn } from "@/lib/utils";
 
 interface AddCompetitorStepperProps {
-  onComplete: () => void;
+  onComplete: (competitorData: any) => void;
   onCancel: () => void;
 }
 
@@ -67,7 +67,7 @@ export function AddCompetitorStepper({ onComplete, onCancel }: AddCompetitorStep
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsSubmitting(false);
-    onComplete();
+    onComplete(stepper.formData);
   };
 
   const marketSizeOptions = [
