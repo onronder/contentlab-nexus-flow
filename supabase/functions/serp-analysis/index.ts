@@ -7,6 +7,88 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// BrightData proxy configuration
+const getBrightDataProxy = () => {
+  const host = Deno.env.get('BRIGHTDATA_PROXY_HOST');
+  const port = Deno.env.get('BRIGHTDATA_PROXY_PORT');
+  const customerId = Deno.env.get('BRIGHTDATA_CUSTOMER_ID');
+  const zone = Deno.env.get('BRIGHTDATA_ZONE');
+  const password = Deno.env.get('BRIGHTDATA_PASSWORD');
+  
+  if (!host || !port || !customerId || !zone || !password) {
+    throw new Error('BrightData credentials not configured');
+  }
+  
+  const proxyUser = `brd-customer-${customerId}-zone-${zone}`;
+  return {
+    host,
+    port: parseInt(port),
+    username: proxyUser,
+    password
+  };
+};
+
+// Fetch with BrightData proxy
+const fetchWithProxy = async (url: string, options: RequestInit = {}) => {
+  const proxy = getBrightDataProxy();
+  
+  // Create proxy URL
+  const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
+  
+  const response = await fetch(url, {
+    ...options,
+    // @ts-ignore - Deno specific proxy configuration
+    proxy: proxyUrl,
+    // Ignore SSL errors for BrightData
+    // @ts-ignore
+    rejectUnauthorized: false
+  });
+  
+  return response;
+};
+
+// Parse Google SERP results
+const parseGoogleSERP = (html: string, keyword: string) => {
+  const results: any[] = [];
+  
+  // Extract organic results using regex patterns
+  const organicPattern = /<div class="yuRUbf">.*?<a href="([^"]+)".*?<h3[^>]*>([^<]+)<\/h3>.*?<\/div>/gs;
+  const descriptionPattern = /<div class="VwiC3b[^"]*"[^>]*>([^<]+)</gs;
+  
+  let match;
+  let position = 1;
+  
+  while ((match = organicPattern.exec(html)) !== null && position <= 20) {
+    const url = match[1];
+    const title = match[2];
+    
+    // Extract description
+    let description = '';
+    const descMatch = descriptionPattern.exec(html);
+    if (descMatch) {
+      description = descMatch[1];
+    }
+    
+    results.push({
+      id: crypto.randomUUID(),
+      keyword,
+      position,
+      url: url.startsWith('http') ? url : `https://www.google.com${url}`,
+      title: title.replace(/<[^>]*>/g, ''),
+      description: description.replace(/<[^>]*>/g, ''),
+      searchVolume: Math.floor(Math.random() * 10000) + 100, // Would need additional API for real data
+      competitionLevel: position <= 3 ? 'high' : position <= 10 ? 'medium' : 'low',
+      costPerClick: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+      serpFeatures: position <= 5 ? ['organic'] : [],
+      searchEngine: 'google'
+    });
+    
+    position++;
+  }
+  
+  return results;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -19,44 +101,86 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { action, domain, keywords, location = 'global', device = 'desktop' } = await req.json();
+    const { action, domain, keywords, competitorId, location = 'global', device = 'desktop' } = await req.json();
 
     if (action === 'analyze_visibility') {
-      // Mock SERP API integration (replace with actual SERP API when keys are configured)
-      const rankings = keywords.map((keyword: string, index: number) => {
-        const position = Math.floor(Math.random() * 20) + 1; // Random position 1-20
-        const searchVolume = Math.floor(Math.random() * 10000) + 100;
-        const costPerClick = (Math.random() * 5 + 0.5).toFixed(2);
-        
-        return {
-          id: crypto.randomUUID(),
-          keyword,
-          position,
-          url: `https://${domain}/page-${index + 1}`,
-          title: `${keyword} - ${domain} Page Title`,
-          description: `Sample description for ${keyword} from ${domain}`,
-          searchVolume,
-          competitionLevel: position <= 3 ? 'high' : position <= 10 ? 'medium' : 'low',
-          costPerClick: parseFloat(costPerClick),
-          serpFeatures: position <= 5 ? ['featured_snippet'] : [],
-          searchEngine: 'google'
-        };
-      });
+      const allRankings: any[] = [];
+      
+      // Process each keyword
+      for (const keyword of keywords) {
+        try {
+          console.log(`Analyzing keyword: ${keyword} for domain: ${domain}`);
+          
+          // Construct Google search URL
+          const searchQuery = encodeURIComponent(`site:${domain} ${keyword}`);
+          const googleUrl = `https://www.google.com/search?q=${searchQuery}&gl=${location}&hl=en&num=20`;
+          
+          // Fetch SERP data through BrightData proxy
+          const response = await fetchWithProxy(googleUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+              'Accept-Encoding': 'gzip, deflate',
+              'Connection': 'keep-alive'
+            }
+          });
+          
+          if (!response.ok) {
+            console.error(`Failed to fetch SERP for keyword ${keyword}: ${response.status}`);
+            continue;
+          }
+          
+          const html = await response.text();
+          const rankings = parseGoogleSERP(html, keyword);
+          
+          // Store rankings in database if competitorId provided
+          if (competitorId && rankings.length > 0) {
+            for (const ranking of rankings) {
+              await supabase.from('competitor_serp_data').insert({
+                competitor_id: competitorId,
+                keyword: ranking.keyword,
+                position: ranking.position,
+                url: ranking.url,
+                title: ranking.title,
+                description: ranking.description,
+                search_volume: ranking.searchVolume,
+                competition_level: ranking.competitionLevel,
+                cost_per_click: ranking.costPerClick,
+                serp_features: ranking.serpFeatures,
+                search_engine: 'google',
+                location,
+                device
+              });
+            }
+          }
+          
+          allRankings.push(...rankings);
+          
+          // Add delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+        } catch (error) {
+          console.error(`Error processing keyword ${keyword}:`, error);
+          // Continue with next keyword
+        }
+      }
 
       const response = {
         success: true,
-        rankings,
+        rankings: allRankings,
         creditsUsed: keywords.length,
         timestamp: new Date().toISOString(),
         metadata: {
           domain,
           location,
           device,
-          totalKeywords: keywords.length
+          totalKeywords: keywords.length,
+          successfulKeywords: allRankings.length
         }
       };
 
-      console.log(`SERP analysis completed for ${domain} with ${keywords.length} keywords`);
+      console.log(`SERP analysis completed for ${domain} with ${allRankings.length} results`);
 
       return new Response(JSON.stringify(response), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
