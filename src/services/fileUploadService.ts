@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ContentType } from '@/types/content';
+import { thumbnailService, ThumbnailSet } from './thumbnailService';
+import { fileProcessingService, ProcessingResult } from './fileProcessingService';
 
 export interface UploadProgress {
   contentId: string;
@@ -15,7 +17,8 @@ export interface UploadResult {
   contentId: string;
   filePath: string;
   fileUrl: string;
-  thumbnailPath?: string;
+  thumbnailSet?: ThumbnailSet;
+  processingResult?: ProcessingResult;
   fileSize: number;
   mimeType: string;
   originalFilename: string;
@@ -200,29 +203,22 @@ export class FileUploadService {
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      updateProgress(50, 'processing');
+      // Process file and generate thumbnails
+      let thumbnailSet: ThumbnailSet | undefined;
+      let processingResult: ProcessingResult | undefined;
+      
+      try {
+        updateProgress(70, 'processing');
 
-      // Generate thumbnail for images
-      let thumbnailPath: string | undefined;
-      if (file.type.startsWith('image/') && !file.type.includes('svg')) {
-        try {
-          const thumbnailBlob = await this.generateImageThumbnail(file);
-          const thumbnailFileName = `thumb_${timestamp}_${sanitizedFilename}`;
-          const thumbnailFilePath = this.generateFilePath(userId, contentId, thumbnailFileName);
-          
-          const { error: thumbnailError } = await supabase.storage
-            .from(this.THUMBNAIL_BUCKET)
-            .upload(thumbnailFilePath, thumbnailBlob, {
-              cacheControl: '3600',
-              upsert: false
-            });
+        // Process the file for metadata extraction
+        processingResult = await fileProcessingService.processFile(file, contentType);
 
-          if (!thumbnailError) {
-            thumbnailPath = thumbnailFilePath;
-          }
-        } catch (error) {
-          console.warn('Failed to generate thumbnail:', error);
-        }
+        updateProgress(85, 'processing');
+
+        // Generate thumbnails
+        thumbnailSet = await thumbnailService.generateThumbnails(file, userId, contentId);
+      } catch (error) {
+        console.warn('Failed to process file or generate thumbnails:', error);
       }
 
       updateProgress(90, 'processing');
@@ -241,7 +237,8 @@ export class FileUploadService {
         contentId,
         filePath,
         fileUrl: urlData.publicUrl,
-        thumbnailPath,
+        thumbnailSet,
+        processingResult,
         fileSize: file.size,
         mimeType: file.type,
         originalFilename: file.name

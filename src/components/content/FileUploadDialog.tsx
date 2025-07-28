@@ -46,7 +46,7 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
           content_type: (contentType || FileUploadService.getContentTypeFromMime(result.mimeType)) as ContentType,
           project_id: projectId,
           file_path: result.filePath,
-          thumbnail_path: result.thumbnailPath,
+          thumbnail_path: result.thumbnailSet?.medium?.path,
           file_size: result.fileSize,
           mime_type: result.mimeType,
           category_id: categoryId || undefined,
