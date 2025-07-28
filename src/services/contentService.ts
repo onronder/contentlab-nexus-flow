@@ -58,11 +58,11 @@ export class ContentService {
         .select(this.getSelectQuery())
         .single();
 
-      if (error) throw new ContentError(`Failed to create content: ${error.message}`, 'CREATE_ERROR');
+      if (error || !content) throw new ContentError(`Failed to create content: ${error?.message || 'No content returned'}`, 'CREATE_ERROR');
       
       // Add tags if provided
-      if (data.tags && data.tags.length > 0 && content?.id) {
-        await this.addTags(content.id, data.tags);
+      if (data.tags && data.tags.length > 0) {
+        await this.addTags((content as any).id, data.tags);
       }
 
       return this.transformContentRow(content);

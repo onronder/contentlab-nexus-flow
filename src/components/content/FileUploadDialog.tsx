@@ -9,8 +9,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Upload, X, FileText, Image as ImageIcon, Video, File as FileIcon } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { useCreateContent } from '@/hooks/useContentQueries';
+import { useCreateContent } from '@/hooks/useContentMutations';
 import { useContentCategories } from '@/hooks/useContentQueries';
+import { ContentType, ContentStatus } from '@/types/content';
 import { cn } from '@/lib/utils';
 
 interface FileUploadDialogProps {
@@ -41,14 +42,14 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
         createContent.mutate({
           title: title || result.fileName,
           description,
-          content_type: contentType || getContentTypeFromMime(result.mimeType),
+          content_type: (contentType || getContentTypeFromMime(result.mimeType)) as ContentType,
           project_id: projectId,
           file_path: result.filePath,
           thumbnail_path: result.thumbnailPath,
           file_size: result.fileSize,
           mime_type: result.mimeType,
           category_id: categoryId || undefined,
-          status: 'draft',
+          status: 'draft' as ContentStatus,
         });
       });
       handleClose();
