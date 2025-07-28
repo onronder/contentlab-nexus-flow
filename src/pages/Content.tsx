@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Upload, 
   Search, 
@@ -24,10 +23,15 @@ import {
   Download,
   MoreVertical,
   Calendar,
-  User
+  User,
+  Loader2
 } from "lucide-react";
-import { mockContentItems, ContentItem } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { useContentItems } from "@/hooks/useContentQueries";
+import { useFileUrl } from "@/hooks/useFileUpload";
+import { FileUploadDialog } from "@/components/content/FileUploadDialog";
+import { useProjects } from "@/hooks";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Content = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,13 +40,59 @@ const Content = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  const filteredContent = mockContentItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesType = typeFilter === "all" || item.type === typeFilter;
-    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus;
-  });
+  // Get the first project for now - in a real app, this would be from route params
+  const { data: projects } = useProjects();
+  const projectId = projects?.[0]?.id;
+
+  // Fetch content from database
+  const { 
+    data: contentItems = [], 
+    isLoading, 
+    error 
+  } = useContentItems(projectId || '');
+
+  const { getThumbnailUrl, getContentFileUrl } = useFileUrl();
+
+  // Transform database content to match UI expectations
+  const transformedContent = useMemo(() => {
+    return contentItems.map(item => ({
+      id: item.id,
+      title: item.title,
+      type: item.content_type as 'blog-post' | 'social-media' | 'video' | 'document' | 'image',
+      author: {
+        id: item.user_id,
+        name: 'Content Author',
+        email: '',
+        avatar: '',
+        role: 'editor' as const,
+        status: 'online' as const,
+        lastActive: item.updated_at || item.created_at,
+        joinedAt: item.created_at
+      },
+      createdAt: item.created_at,
+      updatedAt: item.updated_at || item.created_at,
+      fileSize: item.file_size ? `${(item.file_size / 1024 / 1024).toFixed(1)} MB` : '0 MB',
+      thumbnail: item.thumbnail_path ? getThumbnailUrl(item.thumbnail_path) : '/placeholder.svg',
+      tags: item.content_tags?.map(tag => tag.tag) || [],
+      status: item.status as 'draft' | 'published' | 'archived',
+      engagement: item.content_analytics?.[0] ? {
+        views: item.content_analytics[0].views || 0,
+        likes: item.content_analytics[0].likes || 0,
+        shares: item.content_analytics[0].shares || 0,
+        comments: item.content_analytics[0].comments || 0
+      } : undefined
+    }));
+  }, [contentItems, getThumbnailUrl]);
+
+  const filteredContent = useMemo(() => {
+    return transformedContent.filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesType = typeFilter === "all" || item.type === typeFilter;
+      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [transformedContent, searchTerm, typeFilter, statusFilter]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -107,6 +157,36 @@ const Content = () => {
     );
   };
 
+  if (!projectId) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">No Project Selected</h1>
+          <p className="text-muted-foreground">Please create a project first to manage content.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2 text-destructive">Error Loading Content</h1>
+          <p className="text-muted-foreground">Failed to load content library. Please try again.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
       {/* Header */}
@@ -116,33 +196,20 @@ const Content = () => {
             <h1 className="text-4xl font-bold text-foreground mb-2">Content Library</h1>
             <p className="text-muted-foreground text-lg">Manage and organize your competitive intelligence content</p>
           </div>
-          <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-white shadow-elegant hover:shadow-glow transition-all duration-200">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Content
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Upload New Content</DialogTitle>
-                <DialogDescription>
-                  Upload files or create new content for your competitive intelligence library.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Drag and drop files here</h3>
-                <p className="text-muted-foreground mb-4">Or click to browse and select files</p>
-                <Button variant="outline">Browse Files</Button>
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={() => setShowUploadModal(false)}>Cancel</Button>
-                <Button className="gradient-primary">Upload</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            onClick={() => setShowUploadModal(true)}
+            className="gradient-primary text-white shadow-elegant hover:shadow-glow transition-all duration-200"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Content
+          </Button>
         </div>
+
+        <FileUploadDialog 
+          open={showUploadModal} 
+          onOpenChange={setShowUploadModal}
+          projectId={projectId}
+        />
 
         {/* Filters and Controls */}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -205,12 +272,12 @@ const Content = () => {
         {/* Content Type Tabs */}
         <Tabs value={typeFilter} onValueChange={setTypeFilter} className="w-full">
           <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="all">All ({mockContentItems.length})</TabsTrigger>
-            <TabsTrigger value="blog-post">Posts ({mockContentItems.filter(c => c.type === 'blog-post').length})</TabsTrigger>
-            <TabsTrigger value="video">Videos ({mockContentItems.filter(c => c.type === 'video').length})</TabsTrigger>
-            <TabsTrigger value="image">Images ({mockContentItems.filter(c => c.type === 'image').length})</TabsTrigger>
-            <TabsTrigger value="document">Docs ({mockContentItems.filter(c => c.type === 'document').length})</TabsTrigger>
-            <TabsTrigger value="social-media">Social ({mockContentItems.filter(c => c.type === 'social-media').length})</TabsTrigger>
+            <TabsTrigger value="all">All ({transformedContent.length})</TabsTrigger>
+            <TabsTrigger value="blog-post">Posts ({transformedContent.filter(c => c.type === 'blog-post').length})</TabsTrigger>
+            <TabsTrigger value="video">Videos ({transformedContent.filter(c => c.type === 'video').length})</TabsTrigger>
+            <TabsTrigger value="image">Images ({transformedContent.filter(c => c.type === 'image').length})</TabsTrigger>
+            <TabsTrigger value="document">Docs ({transformedContent.filter(c => c.type === 'document').length})</TabsTrigger>
+            <TabsTrigger value="social-media">Social ({transformedContent.filter(c => c.type === 'social-media').length})</TabsTrigger>
           </TabsList>
           <TabsContent value={typeFilter} className="mt-6">
             {/* Content Grid/List */}
