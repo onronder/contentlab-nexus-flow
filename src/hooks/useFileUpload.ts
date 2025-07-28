@@ -1,129 +1,111 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { storageService } from '@/services/contentService';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUserId } from './useCurrentUserId';
 import { useToast } from './use-toast';
+import { 
+  FileUploadService, 
+  UploadProgress, 
+  UploadResult, 
+  UploadParams 
+} from '@/services/fileUploadService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileUploadOptions {
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: UploadResult[]) => void;
   onError?: (error: any) => void;
-  maxFileSize?: number; // in bytes
-  allowedTypes?: string[];
 }
 
-interface UploadProgress {
-  [key: string]: number;
+interface UploadFileParams {
+  file: File;
+  projectId: string;
+  contentType: string;
+  title?: string;
+  description?: string;
+}
+
+interface UploadMultipleFilesParams {
+  files: File[];
+  projectId: string;
+  contentType: string;
 }
 
 export const useFileUpload = (options: FileUploadOptions = {}) => {
   const { toast } = useToast();
   const userId = useCurrentUserId();
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
+  const queryClient = useQueryClient();
+  const [uploadProgress, setUploadProgress] = useState<Map<string, UploadProgress>>(new Map());
   const [isUploading, setIsUploading] = useState(false);
 
-  const {
-    maxFileSize = 100 * 1024 * 1024, // 100MB default
-    allowedTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'video/mp4',
-      'video/webm',
-      'video/quicktime'
-    ],
-    onSuccess,
-    onError
-  } = options;
+  const { onSuccess, onError } = options;
 
-  const uploadMutation = useMutation({
-    mutationFn: async ({
-      files,
-      projectId,
-      contentType,
-      generateThumbnail = true
-    }: {
-      files: File[];
-      projectId: string;
-      contentType: string;
-      generateThumbnail?: boolean;
-    }) => {
+  const fileUploadService = FileUploadService.getInstance();
+
+  // Single file upload mutation
+  const uploadFileMutation = useMutation({
+    mutationFn: async (params: UploadFileParams) => {
       if (!userId) throw new Error('User not authenticated');
 
       setIsUploading(true);
-      const results = [];
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileId = `${Date.now()}-${i}`;
-
-        // Validate file
-        if (file.size > maxFileSize) {
-          throw new Error(`File ${file.name} is too large. Maximum size is ${maxFileSize / 1024 / 1024}MB`);
+      
+      const result = await fileUploadService.uploadFile({
+        ...params,
+        userId,
+        onProgress: (progress) => {
+          setUploadProgress(prev => new Map(prev.set(progress.contentId, progress)));
         }
+      });
 
-        if (!allowedTypes.includes(file.type)) {
-          throw new Error(`File type ${file.type} is not allowed`);
-        }
+      return [result]; // Return as array for consistency
+    },
+    onSuccess: (data) => {
+      setIsUploading(false);
+      setUploadProgress(new Map());
+      queryClient.invalidateQueries({ queryKey: ['content'] });
+      toast({
+        title: "Upload successful",
+        description: `File uploaded successfully`,
+      });
+      onSuccess?.(data);
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      setUploadProgress(new Map());
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload file",
+        variant: "destructive",
+      });
+      onError?.(error);
+    }
+  });
 
-        // Create file path: {user_id}/{project_id}/{content_id}/{filename}
-        const contentId = crypto.randomUUID();
-        const fileName = `${Date.now()}-${file.name}`;
-        const filePath = `${userId}/${projectId}/${contentId}/${fileName}`;
+  // Multiple files upload mutation
+  const uploadMultipleFilesMutation = useMutation({
+    mutationFn: async (params: UploadMultipleFilesParams) => {
+      if (!userId) throw new Error('User not authenticated');
 
-        try {
-          // Update progress
-          setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
-
-          // Upload main file
-          const uploadResult = await storageService.uploadFile(file, filePath);
-          
-          setUploadProgress(prev => ({ ...prev, [fileId]: 50 }));
-
-          let thumbnailPath = null;
-
-          // Generate thumbnail for images
-          if (generateThumbnail && file.type.startsWith('image/')) {
-            try {
-              const thumbnailBlob = await generateImageThumbnail(file);
-              const thumbnailFileName = `thumb_${fileName}`;
-              const thumbnailFilePath = `${userId}/${projectId}/${contentId}/${thumbnailFileName}`;
-              
-              const thumbnailFile = new File([thumbnailBlob], thumbnailFileName, { type: 'image/jpeg' });
-              await storageService.uploadThumbnail(thumbnailFile, thumbnailFilePath);
-              thumbnailPath = thumbnailFilePath;
-            } catch (error) {
-              console.warn('Failed to generate thumbnail:', error);
-            }
-          }
-
-          setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
-
-          results.push({
-            contentId,
-            fileName: file.name,
-            filePath,
-            thumbnailPath,
-            fileSize: file.size,
-            mimeType: file.type,
-            uploadResult
+      setIsUploading(true);
+      
+      const results = await fileUploadService.uploadMultipleFiles(
+        params.files,
+        userId,
+        params.projectId,
+        params.contentType,
+        (overallProgress, fileProgresses) => {
+          const progressMap = new Map();
+          fileProgresses.forEach(fp => {
+            progressMap.set(fp.contentId, fp);
           });
-
-        } catch (error) {
-          setUploadProgress(prev => ({ ...prev, [fileId]: -1 })); // Error state
-          throw error;
+          setUploadProgress(progressMap);
         }
-      }
+      );
 
       return results;
     },
     onSuccess: (data) => {
       setIsUploading(false);
-      setUploadProgress({});
+      setUploadProgress(new Map());
+      queryClient.invalidateQueries({ queryKey: ['content'] });
       toast({
         title: "Upload successful",
         description: `${data.length} file(s) uploaded successfully`,
@@ -132,7 +114,7 @@ export const useFileUpload = (options: FileUploadOptions = {}) => {
     },
     onError: (error: any) => {
       setIsUploading(false);
-      setUploadProgress({});
+      setUploadProgress(new Map());
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload files",
@@ -142,84 +124,97 @@ export const useFileUpload = (options: FileUploadOptions = {}) => {
     }
   });
 
-  // Helper function to generate image thumbnails
-  const generateImageThumbnail = (file: File, maxWidth = 300, maxHeight = 300): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
+  // Legacy mutation for backwards compatibility
+  const uploadMutation = useMutation({
+    mutationFn: async ({
+      files,
+      projectId,
+      contentType,
+    }: {
+      files: File[];
+      projectId: string;
+      contentType: string;
+    }) => {
+      if (!userId) throw new Error('User not authenticated');
 
-      img.onload = () => {
-        // Calculate new dimensions
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
-          }
-        }
+      if (files.length === 1) {
+        return uploadFileMutation.mutateAsync({
+          file: files[0],
+          projectId,
+          contentType
+        });
+      } else {
+        return uploadMultipleFilesMutation.mutateAsync({
+          files,
+          projectId,
+          contentType
+        });
+      }
+    }
+  });
 
-        canvas.width = width;
-        canvas.height = height;
-
-        // Draw and compress
-        ctx?.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to generate thumbnail'));
-            }
-          },
-          'image/jpeg',
-          0.7 // 70% quality
-        );
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const validateFiles = (files: File[]): { valid: File[]; errors: string[] } => {
+  const validateFiles = (files: File[], contentType: string): { valid: File[]; errors: string[] } => {
     const valid: File[] = [];
     const errors: string[] = [];
 
     files.forEach(file => {
-      if (file.size > maxFileSize) {
-        errors.push(`${file.name}: File too large (max ${Math.round(maxFileSize / 1024 / 1024)}MB)`);
-      } else if (!allowedTypes.includes(file.type)) {
-        errors.push(`${file.name}: File type not allowed`);
-      } else {
+      try {
+        // This will throw if validation fails
+        fileUploadService['validateFile'](file, contentType as any);
         valid.push(file);
+      } catch (error) {
+        errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Validation failed'}`);
       }
     });
 
     return { valid, errors };
   };
 
+  const cancelUpload = async (uploadId: string) => {
+    await fileUploadService.cancelUpload(uploadId);
+    setUploadProgress(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(uploadId);
+      return newMap;
+    });
+  };
+
   return {
+    // New enhanced methods
+    uploadFile: uploadFileMutation.mutate,
+    uploadMultipleFiles: uploadMultipleFilesMutation.mutate,
+    
+    // Legacy method for backwards compatibility
     uploadFiles: uploadMutation.mutate,
-    isUploading: isUploading || uploadMutation.isPending,
+    
+    // State and utilities
+    isUploading: isUploading || uploadFileMutation.isPending || uploadMultipleFilesMutation.isPending,
     uploadProgress,
     validateFiles,
-    error: uploadMutation.error,
-    reset: uploadMutation.reset
+    cancelUpload,
+    error: uploadFileMutation.error || uploadMultipleFilesMutation.error,
+    reset: () => {
+      uploadFileMutation.reset();
+      uploadMultipleFilesMutation.reset();
+      setUploadProgress(new Map());
+    }
   };
 };
 
-// Hook for getting file URLs
+// Hook for getting file URLs from Supabase Storage
 export const useFileUrl = () => {
   return {
-    getFileUrl: (bucket: string, path: string) => storageService.getFileUrl(bucket, path),
-    getContentFileUrl: (path: string) => storageService.getFileUrl('content-files', path),
-    getThumbnailUrl: (path: string) => storageService.getFileUrl('content-thumbnails', path)
+    getFileUrl: (bucket: string, path: string) => {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      return data.publicUrl;
+    },
+    getContentFileUrl: (path: string) => {
+      const { data } = supabase.storage.from('content-files').getPublicUrl(path);
+      return data.publicUrl;
+    },
+    getThumbnailUrl: (path: string) => {
+      const { data } = supabase.storage.from('content-thumbnails').getPublicUrl(path);
+      return data.publicUrl;
+    }
   };
 };

@@ -65,16 +65,24 @@ export {
   useContentTags,
   usePopularTags,
   useContentCategories,
+} from './useContentQueries';
+
+export {
   useCreateContent,
   useUpdateContent,
   useDeleteContent,
-  useUpdateAnalytics,
+  useArchiveContent,
+  useBulkUpdateStatus,
+  useBulkDelete,
   useAddTags,
   useRemoveTag,
-} from './useContentQueries';
+  useTrackEngagement,
+  useTrackView,
+  useContentMutations,
+} from './useContentMutations';
 
 // File upload hooks
-export { useFileUpload } from './useFileUpload';
+export { useFileUpload, useFileUrl } from './useFileUpload';
 
 // Real-time hooks
 export {

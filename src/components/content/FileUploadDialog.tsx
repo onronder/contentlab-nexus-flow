@@ -12,6 +12,7 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useCreateContent } from '@/hooks/useContentMutations';
 import { useContentCategories } from '@/hooks/useContentQueries';
 import { ContentType, ContentStatus } from '@/types/content';
+import { FileUploadService } from '@/services/fileUploadService';
 import { cn } from '@/lib/utils';
 
 interface FileUploadDialogProps {
@@ -40,9 +41,9 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
       // Create content items for uploaded files
       uploadResults.forEach(result => {
         createContent.mutate({
-          title: title || result.fileName,
+          title: title || result.originalFilename,
           description,
-          content_type: (contentType || getContentTypeFromMime(result.mimeType)) as ContentType,
+          content_type: (contentType || FileUploadService.getContentTypeFromMime(result.mimeType)) as ContentType,
           project_id: projectId,
           file_path: result.filePath,
           thumbnail_path: result.thumbnailPath,
@@ -59,12 +60,6 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
   const createContent = useCreateContent();
   const { data: categories } = useContentCategories();
 
-  const getContentTypeFromMime = (mimeType: string): string => {
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'video';
-    if (mimeType.includes('pdf') || mimeType.includes('document') || mimeType.includes('text')) return 'document';
-    return 'document';
-  };
 
   const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith('image/')) return <ImageIcon className="h-4 w-4" />;
@@ -100,7 +95,7 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
   };
 
   const addFiles = (newFiles: File[]) => {
-    const { valid, errors } = validateFiles(newFiles);
+    const { valid, errors } = validateFiles(newFiles, contentType || 'document');
     
     if (errors.length > 0) {
       // Show validation errors
@@ -144,7 +139,7 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
     uploadFiles({
       files: files.map(f => new File([f], f.name, { type: f.type })),
       projectId,
-      contentType: contentType || getContentTypeFromMime(files[0].type)
+      contentType: contentType || FileUploadService.getContentTypeFromMime(files[0].type)
     });
   };
 
@@ -166,7 +161,7 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
     onOpenChange(false);
   };
 
-  const totalProgress = Object.values(uploadProgress).reduce((sum, progress) => sum + Math.max(0, progress), 0) / Math.max(1, files.length);
+  const totalProgress = Array.from(uploadProgress.values()).reduce((sum, progress) => sum + Math.max(0, progress.progress), 0) / Math.max(1, uploadProgress.size);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
