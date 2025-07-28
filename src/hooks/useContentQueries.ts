@@ -11,17 +11,46 @@ export const useContentItems = (projectId: string) => {
 
   const query = useQuery({
     queryKey: ['content-items', projectId],
-    queryFn: () => contentService.getContentItems(projectId),
+    queryFn: async () => {
+      try {
+        return await contentService.getContentItems(projectId);
+      } catch (error: any) {
+        // Handle network timeouts and retries
+        if (error?.code === 'PGRST301' || error?.message?.includes('timeout')) {
+          throw new Error('Request timeout - please try again');
+        }
+        throw error;
+      }
+    },
     enabled: !!projectId && !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on client errors except timeouts
+      if (error?.status >= 400 && error?.status < 500 && !error?.message?.includes('timeout')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
-  // Real-time subscription
+  // Real-time subscription with throttling
   useEffect(() => {
     if (!projectId || !userId) return;
 
+    let timeoutId: NodeJS.Timeout;
+    
+    const handleChange = () => {
+      // Throttle invalidations to prevent excessive refetches
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['content-items', projectId] });
+      }, 1000);
+    };
+
     const channel = supabase
-      .channel('content-items-changes')
+      .channel(`content-items-changes-${projectId}`)
       .on(
         'postgres_changes',
         {
@@ -30,13 +59,12 @@ export const useContentItems = (projectId: string) => {
           table: 'content_items',
           filter: `project_id=eq.${projectId}`
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['content-items', projectId] });
-        }
+        handleChange
       )
       .subscribe();
 
     return () => {
+      clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
   }, [projectId, userId, queryClient]);

@@ -24,7 +24,8 @@ import {
   MoreVertical,
   Calendar,
   User,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContentItems } from "@/hooks/useContentQueries";
@@ -32,6 +33,8 @@ import { useFileUrl } from "@/hooks/useFileUpload";
 import { FileUploadDialog } from "@/components/content/FileUploadDialog";
 import { useProjects } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ContentErrorBoundary } from "@/components/ui/content-error-boundary";
+import { ErrorAlert } from "@/components/ui/error-alert";
 
 const Content = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,11 +47,12 @@ const Content = () => {
   const { data: projects } = useProjects();
   const projectId = projects?.[0]?.id;
 
-  // Fetch content from database
+  // Fetch content from database with error handling
   const { 
     data: contentItems = [], 
     isLoading, 
-    error 
+    error,
+    refetch
   } = useContentItems(projectId || '');
 
   const { getThumbnailUrl, getContentFileUrl } = useFileUrl();
@@ -179,31 +183,45 @@ const Content = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2 text-destructive">Error Loading Content</h1>
-          <p className="text-muted-foreground">Failed to load content library. Please try again.</p>
-        </div>
+        <ErrorAlert
+          title="Error Loading Content"
+          message={error instanceof Error ? error.message : "Failed to load content library. Please try again."}
+          onRetry={() => refetch()}
+          retryLabel="Retry Loading"
+        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Content Library</h1>
-            <p className="text-muted-foreground text-lg">Manage and organize your competitive intelligence content</p>
+    <ContentErrorBoundary>
+      <div className="min-h-screen bg-gradient-subtle p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Content Library</h1>
+              <p className="text-muted-foreground text-lg">Manage and organize your competitive intelligence content</p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="gap-2"
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                Refresh
+              </Button>
+              <Button 
+                onClick={() => setShowUploadModal(true)}
+                className="gradient-primary text-white shadow-elegant hover:shadow-glow transition-all duration-200"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Content
+              </Button>
+            </div>
           </div>
-          <Button 
-            onClick={() => setShowUploadModal(true)}
-            className="gradient-primary text-white shadow-elegant hover:shadow-glow transition-all duration-200"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Content
-          </Button>
-        </div>
 
         <FileUploadDialog 
           open={showUploadModal} 
@@ -281,36 +299,43 @@ const Content = () => {
           </TabsList>
           <TabsContent value={typeFilter} className="mt-6">
             {/* Content Grid/List */}
-            <div className={cn(
-              viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
-                : "space-y-4"
-            )}>
-              {filteredContent.map((item) => (
-                <Card key={item.id} className={cn(
-                  "interactive-lift cursor-pointer",
-                  viewMode === "list" && "flex flex-row"
-                )}>
-                  {viewMode === "grid" ? (
-                    <>
-                      <div className="relative">
-                        <img 
-                          src={item.thumbnail} 
-                          alt={item.title}
-                          className="w-full h-48 object-cover rounded-t-lg"
-                        />
-                        <div className="absolute top-3 left-3">
-                          <Badge className={cn("text-xs", getTypeColor(item.type))}>
-                            {getTypeIcon(item.type)}
-                            <span className="ml-1 capitalize">{item.type.replace('-', ' ')}</span>
-                          </Badge>
-                        </div>
-                        <div className="absolute top-3 right-3">
-                          <Badge className={cn("text-xs", getStatusColor(item.status))}>
-                            {item.status}
-                          </Badge>
-                        </div>
-                      </div>
+            <ContentErrorBoundary>
+              <div className={cn(
+                viewMode === "grid" 
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
+                  : "space-y-4"
+              )}>
+                {filteredContent.map((item) => (
+                  <ContentErrorBoundary key={item.id}>
+                    <Card className={cn(
+                      "interactive-lift cursor-pointer",
+                      viewMode === "list" && "flex flex-row"
+                    )}>
+                      {viewMode === "grid" ? (
+                        <>
+                          <div className="relative">
+                            <img 
+                              src={item.thumbnail} 
+                              alt={item.title}
+                              className="w-full h-48 object-cover rounded-t-lg"
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder.svg';
+                              }}
+                            />
+                            <div className="absolute top-3 left-3">
+                              <Badge className={cn("text-xs", getTypeColor(item.type))}>
+                                {getTypeIcon(item.type)}
+                                <span className="ml-1 capitalize">{item.type.replace('-', ' ')}</span>
+                              </Badge>
+                            </div>
+                            <div className="absolute top-3 right-3">
+                              <Badge className={cn("text-xs", getStatusColor(item.status))}>
+                                {item.status}
+                              </Badge>
+                            </div>
+                          </div>
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold line-clamp-2">{item.title}</CardTitle>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -352,6 +377,11 @@ const Content = () => {
                           src={item.thumbnail} 
                           alt={item.title}
                           className="w-full h-full object-cover rounded-l-lg"
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder.svg';
+                          }}
                         />
                       </div>
                       <div className="flex-1 p-4">
@@ -402,9 +432,11 @@ const Content = () => {
                       </div>
                     </>
                   )}
-                </Card>
-              ))}
-            </div>
+                    </Card>
+                  </ContentErrorBoundary>
+                ))}
+              </div>
+            </ContentErrorBoundary>
 
             {filteredContent.length === 0 && (
               <div className="text-center py-12">
@@ -423,6 +455,7 @@ const Content = () => {
         </Tabs>
       </div>
     </div>
+    </ContentErrorBoundary>
   );
 };
 
