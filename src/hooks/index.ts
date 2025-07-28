@@ -54,3 +54,23 @@ export { useStepperState } from './useStepperState';
 export { useSessionManager } from './useSessionManager';
 export { useSecurityMonitoring } from './useSecurityMonitoring';
 export { useBulkOperations } from './useBulkOperations';
+
+// Real-time hooks
+export {
+  useRealTimeCompetitors,
+  useRealTimeAlerts,
+  useMonitoringStatus,
+  useRealTimeMetrics,
+  useRealTimeSerpData
+} from './useRealTimeQueries';
+
+export {
+  useToggleRealTimeMonitoring,
+  useAcknowledgeAlert,
+  useBulkAcknowledgeAlerts,
+  useSnoozeAlert,
+  useDismissAlert,
+  useUpdateAlertPreferences,
+  useTriggerAnalysis,
+  useUpdateMonitoringFrequency
+} from './useRealTimeMutations';

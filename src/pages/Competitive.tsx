@@ -8,7 +8,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Building2, TrendingUp, Users, Activity, Plus, Search, Filter, MoreHorizontal, Globe, MapPin, DollarSign, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { AddCompetitorStepper } from "@/components/competitive/AddCompetitorStepper";
 import { useState } from "react";
-import { useProjects, useCompetitors, useCreateCompetitor, useToggleMonitoring, useDeleteCompetitor } from "@/hooks";
+import { 
+  useProjects, 
+  useCreateCompetitor, 
+  useDeleteCompetitor,
+  useRealTimeCompetitors,
+  useRealTimeAlerts,
+  useRealTimeMetrics,
+  useToggleRealTimeMonitoring,
+  useAcknowledgeAlert,
+  useDismissAlert
+} from "@/hooks";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { THREAT_LEVELS, COMPETITIVE_TIERS, CompetitorCreateInput } from "@/types/competitors";
 import { Competitor } from "@/types/competitors";
@@ -28,36 +38,62 @@ export default function Competitive() {
   const { data: projects } = useProjects();
   const currentProject = projects?.[0]; // For demo, use first project
   
-  // Get competitors data
-  const { data: competitorsResult, isLoading } = useCompetitors(
+  // Get real-time competitors data
+  const { data: competitorsResult, isLoading } = useRealTimeCompetitors(
     currentProject?.id || '',
-    {
-      search: searchTerm,
-      threat_level: filterThreatLevel || undefined,
-      competitive_tier: filterTier || undefined,
-      status: 'active'
-    },
-    undefined,
-    1,
-    50,
+    !!currentProject?.id
+  );
+  
+  // Get real-time metrics
+  const { metrics: realTimeMetrics } = useRealTimeMetrics(
+    currentProject?.id || '',
+    !!currentProject?.id
+  );
+  
+  // Get real-time alerts
+  const { alerts, unreadCount } = useRealTimeAlerts(
+    currentProject?.id || '',
     !!currentProject?.id
   );
   
   const createCompetitorMutation = useCreateCompetitor();
-  const toggleMonitoringMutation = useToggleMonitoring();
+  const toggleMonitoringMutation = useToggleRealTimeMonitoring();
   const deleteCompetitorMutation = useDeleteCompetitor();
+  const acknowledgeAlertMutation = useAcknowledgeAlert();
+  const dismissAlertMutation = useDismissAlert();
   
   const competitors = competitorsResult?.competitors || [];
   
-  // Calculate stats from real data
-  const totalCompetitors = competitors.length;
-  const activeMonitoring = competitors.filter(c => c.monitoring_enabled).length;
-  const avgMarketShare = competitors.length > 0 
-    ? (competitors.reduce((sum, c) => sum + (c.market_share_estimate || 0), 0) / totalCompetitors).toFixed(1)
-    : "0.0";
-  const avgContentVelocity = competitors.length > 0
-    ? Math.round(competitors.reduce((sum, c) => sum + (c.analysis_count || 0), 0) / totalCompetitors)
-    : 0;
+  // Use real-time metrics when available, fallback to calculated stats
+  const totalCompetitors = realTimeMetrics?.totalCompetitors ?? competitors.length;
+  const activeMonitoring = realTimeMetrics?.activeMonitoring ?? competitors.filter(c => c.monitoring_enabled).length;
+  const recentAlerts = realTimeMetrics?.recentAlerts ?? 0;
+  const analysesInProgress = realTimeMetrics?.analysesInProgress ?? 0;
+
+  // Handle alert actions
+  const handleAcknowledgeAlert = async (alertId: string) => {
+    if (!currentProject?.id) return;
+    try {
+      await acknowledgeAlertMutation.mutateAsync({
+        alertId,
+        projectId: currentProject.id
+      });
+    } catch (error) {
+      console.error('Error acknowledging alert:', error);
+    }
+  };
+
+  const handleDismissAlert = async (alertId: string) => {
+    if (!currentProject?.id) return;
+    try {
+      await dismissAlertMutation.mutateAsync({
+        alertId,
+        projectId: currentProject.id
+      });
+    } catch (error) {
+      console.error('Error dismissing alert:', error);
+    }
+  };
 
   const handleAddCompetitor = async (competitorData: CompetitorCreateInput) => {
     if (!currentProject?.id) {
@@ -167,23 +203,23 @@ export default function Competitive() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Market Share</CardTitle>
+            <CardTitle className="text-sm font-medium">Recent Alerts</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{avgMarketShare}%</div>
-            <p className="text-xs text-muted-foreground">Industry average</p>
+            <div className="text-2xl font-bold text-primary">{recentAlerts}</div>
+            <p className="text-xs text-muted-foreground">Last 24 hours</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Analyses Done</CardTitle>
+            <CardTitle className="text-sm font-medium">Analyses Running</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{avgContentVelocity}</div>
-            <p className="text-xs text-muted-foreground">Total analyses</p>
+            <div className="text-2xl font-bold text-primary">{analysesInProgress}</div>
+            <p className="text-xs text-muted-foreground">In progress</p>
           </CardContent>
         </Card>
       </div>
@@ -317,22 +353,56 @@ export default function Competitive() {
         <TabsContent value="alerts">
           <Card>
             <CardHeader>
-              <CardTitle>Alert Center</CardTitle>
-              <CardDescription>
-                Configure and manage competitor monitoring alerts
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Alert Center {unreadCount > 0 && <Badge variant="destructive" className="ml-2">{unreadCount}</Badge>}</CardTitle>
+                  <CardDescription>
+                    Real-time alerts for competitor activities and changes
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12">
-                <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Smart Alert System</h3>
-                <p className="text-muted-foreground mb-6">
-                  Set up intelligent alerts for competitor activities, content changes, and market movements.
-                </p>
-                <Button variant="outline">
-                  Configure Alerts
-                </Button>
-              </div>
+              {alerts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Active Alerts</h3>
+                  <p className="text-muted-foreground mb-6">
+                    You'll see real-time alerts here when competitors make significant changes.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {alerts.slice(0, 10).map((alert) => (
+                    <div key={alert.id} className={`p-4 border rounded-lg ${!alert.is_read ? 'bg-primary/5 border-primary/20' : 'bg-background'}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium">{alert.title}</h4>
+                            <Badge variant={alert.severity === 'high' ? 'destructive' : alert.severity === 'medium' ? 'default' : 'secondary'}>
+                              {alert.severity}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">{alert.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(alert.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          {!alert.is_read && (
+                            <Button size="sm" variant="outline" onClick={() => handleAcknowledgeAlert(alert.id)}>
+                              Mark Read
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => handleDismissAlert(alert.id)}>
+                            Dismiss
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
