@@ -176,6 +176,366 @@ export type Database = {
         }
         Relationships: []
       }
+      content_activity_log: {
+        Row: {
+          action: string
+          content_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          content_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          content_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_activity_log_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_analytics: {
+        Row: {
+          analytics_date: string | null
+          click_through_rate: number | null
+          comments: number | null
+          content_id: string
+          conversion_rate: number | null
+          created_at: string | null
+          downloads: number | null
+          engagement_rate: number | null
+          id: string
+          impressions: number | null
+          likes: number | null
+          performance_score: number | null
+          reach: number | null
+          shares: number | null
+          updated_at: string | null
+          views: number | null
+        }
+        Insert: {
+          analytics_date?: string | null
+          click_through_rate?: number | null
+          comments?: number | null
+          content_id: string
+          conversion_rate?: number | null
+          created_at?: string | null
+          downloads?: number | null
+          engagement_rate?: number | null
+          id?: string
+          impressions?: number | null
+          likes?: number | null
+          performance_score?: number | null
+          reach?: number | null
+          shares?: number | null
+          updated_at?: string | null
+          views?: number | null
+        }
+        Update: {
+          analytics_date?: string | null
+          click_through_rate?: number | null
+          comments?: number | null
+          content_id?: string
+          conversion_rate?: number | null
+          created_at?: string | null
+          downloads?: number | null
+          engagement_rate?: number | null
+          id?: string
+          impressions?: number | null
+          likes?: number | null
+          performance_score?: number | null
+          reach?: number | null
+          shares?: number | null
+          updated_at?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_analytics_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "content_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_collaborators: {
+        Row: {
+          accepted_at: string | null
+          content_id: string
+          id: string
+          invited_at: string | null
+          invited_by: string
+          permissions: Json | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          content_id: string
+          id?: string
+          invited_at?: string | null
+          invited_by: string
+          permissions?: Json | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          content_id?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string
+          permissions?: Json | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_collaborators_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_items: {
+        Row: {
+          category_id: string | null
+          content_hash: string | null
+          content_type: string
+          created_at: string | null
+          description: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          project_id: string
+          published_at: string | null
+          review_comments: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_publish_at: string | null
+          search_vector: unknown | null
+          status: string
+          thumbnail_path: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          workflow_status: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          content_hash?: string | null
+          content_type: string
+          created_at?: string | null
+          description?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          project_id: string
+          published_at?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_publish_at?: string | null
+          search_vector?: unknown | null
+          status?: string
+          thumbnail_path?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          workflow_status?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          content_hash?: string | null
+          content_type?: string
+          created_at?: string | null
+          description?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          project_id?: string
+          published_at?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_publish_at?: string | null
+          search_vector?: unknown | null
+          status?: string
+          thumbnail_path?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          workflow_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "content_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_tags: {
+        Row: {
+          content_id: string
+          created_at: string | null
+          id: string
+          tag: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string | null
+          id?: string
+          tag: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string | null
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_tags_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_versions: {
+        Row: {
+          changes_summary: string | null
+          content_id: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          title: string
+          version_number: number
+        }
+        Insert: {
+          changes_summary?: string | null
+          content_id: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          title: string
+          version_number: number
+        }
+        Update: {
+          changes_summary?: string | null
+          content_id?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          title?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_versions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_data_logs: {
         Row: {
           api_endpoint: string
