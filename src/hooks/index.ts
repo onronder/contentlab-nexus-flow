@@ -55,6 +55,27 @@ export { useSessionManager } from './useSessionManager';
 export { useSecurityMonitoring } from './useSecurityMonitoring';
 export { useBulkOperations } from './useBulkOperations';
 
+// Content management hooks
+export {
+  useContentItems,
+  useContentItem,
+  useSearchContent,
+  useFilteredContent,
+  useContentAnalytics,
+  useContentTags,
+  usePopularTags,
+  useContentCategories,
+  useCreateContent,
+  useUpdateContent,
+  useDeleteContent,
+  useUpdateAnalytics,
+  useAddTags,
+  useRemoveTag,
+} from './useContentQueries';
+
+// File upload hooks
+export { useFileUpload } from './useFileUpload';
+
 // Real-time hooks
 export {
   useRealTimeCompetitors,

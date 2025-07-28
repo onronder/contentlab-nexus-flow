@@ -18,7 +18,8 @@ export const contentService = {
         *,
         content_analytics(*),
         content_tags(tag),
-        content_categories(name, color, icon)
+        content_categories(name, color, icon),
+        profiles!content_items_user_id_fkey(full_name, avatar_url)
       `)
       .eq('project_id', projectId)
       .order('created_at', { ascending: false });
@@ -36,11 +37,11 @@ export const contentService = {
         content_analytics(*),
         content_tags(tag),
         content_categories(name, color, icon),
-        profiles:user_id(full_name, avatar_url),
+        profiles!content_items_user_id_fkey(full_name, avatar_url),
         content_versions(*),
         content_collaborators(
           *,
-          profiles:user_id(full_name, avatar_url)
+          profiles!content_collaborators_user_id_fkey(full_name, avatar_url)
         )
       `)
       .eq('id', id)
@@ -93,7 +94,7 @@ export const contentService = {
         *,
         content_analytics(*),
         content_tags(tag),
-        profiles:user_id(full_name, avatar_url)
+        profiles!content_items_user_id_fkey(full_name, avatar_url)
       `)
       .eq('project_id', projectId)
       .textSearch('search_vector', query)
@@ -120,7 +121,7 @@ export const contentService = {
         content_analytics(*),
         content_tags(tag),
         content_categories(name, color, icon),
-        profiles:user_id(full_name, avatar_url)
+        profiles!content_items_user_id_fkey(full_name, avatar_url)
       `)
       .eq('project_id', projectId);
 
