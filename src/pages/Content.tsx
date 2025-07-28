@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { useContentItems } from "@/hooks/useContentQueries";
 import { useFileUrl } from "@/hooks/useFileUpload";
 import { FileUploadDialog } from "@/components/content/FileUploadDialog";
+import { ContentCard } from "@/components/content/ContentCard";
 import { useProjects } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ContentErrorBoundary } from "@/components/ui/content-error-boundary";
@@ -60,31 +61,11 @@ const Content = () => {
   // Transform database content to match UI expectations
   const transformedContent = useMemo(() => {
     return contentItems.map(item => ({
-      id: item.id,
-      title: item.title,
+      ...item,
       type: item.content_type as 'blog-post' | 'social-media' | 'video' | 'document' | 'image',
-      author: {
-        id: item.user_id,
-        name: 'Content Author',
-        email: '',
-        avatar: '',
-        role: 'editor' as const,
-        status: 'online' as const,
-        lastActive: item.updated_at || item.created_at,
-        joinedAt: item.created_at
-      },
-      createdAt: item.created_at,
-      updatedAt: item.updated_at || item.created_at,
       fileSize: item.file_size ? `${(item.file_size / 1024 / 1024).toFixed(1)} MB` : '0 MB',
       thumbnail: item.thumbnail_path ? getThumbnailUrl(item.thumbnail_path) : '/placeholder.svg',
       tags: item.content_tags?.map(tag => tag.tag) || [],
-      status: item.status as 'draft' | 'published' | 'archived',
-      engagement: item.content_analytics?.[0] ? {
-        views: item.content_analytics[0].views || 0,
-        likes: item.content_analytics[0].likes || 0,
-        shares: item.content_analytics[0].shares || 0,
-        comments: item.content_analytics[0].comments || 0
-      } : undefined
     }));
   }, [contentItems, getThumbnailUrl]);
 
@@ -97,69 +78,6 @@ const Content = () => {
       return matchesSearch && matchesType && matchesStatus;
     });
   }, [transformedContent, searchTerm, typeFilter, statusFilter]);
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "blog-post": return <FileText className="h-4 w-4" />;
-      case "video": return <Video className="h-4 w-4" />;
-      case "image": return <ImageIcon className="h-4 w-4" />;
-      case "document": return <File className="h-4 w-4" />;
-      case "social-media": return <Share2 className="h-4 w-4" />;
-      default: return <File className="h-4 w-4" />;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "blog-post": return "bg-blue-100 text-blue-800";
-      case "video": return "bg-purple-100 text-purple-800";
-      case "image": return "bg-green-100 text-green-800";
-      case "document": return "bg-orange-100 text-orange-800";
-      case "social-media": return "bg-pink-100 text-pink-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "published": return "bg-green-100 text-green-800";
-      case "draft": return "bg-yellow-100 text-yellow-800";
-      case "archived": return "bg-gray-100 text-gray-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const formatEngagement = (engagement: any) => {
-    if (!engagement) return null;
-    return (
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Eye className="h-3 w-3" />
-          {engagement.views}
-        </div>
-        <div className="flex items-center gap-1">
-          <Heart className="h-3 w-3" />
-          {engagement.likes}
-        </div>
-        <div className="flex items-center gap-1">
-          <Share2 className="h-3 w-3" />
-          {engagement.shares}
-        </div>
-        <div className="flex items-center gap-1">
-          <MessageCircle className="h-3 w-3" />
-          {engagement.comments}
-        </div>
-      </div>
-    );
-  };
 
   if (!projectId) {
     return (
@@ -222,6 +140,7 @@ const Content = () => {
               </Button>
             </div>
           </div>
+        </div>
 
         <FileUploadDialog 
           open={showUploadModal} 
@@ -298,163 +217,46 @@ const Content = () => {
             <TabsTrigger value="social-media">Social ({transformedContent.filter(c => c.type === 'social-media').length})</TabsTrigger>
           </TabsList>
           <TabsContent value={typeFilter} className="mt-6">
-            {/* Content Grid/List */}
-            <ContentErrorBoundary>
-              <div className={cn(
-                viewMode === "grid" 
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
-                  : "space-y-4"
-              )}>
-                {filteredContent.map((item) => (
-                  <ContentErrorBoundary key={item.id}>
-                    <Card className={cn(
-                      "interactive-lift cursor-pointer",
-                      viewMode === "list" && "flex flex-row"
-                    )}>
-                      {viewMode === "grid" ? (
-                        <>
-                          <div className="relative">
-                            <img 
-                              src={item.thumbnail} 
-                              alt={item.title}
-                              className="w-full h-48 object-cover rounded-t-lg"
-                              loading="lazy"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = '/placeholder.svg';
-                              }}
-                            />
-                            <div className="absolute top-3 left-3">
-                              <Badge className={cn("text-xs", getTypeColor(item.type))}>
-                                {getTypeIcon(item.type)}
-                                <span className="ml-1 capitalize">{item.type.replace('-', ' ')}</span>
-                              </Badge>
-                            </div>
-                            <div className="absolute top-3 right-3">
-                              <Badge className={cn("text-xs", getStatusColor(item.status))}>
-                                {item.status}
-                              </Badge>
-                            </div>
-                          </div>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold line-clamp-2">{item.title}</CardTitle>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={item.author.avatar} alt={item.author.name} />
-                            <AvatarFallback className="text-xs">{item.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <span>{item.author.name}</span>
-                          <span>•</span>
-                          <span>{formatDate(item.createdAt)}</span>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm text-muted-foreground">{item.fileSize}</span>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        {item.engagement && formatEngagement(item.engagement)}
-                        <div className="flex flex-wrap gap-1 mt-3">
-                          {item.tags.slice(0, 2).map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {item.tags.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{item.tags.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-32 h-20 flex-shrink-0">
-                        <img 
-                          src={item.thumbnail} 
-                          alt={item.title}
-                          className="w-full h-full object-cover rounded-l-lg"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/placeholder.svg';
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1 p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="font-semibold line-clamp-1">{item.title}</h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                              <Avatar className="h-5 w-5">
-                                <AvatarImage src={item.author.avatar} alt={item.author.name} />
-                                <AvatarFallback className="text-xs">{item.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                              </Avatar>
-                              <span>{item.author.name}</span>
-                              <span>•</span>
-                              <span>{formatDate(item.createdAt)}</span>
-                              <span>•</span>
-                              <span>{item.fileSize}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={cn("text-xs", getTypeColor(item.type))}>
-                              {item.type.replace('-', ' ')}
-                            </Badge>
-                            <Badge className={cn("text-xs", getStatusColor(item.status))}>
-                              {item.status}
-                            </Badge>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        {item.engagement && (
-                          <div className="mb-2">
-                            {formatEngagement(item.engagement)}
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-1">
-                          {item.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {item.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{item.tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                    </Card>
-                  </ContentErrorBoundary>
-                ))}
-              </div>
-            </ContentErrorBoundary>
-
+            {/* Empty State */}
             {filteredContent.length === 0 && (
-              <div className="text-center py-12">
-                <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No content found</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm ? "Try adjusting your search terms" : "Upload your first content item to get started"}
+              <div className="text-center py-16">
+                <Upload className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No content found</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  {searchTerm ? 'No content matches your search criteria.' : 'Get started by uploading your first content item to begin building your library.'}
                 </p>
-                <Button onClick={() => setShowUploadModal(true)} className="gradient-primary">
+                <Button 
+                  onClick={() => setShowUploadModal(true)}
+                  className="gradient-primary"
+                >
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Content
                 </Button>
               </div>
             )}
+
+            {/* Content Grid/List */}
+            {filteredContent.length > 0 && (
+              <ContentErrorBoundary>
+                <div className={cn(
+                  viewMode === "grid" 
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
+                    : "space-y-4"
+                )}>
+                  {filteredContent.map((item) => (
+                    <ContentErrorBoundary key={item.id}>
+                      <ContentCard 
+                        content={item}
+                        viewMode={viewMode}
+                      />
+                    </ContentErrorBoundary>
+                  ))}
+                </div>
+              </ContentErrorBoundary>
+            )}
           </TabsContent>
         </Tabs>
       </div>
-    </div>
     </ContentErrorBoundary>
   );
 };

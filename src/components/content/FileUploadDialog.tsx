@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,13 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, FileText, Image as ImageIcon, Video, File as FileIcon } from 'lucide-react';
+import { Upload, X, FileText, Image as ImageIcon, Video, File as FileIcon, AlertCircle, CheckCircle } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useCreateContent } from '@/hooks/useContentMutations';
 import { useContentCategories } from '@/hooks/useContentQueries';
 import { ContentType, ContentStatus } from '@/types/content';
 import { FileUploadService } from '@/services/fileUploadService';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadDialogProps {
   open: boolean;
@@ -24,6 +25,9 @@ interface FileUploadDialogProps {
 interface FileWithMetadata extends File {
   id: string;
   preview?: string;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  error?: string;
+  progress?: number;
 }
 
 export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDialogProps) => {
@@ -35,8 +39,11 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
   const [categoryId, setCategoryId] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  
+  const { toast } = useToast();
 
-  const { uploadFiles, isUploading, uploadProgress, validateFiles } = useFileUpload({
+  const { uploadFiles, isUploading, uploadProgress, validateFiles, cancelUpload } = useFileUpload({
     onSuccess: (uploadResults) => {
       // Create content items for uploaded files
       uploadResults.forEach(result => {
@@ -53,7 +60,20 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
           status: 'draft' as ContentStatus,
         });
       });
+      
+      toast({
+        title: "Upload successful",
+        description: `${uploadResults.length} file(s) uploaded successfully`,
+      });
+      
       handleClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Upload failed", 
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
@@ -98,18 +118,25 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
     const { valid, errors } = validateFiles(newFiles, contentType || 'document');
     
     if (errors.length > 0) {
-      // Show validation errors
-      console.error('File validation errors:', errors);
+      setValidationErrors(errors);
+      toast({
+        title: "File validation failed",
+        description: `${errors.length} file(s) failed validation`,
+        variant: "destructive",
+      });
       return;
     }
 
     const filesWithMetadata: FileWithMetadata[] = valid.map(file => ({
       ...file,
       id: `${Date.now()}-${Math.random()}`,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+      status: 'pending' as const,
+      progress: 0
     }));
 
     setFiles(prev => [...prev, ...filesWithMetadata]);
+    setValidationErrors([]);
   };
 
   const removeFile = (fileId: string) => {
@@ -136,6 +163,9 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
   const handleUpload = () => {
     if (files.length === 0) return;
 
+    // Update file status to uploading
+    setFiles(prev => prev.map(file => ({ ...file, status: 'uploading' as const })));
+
     uploadFiles({
       files: files.map(f => new File([f], f.name, { type: f.type })),
       projectId,
@@ -143,7 +173,23 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
     });
   };
 
+  const handleCancelUpload = () => {
+    if (isUploading && cancelUpload) {
+      cancelUpload('user-cancelled');
+      setFiles(prev => prev.map(file => ({ 
+        ...file, 
+        status: file.status === 'uploading' ? 'pending' : file.status 
+      })));
+    }
+  };
+
   const handleClose = () => {
+    if (isUploading) {
+      const confirm = window.confirm('Upload in progress. Are you sure you want to cancel?');
+      if (!confirm) return;
+      handleCancelUpload();
+    }
+
     // Clean up preview URLs
     files.forEach(file => {
       if (file.preview) {
@@ -158,8 +204,26 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
     setCategoryId('');
     setTags([]);
     setTagInput('');
+    setValidationErrors([]);
     onOpenChange(false);
   };
+
+  // Update file progress based on upload progress
+  useEffect(() => {
+    if (uploadProgress.size > 0) {
+      setFiles(prev => prev.map(file => {
+        const progress = uploadProgress.get(file.name);
+        if (progress) {
+          return {
+            ...file,
+            progress: progress.progress,
+            status: progress.progress === 100 ? 'success' : 'uploading'
+          };
+        }
+        return file;
+      }));
+    }
+  }, [uploadProgress]);
 
   const totalProgress = Array.from(uploadProgress.values()).reduce((sum, progress) => sum + Math.max(0, progress.progress), 0) / Math.max(1, uploadProgress.size);
 
@@ -206,25 +270,52 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
             </Button>
           </div>
 
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="space-y-2">
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">Validation Errors</span>
+                </div>
+                <ul className="text-xs text-destructive space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* File List */}
           {files.length > 0 && (
             <div className="space-y-2">
               <Label>Selected Files ({files.length})</Label>
-              <div className="max-h-32 overflow-y-auto space-y-2">
+              <div className="max-h-40 overflow-y-auto space-y-2">
                 {files.map((file) => (
-                  <div key={file.id} className="flex items-center gap-3 p-2 border rounded">
+                  <div key={file.id} className="flex items-center gap-3 p-3 border rounded-lg">
                     {file.preview ? (
-                      <img src={file.preview} alt={file.name} className="w-8 h-8 object-cover rounded" />
+                      <img src={file.preview} alt={file.name} className="w-10 h-10 object-cover rounded" />
                     ) : (
-                      <div className="w-8 h-8 bg-muted rounded flex items-center justify-center">
+                      <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
                         {getFileIcon(file.type)}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{file.name}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium truncate">{file.name}</p>
+                        {file.status === 'success' && <CheckCircle className="h-4 w-4 text-success" />}
+                        {file.status === 'error' && <AlertCircle className="h-4 w-4 text-destructive" />}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {(file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
+                      {file.status === 'uploading' && file.progress !== undefined && (
+                        <Progress value={file.progress} className="w-full h-1 mt-1" />
+                      )}
+                      {file.error && (
+                        <p className="text-xs text-destructive mt-1">{file.error}</p>
+                      )}
                     </div>
                     {!isUploading && (
                       <Button
@@ -346,7 +437,7 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
 
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="outline" onClick={handleClose} disabled={isUploading}>
-            Cancel
+            {isUploading ? 'Cancel Upload' : 'Cancel'}
           </Button>
           <Button 
             onClick={handleUpload} 
