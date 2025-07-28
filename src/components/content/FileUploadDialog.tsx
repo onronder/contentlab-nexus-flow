@@ -43,12 +43,11 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
           description,
           content_type: contentType || getContentTypeFromMime(result.mimeType),
           project_id: projectId,
-          user_id: '', // Will be set by RLS
           file_path: result.filePath,
           thumbnail_path: result.thumbnailPath,
           file_size: result.fileSize,
           mime_type: result.mimeType,
-          category_id: categoryId || null,
+          category_id: categoryId || undefined,
           status: 'draft',
         });
       });
