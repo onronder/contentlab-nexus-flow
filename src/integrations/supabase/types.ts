@@ -71,6 +71,210 @@ export type Database = {
           },
         ]
       }
+      competitor_serp_data: {
+        Row: {
+          competition_level: string | null
+          competitor_id: string
+          cost_per_click: number | null
+          created_at: string
+          description: string | null
+          device: string | null
+          id: string
+          keyword: string
+          location: string | null
+          position: number | null
+          search_engine: string
+          search_volume: number | null
+          serp_features: Json | null
+          title: string | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          competition_level?: string | null
+          competitor_id: string
+          cost_per_click?: number | null
+          created_at?: string
+          description?: string | null
+          device?: string | null
+          id?: string
+          keyword: string
+          location?: string | null
+          position?: number | null
+          search_engine?: string
+          search_volume?: number | null
+          serp_features?: Json | null
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          competition_level?: string | null
+          competitor_id?: string
+          cost_per_click?: number | null
+          created_at?: string
+          description?: string | null
+          device?: string | null
+          id?: string
+          keyword?: string
+          location?: string | null
+          position?: number | null
+          search_engine?: string
+          search_volume?: number | null
+          serp_features?: Json | null
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      competitor_website_snapshots: {
+        Row: {
+          change_summary: string | null
+          change_type: string | null
+          competitor_id: string
+          content_hash: string
+          content_sections: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          pricing_data: Json | null
+          screenshot_url: string | null
+          technical_data: Json | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          change_summary?: string | null
+          change_type?: string | null
+          competitor_id: string
+          content_hash: string
+          content_sections?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          pricing_data?: Json | null
+          screenshot_url?: string | null
+          technical_data?: Json | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          change_summary?: string | null
+          change_type?: string | null
+          competitor_id?: string
+          content_hash?: string
+          content_sections?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          pricing_data?: Json | null
+          screenshot_url?: string | null
+          technical_data?: Json | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
+      external_data_logs: {
+        Row: {
+          api_endpoint: string
+          api_provider: string
+          competitor_id: string | null
+          cost_credits: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          processing_time_ms: number | null
+          project_id: string | null
+          request_data: Json | null
+          request_type: string
+          response_data: Json | null
+          response_status: number | null
+        }
+        Insert: {
+          api_endpoint: string
+          api_provider: string
+          competitor_id?: string | null
+          cost_credits?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          processing_time_ms?: number | null
+          project_id?: string | null
+          request_data?: Json | null
+          request_type: string
+          response_data?: Json | null
+          response_status?: number | null
+        }
+        Update: {
+          api_endpoint?: string
+          api_provider?: string
+          competitor_id?: string | null
+          cost_credits?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          processing_time_ms?: number | null
+          project_id?: string | null
+          request_data?: Json | null
+          request_type?: string
+          response_data?: Json | null
+          response_status?: number | null
+        }
+        Relationships: []
+      }
+      monitoring_alerts: {
+        Row: {
+          alert_data: Json | null
+          alert_type: string
+          competitor_id: string | null
+          created_at: string
+          description: string
+          dismissed_at: string | null
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          project_id: string
+          read_at: string | null
+          severity: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          alert_data?: Json | null
+          alert_type: string
+          competitor_id?: string | null
+          created_at?: string
+          description: string
+          dismissed_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          project_id: string
+          read_at?: string | null
+          severity?: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          alert_data?: Json | null
+          alert_type?: string
+          competitor_id?: string | null
+          created_at?: string
+          description?: string
+          dismissed_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          project_id?: string
+          read_at?: string | null
+          severity?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
