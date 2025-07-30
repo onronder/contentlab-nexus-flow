@@ -365,6 +365,13 @@ export type Database = {
             referencedRelation: "content_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "content_collaborators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       content_items: {
