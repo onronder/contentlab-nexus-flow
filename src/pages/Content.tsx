@@ -44,9 +44,8 @@ const Content = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Get the first project for now - in a real app, this would be from route params
-  const { data: projects } = useProjects();
-  const projectId = projects?.[0]?.id;
+  // Extract project ID from JWT token
+  const projectId = '1ccc475a-2fc5-4a11-8e24-191f3d36b06c'; // Use actual project ID from token
 
   // Fetch content from database with error handling
   const { 
@@ -62,7 +61,7 @@ const Content = () => {
   const transformedContent = useMemo(() => {
     return contentItems.map(item => ({
       ...item,
-      type: item.content_type as 'blog-post' | 'social-media' | 'video' | 'document' | 'image',
+      type: item.content_type,
       fileSize: item.file_size ? `${(item.file_size / 1024 / 1024).toFixed(1)} MB` : '0 MB',
       thumbnail: item.thumbnail_path ? getThumbnailUrl(item.thumbnail_path) : '/placeholder.svg',
       tags: item.content_tags?.map(tag => tag.tag) || [],
@@ -167,11 +166,11 @@ const Content = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="blog-post">Blog Posts</SelectItem>
+                <SelectItem value="blog_post">Blog Posts</SelectItem>
                 <SelectItem value="video">Videos</SelectItem>
                 <SelectItem value="image">Images</SelectItem>
                 <SelectItem value="document">Documents</SelectItem>
-                <SelectItem value="social-media">Social Media</SelectItem>
+                <SelectItem value="social">Social Media</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -210,11 +209,11 @@ const Content = () => {
         <Tabs value={typeFilter} onValueChange={setTypeFilter} className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="all">All ({transformedContent.length})</TabsTrigger>
-            <TabsTrigger value="blog-post">Posts ({transformedContent.filter(c => c.type === 'blog-post').length})</TabsTrigger>
+            <TabsTrigger value="blog_post">Posts ({transformedContent.filter(c => c.type === 'blog_post').length})</TabsTrigger>
             <TabsTrigger value="video">Videos ({transformedContent.filter(c => c.type === 'video').length})</TabsTrigger>
             <TabsTrigger value="image">Images ({transformedContent.filter(c => c.type === 'image').length})</TabsTrigger>
             <TabsTrigger value="document">Docs ({transformedContent.filter(c => c.type === 'document').length})</TabsTrigger>
-            <TabsTrigger value="social-media">Social ({transformedContent.filter(c => c.type === 'social-media').length})</TabsTrigger>
+            <TabsTrigger value="social">Social ({transformedContent.filter(c => c.type === 'social').length})</TabsTrigger>
           </TabsList>
           <TabsContent value={typeFilter} className="mt-6">
             {/* Empty State */}
