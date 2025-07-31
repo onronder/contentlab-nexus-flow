@@ -44,8 +44,8 @@ const Content = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Extract project ID from URL token - production-ready approach
-  const projectId = '2e56b6e9-875e-4e78-b518-4792b76006d6'; // Use actual project ID from JWT token
+  // Use the first available project for now - in production this would come from routing or context
+  const projectId = '1ccc475a-2fc5-4a11-8e24-191f3d36b06c'; // Test Project - Authentication Verification
 
   // Fetch content from database with error handling
   const { 
