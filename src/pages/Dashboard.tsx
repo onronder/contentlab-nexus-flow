@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { 
   Building2, 
   Target, 
@@ -9,6 +10,7 @@ import {
   FileText, 
   BarChart3, 
   TrendingUp, 
+  TrendingDown,
   AlertTriangle,
   Activity,
   Clock,
@@ -19,98 +21,92 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthDatabaseTester } from '@/components/testing/AuthDatabaseTester';
+import { useDashboardStats, type DashboardStats } from '@/hooks/useDashboardStats';
+import { useRecentActivity, type ActivityItem } from '@/hooks/useRecentActivity';
+import { useMonitoringAlerts, type MonitoringAlert } from '@/hooks/useMonitoringAlerts';
+import { usePerformanceMetrics, type PerformanceMetrics } from '@/hooks/usePerformanceMetrics';
 
 const Dashboard = () => {
+  const { data: dashboardStats, isLoading: isStatsLoading } = useDashboardStats();
+  const { data: recentActivity, isLoading: isActivityLoading } = useRecentActivity();
+  const { data: alerts, isLoading: isAlertsLoading } = useMonitoringAlerts();
+  const { data: performanceMetrics, isLoading: isPerformanceLoading } = usePerformanceMetrics();
+
+  // Type-safe access to data
+  const stats = dashboardStats as DashboardStats | undefined;
+  const activities = recentActivity as ActivityItem[] | undefined;
+  const alertsList = alerts as MonitoringAlert[] | undefined;
+  const metrics = performanceMetrics as PerformanceMetrics | undefined;
+
+  const formatChange = (value: number) => {
+    const isPositive = value >= 0;
+    const icon = isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />;
+    const color = isPositive ? "text-success" : "text-destructive";
+    const sign = isPositive ? "+" : "";
+    
+    return (
+      <div className={`flex items-center gap-1 ${color}`}>
+        {icon}
+        <span className="text-xs">{sign}{Math.abs(value)}%</span>
+      </div>
+    );
+  };
+
   const quickStats = [
     {
       title: "Active Projects",
-      value: "12",
-      subtitle: "+3 this week",
+      value: stats?.activeProjects?.toString() || "0",
+      subtitle: "Active projects",
       icon: Building2,
-      change: "+23%",
+      change: formatChange(stats?.projectsChange || 0),
       color: "text-primary"
     },
     {
       title: "Competitors Tracked", 
-      value: "24",
-      subtitle: "Across 5 industries",
+      value: stats?.competitorsTracked?.toString() || "0",
+      subtitle: "Being monitored",
       icon: Target,
-      change: "+12%",
+      change: formatChange(stats?.competitorsChange || 0),
       color: "text-primary"
     },
     {
       title: "Team Members",
-      value: "8", 
-      subtitle: "Marketing team",
+      value: stats?.teamMembers?.toString() || "0", 
+      subtitle: "Across all projects",
       icon: Users,
-      change: "+1",
+      change: formatChange(stats?.teamMembersChange || 0),
       color: "text-primary"
     },
     {
       title: "Content Items",
-      value: "156",
-      subtitle: "Published this month",
+      value: stats?.contentItems?.toString() || "0",
+      subtitle: "Total content",
       icon: FileText,
-      change: "+34%",
+      change: formatChange(stats?.contentItemsChange || 0),
       color: "text-primary"
     }
   ];
 
-  const recentActivity = [
-    {
-      id: 1,
-      title: "New competitor added: Apple Inc.",
-      subtitle: "Technology sector",
-      time: "2 hours ago",
-      type: "competitor",
-      icon: Target,
-      color: "bg-primary"
-    },
-    {
-      id: 2,
-      title: "Project 'Q1 Campaign' updated",
-      subtitle: "Added new content analysis",
-      time: "4 hours ago", 
-      type: "project",
-      icon: Building2,
-      color: "bg-success"
-    },
-    {
-      id: 3,
-      title: "Analytics report generated",
-      subtitle: "Competitive landscape analysis",
-      time: "1 day ago",
-      type: "analytics",
-      icon: BarChart3,
-      color: "bg-warning"
-    },
-    {
-      id: 4,
-      title: "Team member invitation sent",
-      subtitle: "Sarah Johnson - Content Strategist",
-      time: "2 days ago",
-      type: "team",
-      icon: Users,
-      color: "bg-secondary"
-    }
-  ];
+  if (isStatsLoading && isActivityLoading && isAlertsLoading && isPerformanceLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
-  const alerts = [
-    {
-      id: 1,
-      title: "Competitor launched new feature",
-      company: "Microsoft Corporation",
-      severity: "high",
-      time: "3 hours ago"
-    },
-    {
-      id: 2,
-      title: "Content performance dropping",
-      company: "Your Campaign #3",
-      severity: "medium", 
-      time: "1 day ago"
-    }
-  ];
+  // Get icon component from icon name
+  const getIconComponent = (iconName: string) => {
+    const iconMap: Record<string, any> = {
+      Building2,
+      Target, 
+      Users,
+      FileText,
+      BarChart3,
+      Activity
+    };
+    return iconMap[iconName] || Activity;
+  };
 
   const quickActions = [
     {
@@ -173,9 +169,9 @@ const Dashboard = () => {
               <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
-                <Badge variant="secondary" className="text-xs">
+                <div className="text-xs">
                   {stat.change}
-                </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -183,7 +179,7 @@ const Dashboard = () => {
       </div>
 
       {/* Alerts Section */}
-      {alerts.length > 0 && (
+      {alertsList && alertsList.length > 0 && (
         <Card className="shadow-elegant">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -203,7 +199,7 @@ const Dashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {alerts.map((alert) => (
+            {alertsList?.map((alert) => (
               <div key={alert.id} className="flex items-center justify-between p-3 bg-warning/5 border border-warning/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${
@@ -216,7 +212,11 @@ const Dashboard = () => {
                 </div>
                 <span className="text-xs text-muted-foreground">{alert.time}</span>
               </div>
-            ))}
+            )) || (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground text-sm">No active alerts</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -242,23 +242,34 @@ const Dashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div key={activity.id}>
-                  <div className="flex items-center gap-4">
-                    <div className={`w-2 h-2 ${activity.color} rounded-full`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-sm">{activity.title}</p>
-                        <span className="text-xs text-muted-foreground">{activity.time}</span>
+            {isActivityLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <LoadingSpinner />
+              </div>
+            ) : activities && activities.length > 0 ? (
+              <div className="space-y-4">
+                {activities.map((activity, index) => (
+                  <div key={activity.id}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-2 h-2 ${activity.color} rounded-full`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm">{activity.title}</p>
+                          <span className="text-xs text-muted-foreground">{activity.time}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
                     </div>
+                    {index < activities.length - 1 && <Separator className="my-4" />}
                   </div>
-                  {index < recentActivity.length - 1 && <Separator className="my-4" />}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground text-sm">No recent activity</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -316,23 +327,44 @@ const Dashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-success">+23%</div>
-              <p className="text-sm text-muted-foreground">Content Performance</p>
-              <p className="text-xs text-muted-foreground">vs last month</p>
+          {isPerformanceLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">87%</div>
-              <p className="text-sm text-muted-foreground">Market Coverage</p>
-              <p className="text-xs text-muted-foreground">of target segments</p>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="text-2xl font-bold text-success">
+                    {metrics?.contentPerformance || 0}%
+                  </div>
+                  {formatChange(metrics?.contentPerformanceChange || 0)}
+                </div>
+                <p className="text-sm text-muted-foreground">Content Performance</p>
+                <p className="text-xs text-muted-foreground">average score</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="text-2xl font-bold text-primary">
+                    {metrics?.marketCoverage || 0}%
+                  </div>
+                  {formatChange(metrics?.marketCoverageChange || 0)}
+                </div>
+                <p className="text-sm text-muted-foreground">Market Coverage</p>
+                <p className="text-xs text-muted-foreground">industries covered</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="text-2xl font-bold text-warning">
+                    {metrics?.competitiveScore || 0}
+                  </div>
+                  {formatChange(metrics?.competitiveScoreChange || 0)}
+                </div>
+                <p className="text-sm text-muted-foreground">Competitive Score</p>
+                <p className="text-xs text-muted-foreground">out of 5.0</p>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-warning">4.2</div>
-              <p className="text-sm text-muted-foreground">Competitive Score</p>
-              <p className="text-xs text-muted-foreground">out of 5.0</p>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

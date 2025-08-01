@@ -44,6 +44,16 @@ export {
   useBatchUpdateCompetitors,
 } from './useCompetitorMutations';
 
+// Dashboard hooks
+export { useDashboardStats } from './useDashboardStats';
+export type { DashboardStats } from './useDashboardStats';
+export { useRecentActivity } from './useRecentActivity';
+export type { ActivityItem } from './useRecentActivity';
+export { useMonitoringAlerts } from './useMonitoringAlerts';
+export type { MonitoringAlert } from './useMonitoringAlerts';
+export { usePerformanceMetrics } from './usePerformanceMetrics';
+export type { PerformanceMetrics } from './usePerformanceMetrics';
+
 // Other hooks
 export { useProjectPermissions } from './useProjectPermissions';
 export type { ProjectPermissions } from './useProjectPermissions';
