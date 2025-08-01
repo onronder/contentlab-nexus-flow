@@ -31,9 +31,9 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { mockContentItems, mockUsers } from "@/data/mockData";
 import { useMemo } from "react";
 import { LogoutButton } from "@/components/ui/logout-button";
+import { useTeams, useTeamMembers } from "@/hooks/useTeamQueries";
 
 const settingsItems = [
   { title: "Settings", url: "/settings", icon: Settings },
@@ -46,11 +46,16 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
 
+  // Fetch real data for badge counts
+  const { data: teams } = useTeams();
+  const currentTeam = teams?.[0];
+  const { data: membersResponse } = useTeamMembers(currentTeam?.id || "");
+
   // Memoize dynamic badge counts for performance
   const badgeCounts = useMemo(() => ({
-    content: mockContentItems.length,
-    team: mockUsers.length,
-  }), []);
+    content: 0, // Will be replaced with real content count later
+    team: membersResponse?.members?.length || 0,
+  }), [membersResponse?.members?.length]);
 
   const mainNavItems = [
     { 

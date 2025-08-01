@@ -14,6 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at: string | null
+          description: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          project_id: string | null
+          resource_id: string | null
+          resource_type: string | null
+          session_id: string | null
+          severity: Database["public"]["Enums"]["severity_level"] | null
+          target_user_id: string | null
+          team_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          project_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          session_id?: string | null
+          severity?: Database["public"]["Enums"]["severity_level"] | null
+          target_user_id?: string | null
+          team_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          project_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          session_id?: string | null
+          severity?: Database["public"]["Enums"]["severity_level"] | null
+          target_user_id?: string | null
+          team_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_logs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          attachments: Json | null
+          author_id: string
+          content: string
+          content_format: Database["public"]["Enums"]["content_format"] | null
+          created_at: string | null
+          id: string
+          is_internal: boolean | null
+          is_resolved: boolean | null
+          mentions: Json | null
+          metadata: Json | null
+          parent_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resource_id: string
+          resource_type: Database["public"]["Enums"]["comment_resource_type"]
+          team_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          author_id: string
+          content: string
+          content_format?: Database["public"]["Enums"]["content_format"] | null
+          created_at?: string | null
+          id?: string
+          is_internal?: boolean | null
+          is_resolved?: boolean | null
+          mentions?: Json | null
+          metadata?: Json | null
+          parent_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resource_id: string
+          resource_type: Database["public"]["Enums"]["comment_resource_type"]
+          team_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          author_id?: string
+          content?: string
+          content_format?: Database["public"]["Enums"]["content_format"] | null
+          created_at?: string | null
+          id?: string
+          is_internal?: boolean | null
+          is_resolved?: boolean | null
+          mentions?: Json | null
+          metadata?: Json | null
+          parent_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resource_id?: string
+          resource_type?: Database["public"]["Enums"]["comment_resource_type"]
+          team_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitor_analysis_metadata: {
         Row: {
           analysis_type: string
@@ -642,6 +789,116 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string | null
+          delivery_method: Json | null
+          email_sent: boolean | null
+          email_sent_at: string | null
+          expires_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          notification_type: Database["public"]["Enums"]["notification_type"]
+          priority: Database["public"]["Enums"]["notification_priority"] | null
+          read_at: string | null
+          recipient_id: string
+          resource_id: string | null
+          resource_type: string | null
+          sender_id: string | null
+          team_id: string | null
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string | null
+          delivery_method?: Json | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          notification_type: Database["public"]["Enums"]["notification_type"]
+          priority?: Database["public"]["Enums"]["notification_priority"] | null
+          read_at?: string | null
+          recipient_id: string
+          resource_id?: string | null
+          resource_type?: string | null
+          sender_id?: string | null
+          team_id?: string | null
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string | null
+          delivery_method?: Json | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          notification_type?: Database["public"]["Enums"]["notification_type"]
+          priority?: Database["public"]["Enums"]["notification_priority"] | null
+          read_at?: string | null
+          recipient_id?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          sender_id?: string | null
+          team_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permissions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          is_system_permission: boolean
+          module: string
+          name: string
+          resource: string | null
+          slug: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_permission?: boolean
+          module: string
+          name: string
+          resource?: string | null
+          slug: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_permission?: boolean
+          module?: string
+          name?: string
+          resource?: string | null
+          slug?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -879,6 +1136,66 @@ export type Database = {
           },
         ]
       }
+      project_members_extended: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_access_at: string | null
+          permissions: Json | null
+          project_id: string
+          project_role: Database["public"]["Enums"]["project_role"]
+          team_member_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_access_at?: string | null
+          permissions?: Json | null
+          project_id: string
+          project_role?: Database["public"]["Enums"]["project_role"]
+          team_member_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_access_at?: string | null
+          permissions?: Json | null
+          project_id?: string
+          project_role?: Database["public"]["Enums"]["project_role"]
+          team_member_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_extended_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_extended_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_team_members: {
         Row: {
           access_level: string
@@ -1077,6 +1394,45 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "user_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_events: {
         Row: {
           created_at: string
@@ -1120,6 +1476,236 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          declined_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invitation_token: string
+          invited_by: string
+          message: string | null
+          metadata: Json | null
+          role_id: string
+          status: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          declined_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invitation_token: string
+          invited_by: string
+          message?: string | null
+          metadata?: Json | null
+          role_id: string
+          status?: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          declined_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_by?: string
+          message?: string | null
+          metadata?: Json | null
+          role_id?: string
+          status?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "user_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          is_active: boolean | null
+          joined_at: string | null
+          last_activity_at: string | null
+          metadata: Json | null
+          role_id: string
+          status: Database["public"]["Enums"]["member_status"] | null
+          team_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          joined_at?: string | null
+          last_activity_at?: string | null
+          metadata?: Json | null
+          role_id: string
+          status?: Database["public"]["Enums"]["member_status"] | null
+          team_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          joined_at?: string | null
+          last_activity_at?: string | null
+          metadata?: Json | null
+          role_id?: string
+          status?: Database["public"]["Enums"]["member_status"] | null
+          team_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "user_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string | null
+          current_member_count: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          member_limit: number | null
+          name: string
+          owner_id: string
+          parent_team_id: string | null
+          settings: Json | null
+          slug: string
+          team_type: Database["public"]["Enums"]["team_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_member_count?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_limit?: number | null
+          name: string
+          owner_id: string
+          parent_team_id?: string | null
+          settings?: Json | null
+          slug: string
+          team_type?: Database["public"]["Enums"]["team_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_member_count?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_limit?: number | null
+          name?: string
+          owner_id?: string
+          parent_team_id?: string | null
+          settings?: Json | null
+          slug?: string
+          team_type?: Database["public"]["Enums"]["team_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_parent_team_id_fkey"
+            columns: ["parent_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          hierarchy_level: number | null
+          id: string
+          is_active: boolean | null
+          is_system_role: boolean | null
+          name: string
+          role_type: Database["public"]["Enums"]["role_type"]
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          hierarchy_level?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_system_role?: boolean | null
+          name: string
+          role_type?: Database["public"]["Enums"]["role_type"]
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          hierarchy_level?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_system_role?: boolean | null
+          name?: string
+          role_type?: Database["public"]["Enums"]["role_type"]
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       user_sessions: {
         Row: {
@@ -1171,6 +1757,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_team_invitation: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: Json
+      }
+      assign_role_permissions: {
+        Args: { role_slug: string; permission_slugs: string[] }
+        Returns: undefined
+      }
       can_manage_project_team: {
         Args: { project_id: string; user_id: string }
         Returns: boolean
@@ -1178,6 +1772,22 @@ export type Database = {
       can_view_project_team: {
         Args: { project_id: string; user_id: string }
         Returns: boolean
+      }
+      cancel_team_invitation: {
+        Args: { p_invitation_id: string; p_cancelled_by: string }
+        Returns: undefined
+      }
+      check_team_membership: {
+        Args: { p_team_id: string; p_email: string }
+        Returns: boolean
+      }
+      cleanup_expired_invitations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_expired_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
@@ -1229,9 +1839,46 @@ export type Database = {
           updated_at: string | null
         }
       }
+      create_team_invitation: {
+        Args: {
+          p_team_id: string
+          p_email: string
+          p_role_id: string
+          p_invited_by: string
+          p_invitation_token: string
+          p_expires_at: string
+          p_message?: string
+          p_metadata?: Json
+        }
+        Returns: Json
+      }
+      decline_team_invitation: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
       get_avatar_url: {
         Args: { user_id: string; full_name: string }
         Returns: string
+      }
+      get_existing_invitation: {
+        Args: { p_team_id: string; p_email: string }
+        Returns: Json
+      }
+      get_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      get_invitation_status: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      get_pending_invitations: {
+        Args: { p_email: string }
+        Returns: Json
+      }
+      get_team_invitations: {
+        Args: { p_team_id: string; p_options?: Json }
+        Returns: Json
       }
       is_project_admin_or_manager: {
         Args: { project_id: string; user_id: string }
@@ -1245,13 +1892,72 @@ export type Database = {
         Args: { project_id: string; user_id: string }
         Returns: boolean
       }
+      log_team_activity: {
+        Args: {
+          p_team_id: string
+          p_user_id: string
+          p_activity_type: Database["public"]["Enums"]["activity_type"]
+          p_action: string
+          p_description?: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      resend_team_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
+      resolve_comment: {
+        Args: { p_comment_id: string; p_resolved_by: string }
+        Returns: undefined
+      }
       test_auth_uid: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
     }
     Enums: {
-      [_ in never]: never
+      activity_type:
+        | "authentication"
+        | "team_management"
+        | "role_management"
+        | "project_access"
+        | "content_activity"
+        | "competitive_intel"
+        | "system_event"
+        | "security_event"
+      comment_resource_type:
+        | "project"
+        | "content_item"
+        | "competitor"
+        | "analysis_report"
+        | "team_discussion"
+      content_format: "plain_text" | "markdown" | "html"
+      member_status: "pending" | "active" | "inactive" | "suspended" | "left"
+      notification_priority: "low" | "normal" | "high" | "urgent"
+      notification_type:
+        | "team_invitation"
+        | "role_changed"
+        | "project_assigned"
+        | "content_shared"
+        | "comment_mention"
+        | "approval_request"
+        | "system_alert"
+        | "security_alert"
+      project_role:
+        | "owner"
+        | "admin"
+        | "manager"
+        | "contributor"
+        | "member"
+        | "viewer"
+      role_type: "system" | "organizational" | "project" | "custom"
+      severity_level: "debug" | "info" | "warning" | "error" | "critical"
+      team_type:
+        | "organization"
+        | "department"
+        | "project_team"
+        | "working_group"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1378,6 +2084,53 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_type: [
+        "authentication",
+        "team_management",
+        "role_management",
+        "project_access",
+        "content_activity",
+        "competitive_intel",
+        "system_event",
+        "security_event",
+      ],
+      comment_resource_type: [
+        "project",
+        "content_item",
+        "competitor",
+        "analysis_report",
+        "team_discussion",
+      ],
+      content_format: ["plain_text", "markdown", "html"],
+      member_status: ["pending", "active", "inactive", "suspended", "left"],
+      notification_priority: ["low", "normal", "high", "urgent"],
+      notification_type: [
+        "team_invitation",
+        "role_changed",
+        "project_assigned",
+        "content_shared",
+        "comment_mention",
+        "approval_request",
+        "system_alert",
+        "security_alert",
+      ],
+      project_role: [
+        "owner",
+        "admin",
+        "manager",
+        "contributor",
+        "member",
+        "viewer",
+      ],
+      role_type: ["system", "organizational", "project", "custom"],
+      severity_level: ["debug", "info", "warning", "error", "critical"],
+      team_type: [
+        "organization",
+        "department",
+        "project_team",
+        "working_group",
+      ],
+    },
   },
 } as const
