@@ -26,6 +26,9 @@ import { mockUsers, mockTeam, mockRecentActivities, User } from "@/data/mockData
 import { cn } from "@/lib/utils";
 import { InviteTeamMemberDialog } from "@/components/invitations/InviteTeamMemberDialog";
 import { InvitationList } from "@/components/invitations/InvitationList";
+import { TeamMemberCard } from "@/components/team/TeamMemberCard";
+import { MemberDirectory } from "@/components/team/MemberDirectory";
+import { RoleManagement } from "@/components/team/RoleManagement";
 
 const Team = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -212,92 +215,27 @@ const Team = () => {
 
         {/* Team Content */}
         <Tabs defaultValue="members" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="members">Team Members ({mockUsers.length})</TabsTrigger>
             <TabsTrigger value="invitations">Invitations</TabsTrigger>
+            <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
             <TabsTrigger value="activity">Recent Activity</TabsTrigger>
             <TabsTrigger value="settings">Team Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="members" className="mt-6">
-            {/* Team Members Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUsers.map((user) => (
-                <Card key={user.id} className="interactive-lift cursor-pointer">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(user.status)}`} />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">{user.name}</h3>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-4">
-                      <Badge className={cn("text-xs", getRoleColor(user.role))}>
-                        {getRoleIcon(user.role)}
-                        <span className="ml-1 capitalize">{user.role}</span>
-                      </Badge>
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {user.status}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        <span>Last active {formatLastActive(user.lastActive)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3" />
-                        <span>Joined {formatDate(user.joinedAt)}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 mt-4">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Mail className="h-3 w-3 mr-1" />
-                        Message
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <SettingsIcon className="h-3 w-3 mr-1" />
-                        Manage
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No team members found</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm ? "Try adjusting your search terms" : "Invite team members to get started"}
-                </p>
-                <Button onClick={() => setShowInviteModal(true)} className="gradient-primary">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Invite Team Member
-                </Button>
-              </div>
-            )}
+            <MemberDirectory 
+              teamId="mock-team-id"
+              onInviteMember={() => setShowInviteModal(true)}
+            />
           </TabsContent>
 
           <TabsContent value="invitations" className="mt-6">
             <InvitationList teamId="mock-team-id" />
+          </TabsContent>
+
+          <TabsContent value="roles" className="mt-6">
+            <RoleManagement teamId="mock-team-id" />
           </TabsContent>
 
           <TabsContent value="activity" className="mt-6">
