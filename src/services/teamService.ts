@@ -490,6 +490,120 @@ export class TeamService {
   }
 
   /**
+   * Gets user roles within teams
+   */
+  static async getUserTeamRoles(userId: string): Promise<any[]> {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('team_members')
+        .select('*, role:user_roles(*), team:teams(*)')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      if (error) {
+        console.error('Error fetching user team roles:', error);
+        throw new Error(`Failed to fetch user team roles: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('TeamService.getUserTeamRoles error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets team permissions for a user
+   */
+  static async getTeamPermissions(teamId: string, userId: string): Promise<string[]> {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('team_members')
+        .select('role:user_roles(permissions:role_permissions(permission:permissions(*)))')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('status', 'active')
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return []; // User not a team member
+        }
+        console.error('Error fetching team permissions:', error);
+        throw new Error(`Failed to fetch team permissions: ${error.message}`);
+      }
+
+      // Extract permission slugs
+      const permissions = data?.role?.permissions?.map((rp: any) => rp.permission.slug) || [];
+      return permissions;
+    } catch (error) {
+      console.error('TeamService.getTeamPermissions error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets team statistics
+   */
+  static async getTeamStats(teamId: string): Promise<any> {
+    try {
+      const { data: team, error: teamError } = await (supabase as any)
+        .from('teams')
+        .select('*, current_member_count')
+        .eq('id', teamId)
+        .single();
+
+      if (teamError) {
+        throw new Error(`Failed to fetch team: ${teamError.message}`);
+      }
+
+      // Get activity count for last 30 days
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: activityCount } = await (supabase as any)
+        .from('team_activity_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', teamId)
+        .gte('created_at', thirtyDaysAgo);
+
+      return {
+        member_count: team.current_member_count || 0,
+        activity_count_30d: activityCount || 0,
+        created_at: team.created_at,
+        team_type: team.team_type
+      };
+    } catch (error) {
+      console.error('TeamService.getTeamStats error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets team activity logs
+   */
+  static async getTeamActivity(teamId: string, limit: number = 50): Promise<any[]> {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('team_activity_logs')
+        .select('*')
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching team activity:', error);
+        throw new Error(`Failed to fetch team activity: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('TeamService.getTeamActivity error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Gets all available user roles
    */
   static async getUserRoles(): Promise<UserRole[]> {

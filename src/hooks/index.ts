@@ -103,3 +103,47 @@ export {
   useTriggerAnalysis,
   useUpdateMonitoringFrequency
 } from './useRealTimeMutations';
+
+// Permission management hooks
+export {
+  usePermissions,
+  useUserRoles,
+  useRolePermissions,
+  useUserPermissions,
+  useHasPermission,
+  useCanAccessResource,
+  usePermissionChecks,
+  useRoleBySlug,
+  usePermissionMatrix
+} from './usePermissionQueries';
+
+export {
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole,
+  useAssignPermissions,
+  useBulkAssignPermissions,
+  useInvalidateUserPermissions,
+  useRefreshPermissions
+} from './usePermissionMutations';
+
+// Team management hooks
+export {
+  useTeams,
+  useTeam,
+  useTeamMembers,
+  useUserTeamRoles,
+  useTeamPermissions,
+  useTeamStats,
+  useAvailableRoles
+} from './useTeamQueries';
+
+export {
+  useCreateTeam,
+  useUpdateTeam,
+  useDeleteTeam,
+  useInviteTeamMember,
+  useUpdateMemberRole,
+  useRemoveTeamMember,
+  useBulkMemberOperations
+} from './useTeamMutations';

@@ -391,6 +391,65 @@ class RoleService {
     this.permissionCache.delete(cacheKey);
   }
 
+  /**
+   * Check if user has a specific role
+   */
+  async checkUserRole(userId: string, roleSlug: string, teamId?: string): Promise<boolean> {
+    try {
+      let query = (supabase as any)
+        .from('team_members')
+        .select('role:user_roles(slug)')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      if (teamId) {
+        query = query.eq('team_id', teamId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error checking user role:', error);
+        return false;
+      }
+
+      return data?.some((member: any) => member.role?.slug === roleSlug) || false;
+    } catch (error) {
+      console.error('RoleService.checkUserRole error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user is a member of a team
+   */
+  async checkTeamMembership(userId: string, teamId: string): Promise<boolean> {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('team_members')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('team_id', teamId)
+        .eq('is_active', true)
+        .eq('status', 'active')
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return false; // Not found
+        }
+        console.error('Error checking team membership:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('RoleService.checkTeamMembership error:', error);
+      return false;
+    }
+  }
+
   // Audit logging method (placeholder for future implementation)
   private async logPermissionCheck(
     userId: string,
