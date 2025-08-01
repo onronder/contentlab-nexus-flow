@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { 
   User, 
   Users, 
@@ -26,10 +27,22 @@ import {
   Trash2,
   Settings as SettingsIcon
 } from "lucide-react";
-import { mockUsers, mockTeam } from "@/data/mockData";
+import { useUserProfile, useUserSettings, useUpdateUserProfile } from "@/hooks/useUserProfile";
+import { useTeamSettings } from "@/hooks/useTeamSettings";
 
 const Settings = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
+  const { data: userSettings, isLoading: isSettingsLoading } = useUserSettings();
+  const { data: teamSettings, isLoading: isTeamLoading } = useTeamSettings();
+  const updateProfile = useUpdateUserProfile();
+  
+  const [profileForm, setProfileForm] = useState({
+    full_name: '',
+    bio: '',
+    phone: ''
+  });
+
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -37,7 +50,31 @@ const Settings = () => {
     mentions: true
   });
 
-  const currentUser = mockUsers[0]; // Assuming first user is current user
+  // Update form when profile data loads
+  useEffect(() => {
+    if (userProfile) {
+      setProfileForm({
+        full_name: userProfile.full_name || '',
+        bio: userProfile.bio || '',
+        phone: userProfile.phone || ''
+      });
+    }
+    if (userSettings) {
+      setNotifications(userSettings.notifications);
+    }
+  }, [userProfile, userSettings]);
+
+  const handleProfileSave = () => {
+    updateProfile.mutate(profileForm);
+  };
+
+  if (isProfileLoading || isSettingsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
@@ -86,19 +123,21 @@ const Settings = () => {
                 <div className="flex items-center gap-6">
                   <div className="relative">
                     <Avatar className="h-24 w-24">
-                      <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                      <AvatarFallback className="text-lg">{currentUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarImage src={userProfile?.avatar_url} alt={userProfile?.full_name} />
+                      <AvatarFallback className="text-lg">
+                        {userProfile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                      </AvatarFallback>
                     </Avatar>
                     <Button size="sm" className="absolute -bottom-2 -right-2" variant="outline">
                       <Upload className="h-3 w-3" />
                     </Button>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">{currentUser.name}</h3>
-                    <p className="text-muted-foreground">{currentUser.email}</p>
+                    <h3 className="text-lg font-semibold">{userProfile?.full_name || 'Unknown User'}</h3>
+                    <p className="text-muted-foreground">{userProfile?.email}</p>
                     <Badge className="mt-2 bg-blue-100 text-blue-800">
                       <Shield className="h-3 w-3 mr-1" />
-                      {currentUser.role}
+                      User
                     </Badge>
                   </div>
                 </div>
@@ -108,22 +147,42 @@ const Settings = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="first-name">First Name</Label>
-                    <Input id="first-name" defaultValue={currentUser.name.split(' ')[0]} />
+                    <Input 
+                      id="first-name" 
+                      value={profileForm.full_name.split(' ')[0] || ''}
+                      onChange={(e) => {
+                        const lastName = profileForm.full_name.split(' ').slice(1).join(' ');
+                        setProfileForm(prev => ({ ...prev, full_name: `${e.target.value} ${lastName}`.trim() }));
+                      }}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last-name">Last Name</Label>
-                    <Input id="last-name" defaultValue={currentUser.name.split(' ')[1]} />
+                    <Input 
+                      id="last-name" 
+                      value={profileForm.full_name.split(' ').slice(1).join(' ') || ''}
+                      onChange={(e) => {
+                        const firstName = profileForm.full_name.split(' ')[0] || '';
+                        setProfileForm(prev => ({ ...prev, full_name: `${firstName} ${e.target.value}`.trim() }));
+                      }}
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" defaultValue={currentUser.email} />
+                  <Input id="email" type="email" value={userProfile?.email || ''} disabled />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio</Label>
-                  <Textarea id="bio" placeholder="Tell us about yourself..." rows={3} />
+                  <Textarea 
+                    id="bio" 
+                    placeholder="Tell us about yourself..." 
+                    rows={3}
+                    value={profileForm.bio}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -141,7 +200,9 @@ const Settings = () => {
                   </Select>
                 </div>
 
-                <Button className="gradient-primary">Save Changes</Button>
+                <Button className="gradient-primary" onClick={handleProfileSave} disabled={updateProfile.isPending}>
+                  {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
               </CardContent>
             </Card>
 
@@ -210,30 +271,43 @@ const Settings = () => {
                 <CardDescription>Manage your team information and preferences</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="team-name">Team Name</Label>
-                  <Input id="team-name" defaultValue={mockTeam.name} />
-                </div>
+                {isTeamLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <LoadingSpinner />
+                  </div>
+                ) : teamSettings ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="team-name">Team Name</Label>
+                      <Input id="team-name" value={teamSettings.name} disabled />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="team-description">Team Description</Label>
-                  <Textarea id="team-description" defaultValue={mockTeam.description} rows={3} />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="team-description">Team Description</Label>
+                      <Textarea id="team-description" value={teamSettings.description} rows={3} disabled />
+                    </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <h3 className="text-2xl font-bold">{mockTeam.memberCount}</h3>
-                    <p className="text-sm text-muted-foreground">Total Members</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-4 border rounded-lg">
+                        <h3 className="text-2xl font-bold">{teamSettings.memberCount}</h3>
+                        <p className="text-sm text-muted-foreground">Total Members</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <h3 className="text-2xl font-bold">{teamSettings.activeUsers}</h3>
+                        <p className="text-sm text-muted-foreground">Active Users</p>
+                      </div>
+                      <div className="text-center p-4 border rounded-lg">
+                        <h3 className="text-2xl font-bold">{teamSettings.pendingInvitations}</h3>
+                        <p className="text-sm text-muted-foreground">Pending Invites</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">You're not part of any team yet</p>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <h3 className="text-2xl font-bold">{mockTeam.activeUsers}</h3>
-                    <p className="text-sm text-muted-foreground">Active Users</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <h3 className="text-2xl font-bold">{mockTeam.pendingInvitations}</h3>
-                    <p className="text-sm text-muted-foreground">Pending Invites</p>
-                  </div>
-                </div>
+                )}
 
                 <Button className="gradient-primary">Update Team Settings</Button>
               </CardContent>
