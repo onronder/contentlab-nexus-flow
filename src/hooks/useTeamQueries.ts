@@ -6,7 +6,8 @@ import type {
   TeamMembersResponse,
   UserRole,
   TeamQueryOptions,
-  TeamMemberQueryOptions
+  TeamMemberQueryOptions,
+  TeamType
 } from '@/types/team';
 
 // ============================================================================
@@ -89,7 +90,7 @@ export function useAvailableRoles() {
 }
 
 // Advanced team queries with filtering
-export function useTeamsByType(teamType: string) {
+export function useTeamsByType(teamType: TeamType) {
   const { user } = useAuth();
   
   return useQuery({

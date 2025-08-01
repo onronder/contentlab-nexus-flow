@@ -451,7 +451,10 @@ export class AuditService {
     }, {} as Record<string, number>);
 
     return Object.entries(permissionCounts)
-      .map(([permission, count]) => ({ permission, count }))
+      .map(([permission, count]) => ({ 
+        permission, 
+        count: Number(count) || 0 
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
   }
