@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -25,6 +24,8 @@ import {
 } from "lucide-react";
 import { mockUsers, mockTeam, mockRecentActivities, User } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { InviteTeamMemberDialog } from "@/components/invitations/InviteTeamMemberDialog";
+import { InvitationList } from "@/components/invitations/InvitationList";
 
 const Team = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,49 +100,15 @@ const Team = () => {
             <h1 className="text-4xl font-bold text-foreground mb-2">Team Management</h1>
             <p className="text-muted-foreground text-lg">Manage team members, roles, and permissions</p>
           </div>
-          <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-            <DialogTrigger asChild>
+          <InviteTeamMemberDialog 
+            teamId="mock-team-id"
+            trigger={
               <Button className="gradient-primary text-white shadow-elegant hover:shadow-glow transition-all duration-200">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Invite Team Member
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Invite Team Member</DialogTitle>
-                <DialogDescription>
-                  Send an invitation to a new team member to join your workspace.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">Email</Label>
-                  <Input id="email" type="email" placeholder="team@example.com" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">Role</Label>
-                  <Select>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="message" className="text-right">Message</Label>
-                  <Input id="message" placeholder="Welcome to the team!" className="col-span-3" />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowInviteModal(false)}>Cancel</Button>
-                <Button className="gradient-primary">Send Invitation</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+            }
+          />
         </div>
 
         {/* Team Stats */}
@@ -245,8 +212,9 @@ const Team = () => {
 
         {/* Team Content */}
         <Tabs defaultValue="members" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="members">Team Members ({mockUsers.length})</TabsTrigger>
+            <TabsTrigger value="invitations">Invitations</TabsTrigger>
             <TabsTrigger value="activity">Recent Activity</TabsTrigger>
             <TabsTrigger value="settings">Team Settings</TabsTrigger>
           </TabsList>
@@ -326,6 +294,10 @@ const Team = () => {
                 </Button>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="invitations" className="mt-6">
+            <InvitationList teamId="mock-team-id" />
           </TabsContent>
 
           <TabsContent value="activity" className="mt-6">
