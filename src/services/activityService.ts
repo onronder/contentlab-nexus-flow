@@ -191,7 +191,7 @@ export class ActivityService {
         metadata: typeof item.metadata === 'object' ? item.metadata || {} : {},
         severity: 'info',
         created_at: item.created_at,
-        profiles: item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !('error' in item.profiles) ? item.profiles as any : undefined
+        profiles: item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !Array.isArray(item.profiles) && !('error' in item.profiles) ? item.profiles : undefined
       }));
     } catch (error) {
       console.error('Error fetching project activities:', error);

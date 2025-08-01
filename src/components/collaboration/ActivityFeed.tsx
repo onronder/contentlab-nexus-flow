@@ -130,7 +130,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         metadata: typeof item.metadata === 'object' && item.metadata !== null ? item.metadata as Record<string, any> : {},
         severity: 'info',
         created_at: item.created_at,
-        profiles: item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !('error' in item.profiles) ? item.profiles as any : undefined
+        profiles: item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !Array.isArray(item.profiles) && !('error' in item.profiles) ? item.profiles : undefined
       }));
 
       if (pageNum === 1) {
