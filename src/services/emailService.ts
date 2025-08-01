@@ -8,21 +8,31 @@ export class EmailService {
 
   static async sendInvitationEmail(data: EmailInvitationData): Promise<void> {
     try {
-      // Mock implementation for now - in production, this would integrate with Resend
-      console.log('Mock email sent:', {
-        to: data.invitation.email,
-        subject: `Invitation to join ${data.teamName}`,
-        inviterName: data.inviterName,
+      const emailPayload = {
+        email: data.invitation.email,
         teamName: data.teamName,
         roleName: data.roleName,
+        inviterName: data.inviterName,
+        message: data.invitation.message,
         acceptUrl: data.acceptUrl,
         declineUrl: data.declineUrl,
-        message: data.invitation.message
+        expiresAt: data.invitation.expires_at
+      };
+
+      const { data: response, error } = await supabase.functions.invoke('send-invitation-email', {
+        body: emailPayload
       });
 
-      // TODO: Integrate with Resend when email secrets are configured
-      // This would send a professional invitation email with the team details,
-      // role information, personal message, and action buttons
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(`Email service error: ${error.message}`);
+      }
+
+      if (!response?.success) {
+        throw new Error('Failed to send email');
+      }
+
+      console.log('Invitation email sent successfully:', response.messageId);
 
     } catch (error) {
       console.error('Error sending invitation email:', error);

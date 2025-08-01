@@ -44,7 +44,8 @@ export class InvitationService {
       const expires_at = new Date();
       expires_at.setDate(expires_at.getDate() + expiresInDays);
 
-      // Create mock invitation object for now
+      // TODO: Create invitation via RPC function when database functions are ready
+      // For now, create mock invitation
       const invitation: TeamInvitation = {
         id: crypto.randomUUID(),
         team_id: invitationData.team_id,
@@ -63,9 +64,6 @@ export class InvitationService {
         updated_at: new Date().toISOString()
       };
 
-      // TODO: Store in database when RPC functions are available
-      console.log('Mock invitation created:', invitation);
-
       return {
         invitation,
         success: true,
@@ -83,11 +81,11 @@ export class InvitationService {
 
   static async acceptInvitation(token: string, userId: string): Promise<InvitationResponse> {
     try {
-      // Mock implementation
+      // TODO: Use RPC function when ready
       const invitation: TeamInvitation = {
         id: crypto.randomUUID(),
         team_id: crypto.randomUUID(),
-        email: 'test@example.com',
+        email: 'user@example.com',
         role_id: crypto.randomUUID(),
         invited_by: crypto.randomUUID(),
         invitation_token: token,
@@ -116,7 +114,7 @@ export class InvitationService {
 
   static async declineInvitation(token: string): Promise<void> {
     try {
-      // Mock implementation
+      // TODO: Use RPC function when ready
       console.log('Mock invitation declined:', token);
     } catch (error) {
       console.error('Error in declineInvitation:', error);
@@ -150,7 +148,7 @@ export class InvitationService {
 
   static async getTeamInvitations(teamId: string, options?: InvitationQueryOptions): Promise<TeamInvitation[]> {
     try {
-      // Mock implementation - return empty array for now
+      // TODO: Use RPC function when ready
       console.log('Mock getting team invitations for:', teamId, options);
       return [];
     } catch (error) {
@@ -161,7 +159,7 @@ export class InvitationService {
 
   static async getInvitationByToken(token: string): Promise<TeamInvitation | null> {
     try {
-      // Mock implementation
+      // TODO: Use RPC function when ready
       console.log('Mock getting invitation by token:', token);
       return null;
     } catch (error) {
@@ -183,7 +181,7 @@ export class InvitationService {
 
   static async getInvitationStatus(token: string): Promise<InvitationStatusCheck> {
     try {
-      // Mock implementation
+      // TODO: Use RPC function when ready
       console.log('Mock checking invitation status:', token);
       return { valid: false, expired: false, alreadyMember: false };
     } catch (error) {

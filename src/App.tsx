@@ -25,6 +25,8 @@ import Competitive from "./pages/Competitive";
 import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
 import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
+import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationPage';
+import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
 
 const App = () => (
   <TooltipProvider>
@@ -34,6 +36,9 @@ const App = () => (
       <Routes>
         {/* Authentication testing route (public for debugging) */}
         <Route path="/auth-test" element={<AuthTestingPanel />} />
+        
+        {/* Public invitation route */}
+        <Route path="/invite/:token" element={<AcceptInvitationPage />} />
         
         {/* Public routes with main layout */}
         <Route path="/" element={
@@ -202,6 +207,16 @@ const App = () => (
               <Layout>
                 <Security />
               </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Onboarding route */}
+        <Route 
+          path="/onboarding" 
+          element={
+            <ProtectedRoute>
+              <TeamOnboardingWizard />
             </ProtectedRoute>
           } 
         />
