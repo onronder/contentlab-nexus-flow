@@ -127,10 +127,10 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         activity_type: item.activity_type || 'project_access',
         action: item.activity_type || 'unknown',
         description: item.activity_description,
-        metadata: item.metadata || {},
+        metadata: typeof item.metadata === 'object' && item.metadata !== null ? item.metadata as Record<string, any> : {},
         severity: 'info',
         created_at: item.created_at,
-        profiles: item.profiles
+        profiles: item.profiles && typeof item.profiles === 'object' && item.profiles !== null && !('error' in item.profiles) ? item.profiles as any : undefined
       }));
 
       if (pageNum === 1) {
