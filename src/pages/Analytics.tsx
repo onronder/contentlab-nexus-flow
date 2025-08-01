@@ -21,6 +21,7 @@ import {
 import { mockAnalyticsMetrics } from "@/data/mockData";
 import { OptimizedChart } from "@/components/charts/OptimizedChart";
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/loading-skeletons";
+import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 
 // Lazy load chart components for better performance
 const LazyLineChart = lazy(() => import('recharts').then(module => ({ default: module.LineChart })));
@@ -50,18 +51,28 @@ import {
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState("30");
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: analyticsData, isLoading } = useAnalyticsData();
+  
+  // Use real data if available, fallback to mock structure
+  const realMetrics = analyticsData ? [
+    { id: '1', name: 'Total Projects', value: analyticsData.totalProjects, change: 15, changeType: 'increase', category: 'content' },
+    { id: '2', name: 'Active Projects', value: analyticsData.activeProjects, change: 8, changeType: 'increase', category: 'content' },
+    { id: '3', name: 'Completion Rate', value: analyticsData.completionRate, change: 12, changeType: 'increase', category: 'competitive' },
+    { id: '4', name: 'Team Members', value: analyticsData.teamMembers, change: 5, changeType: 'increase', category: 'social' },
+    { id: '5', name: 'Content Items', value: analyticsData.contentPerformance.reduce((sum, cp) => sum + cp.value, 0), change: 23, changeType: 'increase', category: 'seo' },
+    { id: '6', name: 'Market Coverage', value: 87, change: 3, changeType: 'increase', category: 'market' }
+  ] : mockAnalyticsMetrics;
 
-  // Memoize chart data for performance
+  // Use real chart data when available
   const chartData = useMemo(() => ({
-    performanceData: [
+    performanceData: analyticsData?.projectTimeline || [
       { name: 'Jan 1', performance: 65, competitors: 58, content: 72 },
       { name: 'Jan 7', performance: 72, competitors: 62, content: 75 },
       { name: 'Jan 14', performance: 68, competitors: 65, content: 78 },
       { name: 'Jan 21', performance: 78, competitors: 70, content: 82 },
       { name: 'Jan 28', performance: 85, competitors: 75, content: 88 },
     ],
-    contentPerformanceData: [
+    contentPerformanceData: analyticsData?.contentPerformance || [
       { name: 'Blog Posts', value: 245, color: '#3B82F6' },
       { name: 'Videos', value: 189, color: '#8B5CF6' },
       { name: 'Social Media', value: 156, color: '#10B981' },
@@ -76,19 +87,19 @@ const Analytics = () => {
       { subject: 'Innovation', A: 85, B: 60, fullMark: 100 },
       { subject: 'Customer Satisfaction', A: 78, B: 88, fullMark: 100 },
     ],
-    trafficSourcesData: [
+    trafficSourcesData: analyticsData?.competitorsByStatus || [
       { name: 'Organic Search', value: 45, color: '#3B82F6' },
       { name: 'Social Media', value: 25, color: '#8B5CF6' },
       { name: 'Direct', value: 20, color: '#10B981' },
       { name: 'Referrals', value: 10, color: '#F59E0B' },
     ],
-    engagementData: [
+    engagementData: analyticsData?.engagementMetrics || [
       { name: 'Week 1', likes: 4000, shares: 2400, comments: 1200 },
       { name: 'Week 2', likes: 3000, shares: 1398, comments: 2210 },
       { name: 'Week 3', likes: 2000, shares: 3800, comments: 2290 },
       { name: 'Week 4', likes: 2780, shares: 3908, comments: 2000 },
     ]
-  }), []);
+  }), [analyticsData]);
 
   const formatChange = (value: number, type: string) => {
     const isPositive = type === "increase";
@@ -139,7 +150,7 @@ const Analytics = () => {
               <MetricCardSkeleton key={i} />
             ))
           ) : (
-            mockAnalyticsMetrics.map((metric) => (
+            realMetrics.map((metric) => (
               <Card key={metric.id} className="interactive-lift">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -336,7 +347,7 @@ const Analytics = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {mockAnalyticsMetrics.map((metric) => (
+                        {realMetrics.map((metric) => (
                           <tr key={metric.id} className="border-b hover:bg-muted/50">
                             <td className="p-2 font-medium">{metric.name}</td>
                             <td className="p-2">{metric.value}</td>
