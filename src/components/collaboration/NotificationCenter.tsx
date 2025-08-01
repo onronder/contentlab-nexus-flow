@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, Check, Trash2, Settings, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,25 +14,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useRealTimeNotifications } from '@/hooks/useRealTimeNotifications';
 
-interface Notification {
-  id: string;
-  recipient_id: string;
-  sender_id?: string;
-  team_id?: string;
-  notification_type: string;
-  title: string;
-  message: string;
-  action_url?: string;
-  priority: string;
-  is_read: boolean;
-  created_at: string;
-  sender?: {
-    id: string;
-    full_name?: string;
-    avatar_url?: string;
-  };
-}
+// Remove duplicate interface - using the one from service
 
 interface NotificationCenterProps {
   userId: string;
@@ -45,84 +29,39 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   teamId,
   className = ''
 }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
   const { toast } = useToast();
+  
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    markAsRead,
+    markAllAsRead: markAllAsReadService,
+    deleteNotification: deleteNotificationService
+  } = useRealTimeNotifications({
+    unread: filter === 'unread',
+    type: filter === 'mentions' ? 'comment_mention' : undefined
+  });
 
-  useEffect(() => {
-    // Mock notifications data
-    const mockNotifications: Notification[] = [
-      {
-        id: '1',
-        recipient_id: userId,
-        sender_id: 'sender-1',
-        team_id: teamId,
-        notification_type: 'comment_mention',
-        title: 'You were mentioned in a comment',
-        message: 'John Doe mentioned you in a comment on Project Alpha',
-        action_url: '/projects/alpha/comments/123',
-        priority: 'normal',
-        is_read: false,
-        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        sender: {
-          id: 'sender-1',
-          full_name: 'John Doe'
-        }
-      },
-      {
-        id: '2',
-        recipient_id: userId,
-        notification_type: 'team_invitation',
-        title: 'New team invitation',
-        message: 'You have been invited to join the Marketing Team',
-        action_url: '/invitations/accept/token123',
-        priority: 'high',
-        is_read: false,
-        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: '3',
-        recipient_id: userId,
-        notification_type: 'project_assigned',
-        title: 'Project assignment',
-        message: 'You have been assigned to work on the new website redesign project',
-        priority: 'normal',
-        is_read: true,
-        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      }
-    ];
-
-    setNotifications(mockNotifications);
-    setUnreadCount(mockNotifications.filter(n => !n.is_read).length);
-    setLoading(false);
-  }, [userId, teamId]);
-
-  const markAsRead = async (notificationId: string) => {
-    setNotifications(prev => prev.map(notification =>
-      notification.id === notificationId
-        ? { ...notification, is_read: true }
-        : notification
-    ));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+  const handleMarkAllAsRead = async () => {
+    const success = await markAllAsReadService();
+    if (success) {
+      toast({
+        title: 'All notifications marked as read',
+        description: 'Your notification list has been updated.'
+      });
+    }
   };
 
-  const markAllAsRead = async () => {
-    setNotifications(prev => prev.map(notification => ({ ...notification, is_read: true })));
-    setUnreadCount(0);
-    toast({
-      title: 'All notifications marked as read',
-      description: 'Your notification list has been updated.'
-    });
-  };
-
-  const deleteNotification = async (notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    toast({
-      title: 'Notification deleted',
-      description: 'The notification has been removed.'
-    });
+  const handleDeleteNotification = async (notificationId: string) => {
+    const success = await deleteNotificationService(notificationId);
+    if (success) {
+      toast({
+        title: 'Notification deleted',
+        description: 'The notification has been removed.'
+      });
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -192,7 +131,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </DropdownMenu>
             
             {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+              <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead}>
                 <Check className="w-3 h-3" />
               </Button>
             )}
@@ -253,7 +192,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                             className="h-5 w-5 p-0"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteNotification(notification.id);
+                              handleDeleteNotification(notification.id);
                             }}
                           >
                             <Trash2 className="w-3 h-3" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,38 +27,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { useRealTimeComments } from '@/hooks/useRealTimeComments';
 import { MentionInput } from './MentionInput';
+import type { Comment as CommentType } from '@/services/realTimeCommentService';
+import type { Database } from '@/integrations/supabase/types';
 
-interface Comment {
-  id: string;
-  parent_id?: string;
-  author_id: string;
-  team_id: string;
-  resource_type: string;
-  resource_id: string;
-  content: string;
-  content_format: string;
-  is_internal: boolean;
-  is_resolved: boolean;
-  resolved_by?: string;
-  resolved_at?: string;
-  mentions: string[];
-  attachments: Array<{ name: string; url: string; size: number; type: string }>;
-  metadata: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-  replies?: Comment[];
-  author?: {
-    id: string;
-    full_name?: string;
-    email?: string;
-    avatar_url?: string;
-  };
-}
+type ResourceType = Database['public']['Enums']['comment_resource_type'];
 
 interface CommentSystemProps {
-  resourceType: 'project' | 'content_item' | 'competitor' | 'analysis_report' | 'team_discussion';
+  resourceType: ResourceType;
   resourceId: string;
   teamId: string;
   currentUserId: string;
@@ -76,8 +53,16 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
   allowFileAttachments = true,
   className = ''
 }) => {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    comments,
+    loading,
+    error,
+    addComment,
+    updateComment,
+    deleteComment,
+    resolveComment
+  } = useRealTimeComments(resourceType, resourceId, teamId);
+
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState<string | null>(null);
@@ -86,148 +71,43 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    fetchComments();
-    setupRealtimeSubscription();
-  }, [resourceType, resourceId]);
-
-  const fetchComments = async () => {
-    try {
-      setLoading(true);
-      
-      // For now, create mock data since the comments table might not be available yet
-      const mockComments: Comment[] = [
-        {
-          id: '1',
-          author_id: currentUserId,
-          team_id: teamId,
-          resource_type: resourceType,
-          resource_id: resourceId,
-          content: 'This looks great! I have a few suggestions for improvements.',
-          content_format: 'plain_text',
-          is_internal: false,
-          is_resolved: false,
-          mentions: [],
-          attachments: [],
-          metadata: {},
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          author: {
-            id: currentUserId,
-            full_name: 'Current User',
-            email: 'user@example.com'
-          },
-          replies: [
-            {
-              id: '2',
-              parent_id: '1',
-              author_id: 'other-user',
-              team_id: teamId,
-              resource_type: resourceType,
-              resource_id: resourceId,
-              content: 'Thanks for the feedback! What specific areas would you like me to focus on?',
-              content_format: 'plain_text',
-              is_internal: false,
-              is_resolved: false,
-              mentions: [currentUserId],
-              attachments: [],
-              metadata: {},
-              created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-              updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-              author: {
-                id: 'other-user',
-                full_name: 'Team Member',
-                email: 'member@example.com'
-              }
-            }
-          ]
-        }
-      ];
-
-      setComments(mockComments);
-    } catch (error: any) {
-      console.error('Error fetching comments:', error);
+  // Show error toast if there's an error
+  React.useEffect(() => {
+    if (error) {
       toast({
         title: 'Error loading comments',
-        description: error.message,
+        description: error,
         variant: 'destructive'
       });
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const setupRealtimeSubscription = () => {
-    const channel = supabase
-      .channel(`comments:${resourceType}:${resourceId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'comments',
-        filter: `resource_type=eq.${resourceType} AND resource_id=eq.${resourceId}`
-      }, (payload) => {
-        console.log('Comment update:', payload);
-        fetchComments();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  };
+  }, [error, toast]);
 
   const handleSubmitComment = async (content: string, parentId?: string) => {
     if (!content.trim()) return;
 
     setSubmitting(true);
     try {
-      // For now, simulate comment creation
-      const newComment: Comment = {
-        id: Date.now().toString(),
-        parent_id: parentId,
-        author_id: currentUserId,
-        team_id: teamId,
-        resource_type: resourceType,
-        resource_id: resourceId,
-        content: content.trim(),
-        content_format: 'plain_text',
-        is_internal: false,
-        is_resolved: false,
-        mentions: [],
-        attachments: [],
-        metadata: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        author: {
-          id: currentUserId,
-          full_name: 'Current User',
-          email: 'user@example.com'
+      const success = await addComment(content, parentId);
+      
+      if (success) {
+        if (parentId) {
+          setReplyingTo(null);
+        } else {
+          setNewComment('');
         }
-      };
 
-      if (parentId) {
-        // Add reply to existing comment
-        setComments(prev => prev.map(comment => 
-          comment.id === parentId 
-            ? { ...comment, replies: [...(comment.replies || []), newComment] }
-            : comment
-        ));
-        setReplyingTo(null);
+        toast({
+          title: 'Comment posted',
+          description: 'Your comment has been added successfully.'
+        });
       } else {
-        // Add new top-level comment
-        setComments(prev => [newComment, ...prev]);
-        setNewComment('');
+        throw new Error('Failed to post comment');
       }
-
-      toast({
-        title: 'Comment posted',
-        description: 'Your comment has been added successfully.'
-      });
     } catch (error: any) {
       console.error('Error posting comment:', error);
       toast({
         title: 'Error posting comment',
-        description: error.message,
+        description: error.message || 'Failed to post comment',
         variant: 'destructive'
       });
     } finally {
@@ -239,36 +119,24 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
     if (!newContent.trim()) return;
 
     try {
-      // Simulate comment update
-      setComments(prev => prev.map(comment => {
-        if (comment.id === commentId) {
-          return { ...comment, content: newContent, updated_at: new Date().toISOString() };
-        }
-        if (comment.replies) {
-          return {
-            ...comment,
-            replies: comment.replies.map(reply => 
-              reply.id === commentId 
-                ? { ...reply, content: newContent, updated_at: new Date().toISOString() }
-                : reply
-            )
-          };
-        }
-        return comment;
-      }));
+      const success = await updateComment(commentId, newContent);
+      
+      if (success) {
+        setEditingComment(null);
+        setEditContent('');
 
-      setEditingComment(null);
-      setEditContent('');
-
-      toast({
-        title: 'Comment updated',
-        description: 'Your comment has been updated successfully.'
-      });
+        toast({
+          title: 'Comment updated',
+          description: 'Your comment has been updated successfully.'
+        });
+      } else {
+        throw new Error('Failed to update comment');
+      }
     } catch (error: any) {
       console.error('Error updating comment:', error);
       toast({
         title: 'Error updating comment',
-        description: error.message,
+        description: error.message || 'Failed to update comment',
         variant: 'destructive'
       });
     }
@@ -276,27 +144,21 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
 
   const handleResolveComment = async (commentId: string) => {
     try {
-      // Simulate comment resolution
-      setComments(prev => prev.map(comment => 
-        comment.id === commentId 
-          ? { 
-              ...comment, 
-              is_resolved: true, 
-              resolved_by: currentUserId,
-              resolved_at: new Date().toISOString()
-            }
-          : comment
-      ));
-
-      toast({
-        title: 'Comment resolved',
-        description: 'The comment has been marked as resolved.'
-      });
+      const success = await resolveComment(commentId);
+      
+      if (success) {
+        toast({
+          title: 'Comment resolved',
+          description: 'The comment has been marked as resolved.'
+        });
+      } else {
+        throw new Error('Failed to resolve comment');
+      }
     } catch (error: any) {
       console.error('Error resolving comment:', error);
       toast({
         title: 'Error resolving comment',
-        description: error.message,
+        description: error.message || 'Failed to resolve comment',
         variant: 'destructive'
       });
     }
@@ -304,24 +166,21 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      // Simulate comment deletion
-      setComments(prev => prev.filter(comment => {
-        if (comment.id === commentId) return false;
-        if (comment.replies) {
-          comment.replies = comment.replies.filter(reply => reply.id !== commentId);
-        }
-        return true;
-      }));
-
-      toast({
-        title: 'Comment deleted',
-        description: 'The comment has been deleted successfully.'
-      });
+      const success = await deleteComment(commentId);
+      
+      if (success) {
+        toast({
+          title: 'Comment deleted',
+          description: 'The comment has been deleted successfully.'
+        });
+      } else {
+        throw new Error('Failed to delete comment');
+      }
     } catch (error: any) {
       console.error('Error deleting comment:', error);
       toast({
         title: 'Error deleting comment',
-        description: error.message,
+        description: error.message || 'Failed to delete comment',
         variant: 'destructive'
       });
     }
@@ -332,7 +191,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
     return name.split(' ').map(part => part[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const renderComment = (comment: Comment, isReply = false) => (
+  const renderComment = (comment: CommentType, isReply = false) => (
     <div key={comment.id} className={`${isReply ? 'ml-12' : ''} mb-4`}>
       <div className="flex items-start space-x-3">
         <Avatar className="w-8 h-8">
