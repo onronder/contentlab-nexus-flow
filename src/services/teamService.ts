@@ -42,22 +42,27 @@ export class TeamService {
         throw new Error('User must be authenticated to create teams');
       }
 
-      // Use raw SQL for table operations since types aren't updated yet
-      const { data, error } = await supabase.rpc('create_team_secure', {
-        team_name: teamData.name,
-        team_slug: slug,
-        team_description: teamData.description || '',
-        team_type_param: teamData.team_type || 'project_team',
-        member_limit_param: teamData.member_limit || 50,
-        settings_param: teamData.settings || {}
-      });
+      const { data, error } = await (supabase as any)
+        .from('teams')
+        .insert({
+          name: teamData.name,
+          slug: slug,
+          description: teamData.description || '',
+          parent_team_id: teamData.parent_team_id || null,
+          owner_id: currentUser.user.id,
+          team_type: teamData.team_type || 'project_team',
+          settings: teamData.settings || {},
+          member_limit: teamData.member_limit || 50
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating team:', error);
         throw new Error(`Failed to create team: ${error.message}`);
       }
 
-      return data as Team;
+      return data;
     } catch (error) {
       console.error('TeamService.createTeam error:', error);
       throw error;
@@ -69,16 +74,21 @@ export class TeamService {
    */
   static async getTeamById(teamId: string): Promise<Team | null> {
     try {
-      const { data, error } = await supabase.rpc('get_team_by_id', {
-        team_id: teamId
-      });
+      const { data, error } = await (supabase as any)
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .single();
 
       if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Team not found
+        }
         console.error('Error fetching team:', error);
         throw new Error(`Failed to fetch team: ${error.message}`);
       }
 
-      return data ? (data as Team) : null;
+      return data;
     } catch (error) {
       console.error('TeamService.getTeamById error:', error);
       throw error;
@@ -102,17 +112,19 @@ export class TeamService {
         }
       }
 
-      const { data, error } = await supabase.rpc('update_team_secure', {
-        team_id: teamId,
-        updates: updates
-      });
+      const { data, error } = await (supabase as any)
+        .from('teams')
+        .update(updates)
+        .eq('id', teamId)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error updating team:', error);
         throw new Error(`Failed to update team: ${error.message}`);
       }
 
-      return data as Team;
+      return data;
     } catch (error) {
       console.error('TeamService.updateTeam error:', error);
       throw error;
@@ -124,9 +136,10 @@ export class TeamService {
    */
   static async deleteTeam(teamId: string): Promise<void> {
     try {
-      const { error } = await supabase.rpc('delete_team_secure', {
-        team_id: teamId
-      });
+      const { error } = await (supabase as any)
+        .from('teams')
+        .update({ is_active: false })
+        .eq('id', teamId);
 
       if (error) {
         console.error('Error deleting team:', error);
@@ -143,17 +156,45 @@ export class TeamService {
    */
   static async getTeamsByUser(userId: string, options?: TeamQueryOptions): Promise<Team[]> {
     try {
-      const { data, error } = await supabase.rpc('get_teams_by_user', {
-        user_id: userId,
-        options: options || {}
-      });
+      let query = (supabase as any)
+        .from('teams')
+        .select('*')
+        .eq('is_active', true);
+
+      // Apply filters if provided
+      if (options?.filters) {
+        if (options.filters.team_type) {
+          query = query.eq('team_type', options.filters.team_type);
+        }
+        if (options.filters.owner_id) {
+          query = query.eq('owner_id', options.filters.owner_id);
+        }
+        if (options.filters.search) {
+          query = query.or(`name.ilike.%${options.filters.search}%,description.ilike.%${options.filters.search}%`);
+        }
+      }
+
+      // Apply sorting
+      if (options?.sort) {
+        query = query.order(options.sort.field, { ascending: options.sort.direction === 'asc' });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      // Apply pagination
+      if (options?.page && options?.limit) {
+        const from = (options.page - 1) * options.limit;
+        query = query.range(from, from + options.limit - 1);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching user teams:', error);
         throw new Error(`Failed to fetch user teams: ${error.message}`);
       }
 
-      return (data || []) as Team[];
+      return data || [];
     } catch (error) {
       console.error('TeamService.getTeamsByUser error:', error);
       throw error;
@@ -167,16 +208,38 @@ export class TeamService {
    */
   static async addTeamMember(memberData: TeamMemberInput): Promise<TeamMember> {
     try {
-      const { data, error } = await supabase.rpc('add_team_member_secure', {
-        member_data: memberData
-      });
+      // Get the role ID from slug
+      const { data: role, error: roleError } = await (supabase as any)
+        .from('user_roles')
+        .select('id')
+        .eq('slug', memberData.role_slug)
+        .eq('is_active', true)
+        .single();
+
+      if (roleError || !role) {
+        throw new Error(`Invalid role: ${memberData.role_slug}`);
+      }
+
+      const { data, error } = await (supabase as any)
+        .from('team_members')
+        .insert({
+          user_id: memberData.user_id,
+          team_id: memberData.team_id,
+          role_id: role.id,
+          invited_by: memberData.invited_by,
+          metadata: memberData.metadata || {},
+          status: 'active',
+          joined_at: new Date().toISOString()
+        })
+        .select('*, role:user_roles(*), team:teams(*)')
+        .single();
 
       if (error) {
         console.error('Error adding team member:', error);
         throw new Error(`Failed to add team member: ${error.message}`);
       }
 
-      return data as TeamMember;
+      return data;
     } catch (error) {
       console.error('TeamService.addTeamMember error:', error);
       throw error;
@@ -188,10 +251,14 @@ export class TeamService {
    */
   static async removeTeamMember(teamId: string, userId: string): Promise<void> {
     try {
-      const { error } = await supabase.rpc('remove_team_member_secure', {
-        team_id: teamId,
-        user_id: userId
-      });
+      const { error } = await (supabase as any)
+        .from('team_members')
+        .update({ 
+          status: 'left',
+          is_active: false 
+        })
+        .eq('team_id', teamId)
+        .eq('user_id', userId);
 
       if (error) {
         console.error('Error removing team member:', error);
@@ -208,11 +275,23 @@ export class TeamService {
    */
   static async updateMemberRole(teamId: string, userId: string, roleSlug: string): Promise<void> {
     try {
-      const { error } = await supabase.rpc('update_member_role_secure', {
-        team_id: teamId,
-        user_id: userId,
-        role_slug: roleSlug
-      });
+      // Get the role ID from slug
+      const { data: role, error: roleError } = await (supabase as any)
+        .from('user_roles')
+        .select('id')
+        .eq('slug', roleSlug)
+        .eq('is_active', true)
+        .single();
+
+      if (roleError || !role) {
+        throw new Error(`Invalid role: ${roleSlug}`);
+      }
+
+      const { error } = await (supabase as any)
+        .from('team_members')
+        .update({ role_id: role.id })
+        .eq('team_id', teamId)
+        .eq('user_id', userId);
 
       if (error) {
         console.error('Error updating member role:', error);
@@ -232,17 +311,50 @@ export class TeamService {
     options?: TeamMemberQueryOptions
   ): Promise<TeamMembersResponse> {
     try {
-      const { data, error } = await supabase.rpc('get_team_members_paginated', {
-        team_id: teamId,
-        options: options || {}
-      });
+      let query = (supabase as any)
+        .from('team_members')
+        .select('*, role:user_roles(*), team:teams(*)', { count: 'exact' })
+        .eq('team_id', teamId);
+
+      // Apply filters
+      if (options?.filters) {
+        if (options.filters.status) {
+          query = query.eq('status', options.filters.status);
+        }
+        if (options.filters.is_active !== undefined) {
+          query = query.eq('is_active', options.filters.is_active);
+        }
+        if (options.filters.role_slug) {
+          query = query.eq('role.slug', options.filters.role_slug);
+        }
+      }
+
+      // Apply sorting
+      if (options?.sort) {
+        query = query.order(options.sort.field, { ascending: options.sort.direction === 'asc' });
+      } else {
+        query = query.order('joined_at', { ascending: false });
+      }
+
+      // Apply pagination
+      const page = options?.page || 1;
+      const limit = options?.limit || 10;
+      const from = (page - 1) * limit;
+      query = query.range(from, from + limit - 1);
+
+      const { data, error, count } = await query;
 
       if (error) {
         console.error('Error fetching team members:', error);
         throw new Error(`Failed to fetch team members: ${error.message}`);
       }
 
-      return data as TeamMembersResponse;
+      return {
+        members: data || [],
+        total: count || 0,
+        page,
+        limit
+      };
     } catch (error) {
       console.error('TeamService.getTeamMembers error:', error);
       throw error;
@@ -320,17 +432,23 @@ export class TeamService {
    */
   private static async isSlugUnique(slug: string, excludeTeamId?: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase.rpc('check_team_slug_unique', {
-        slug: slug,
-        exclude_team_id: excludeTeamId || null
-      });
+      let query = (supabase as any)
+        .from('teams')
+        .select('id')
+        .eq('slug', slug);
+
+      if (excludeTeamId) {
+        query = query.neq('id', excludeTeamId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error checking slug uniqueness:', error);
         return false;
       }
 
-      return data as boolean;
+      return (data || []).length === 0;
     } catch (error) {
       console.error('TeamService.isSlugUnique error:', error);
       return false;
@@ -342,9 +460,24 @@ export class TeamService {
    */
   static async updateTeamMemberCount(teamId: string): Promise<void> {
     try {
-      const { error } = await supabase.rpc('update_team_member_count_secure', {
-        team_id: teamId
-      });
+      // Count active team members
+      const { count, error: countError } = await (supabase as any)
+        .from('team_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', teamId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      if (countError) {
+        console.error('Error counting team members:', countError);
+        throw new Error(`Failed to count team members: ${countError.message}`);
+      }
+
+      // Update the team's member count
+      const { error } = await (supabase as any)
+        .from('teams')
+        .update({ current_member_count: count || 0 })
+        .eq('id', teamId);
 
       if (error) {
         console.error('Error updating member count:', error);
@@ -361,14 +494,18 @@ export class TeamService {
    */
   static async getUserRoles(): Promise<UserRole[]> {
     try {
-      const { data, error } = await supabase.rpc('get_user_roles_active');
+      const { data, error } = await (supabase as any)
+        .from('user_roles')
+        .select('*')
+        .eq('is_active', true)
+        .order('hierarchy_level', { ascending: false });
 
       if (error) {
         console.error('Error fetching user roles:', error);
         throw new Error(`Failed to fetch user roles: ${error.message}`);
       }
 
-      return (data || []) as UserRole[];
+      return data || [];
     } catch (error) {
       console.error('TeamService.getUserRoles error:', error);
       throw error;
