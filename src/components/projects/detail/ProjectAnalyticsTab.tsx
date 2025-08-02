@@ -11,16 +11,16 @@ interface ProjectAnalyticsTabProps {
 }
 
 export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabProps) {
-  // Mock analytics data - in real implementation, this would come from the analytics prop
-  const mockMetrics = {
-    competitorAnalysisCount: analytics?.analysisCount || 12,
-    totalCompetitors: analytics?.competitorCount || 8,
-    teamProductivity: 85,
-    goalCompletionRate: 67,
-    avgAnalysisTime: '2.5 hours',
-    lastAnalysisDate: new Date(),
-    resourceUtilization: 78,
-    riskScore: 23,
+  // Use real analytics data when available
+  const realMetrics = {
+    competitorAnalysisCount: analytics?.analysisCount || 0,
+    totalCompetitors: analytics?.competitorCount || 0,
+    teamProductivity: analytics?.teamProductivity || 0,
+    goalCompletionRate: analytics?.goalCompletionRate || 0,
+    avgAnalysisTime: analytics?.avgAnalysisTime || 'N/A',
+    lastAnalysisDate: analytics?.lastAnalysisDate ? new Date(analytics.lastAnalysisDate) : null,
+    resourceUtilization: analytics?.resourceUtilization || 0,
+    riskScore: analytics?.riskScore || 0,
   };
 
   const performanceMetrics = [
@@ -84,7 +84,7 @@ export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabP
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockMetrics.competitorAnalysisCount}</div>
+            <div className="text-2xl font-bold">{realMetrics.competitorAnalysisCount}</div>
             <p className="text-xs text-muted-foreground">
               +2 from last month
             </p>
@@ -97,7 +97,7 @@ export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabP
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockMetrics.totalCompetitors}</div>
+            <div className="text-2xl font-bold">{realMetrics.totalCompetitors}</div>
             <p className="text-xs text-muted-foreground">
               Across {project.industry}
             </p>
@@ -110,8 +110,8 @@ export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabP
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockMetrics.teamProductivity}%</div>
-            <Progress value={mockMetrics.teamProductivity} className="mt-2 h-1" />
+            <div className="text-2xl font-bold">{realMetrics.teamProductivity}%</div>
+            <Progress value={realMetrics.teamProductivity} className="mt-2 h-1" />
           </CardContent>
         </Card>
 
@@ -121,7 +121,7 @@ export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabP
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockMetrics.goalCompletionRate}%</div>
+            <div className="text-2xl font-bold">{realMetrics.goalCompletionRate}%</div>
             <p className="text-xs text-muted-foreground">
               {project.primaryObjectives.length} objectives tracked
             </p>
@@ -174,9 +174,9 @@ export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabP
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Team Capacity</span>
-                <span className="text-sm font-medium">{mockMetrics.resourceUtilization}%</span>
+                <span className="text-sm font-medium">{realMetrics.resourceUtilization}%</span>
               </div>
-              <Progress value={mockMetrics.resourceUtilization} className="h-2" />
+              <Progress value={realMetrics.resourceUtilization} className="h-2" />
             </div>
 
             <div className="space-y-2">
@@ -197,7 +197,7 @@ export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabP
 
             <div className="pt-4 border-t">
               <p className="text-sm text-muted-foreground">
-                Average analysis time: <span className="font-medium">{mockMetrics.avgAnalysisTime}</span>
+                Average analysis time: <span className="font-medium">{realMetrics.avgAnalysisTime}</span>
               </p>
             </div>
           </CardContent>
@@ -213,7 +213,7 @@ export function ProjectAnalyticsTab({ project, analytics }: ProjectAnalyticsTabP
           <CardContent className="space-y-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 mb-2">
-                {100 - mockMetrics.riskScore}/100
+                {100 - realMetrics.riskScore}/100
               </div>
               <p className="text-sm text-muted-foreground">Overall Health Score</p>
             </div>

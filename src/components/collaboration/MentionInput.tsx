@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -41,39 +42,72 @@ export const MentionInput: React.FC<MentionInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Mock team members data - in production, this would come from the team members API
-  const mockTeamMembers: User[] = [
-    {
-      id: 'user-1',
-      full_name: 'John Doe',
-      email: 'john@example.com',
-      avatar_url: undefined
-    },
-    {
-      id: 'user-2',
-      full_name: 'Jane Smith',
-      email: 'jane@example.com',
-      avatar_url: undefined
-    },
-    {
-      id: 'user-3',
-      full_name: 'Mike Johnson',
-      email: 'mike@example.com',
-      avatar_url: undefined
+  // State for team members
+  const [teamMembers, setTeamMembers] = useState<User[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  // Fetch real team members from database
+  const fetchTeamMembers = async () => {
+    if (!teamId || isLoadingMembers) return;
+    
+    setIsLoadingMembers(true);
+    try {
+      // Query team_members table to get actual team members
+      const { data: members, error } = await supabase
+        .from('team_members')
+        .select(`
+          user_id
+        `)
+        .eq('team_id', teamId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      // Get unique user IDs
+      const userIds = [...new Set(members?.map(m => m.user_id) || [])];
+
+      // Fetch profiles for these users
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Transform the data to User format
+      const transformedMembers: User[] = (profiles || []).map(profile => ({
+        id: profile.id,
+        full_name: profile.full_name,
+        email: profile.email,
+        avatar_url: profile.avatar_url
+      }));
+
+      setTeamMembers(transformedMembers);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      setTeamMembers([]);
+    } finally {
+      setIsLoadingMembers(false);
     }
-  ];
+  };
+
+  // Fetch team members when teamId changes
+  useEffect(() => {
+    fetchTeamMembers();
+  }, [teamId]);
 
   useEffect(() => {
     if (mentionQuery && showSuggestions) {
       // Filter suggestions based on query
-      const filtered = mockTeamMembers.filter(user =>
+      const filtered = teamMembers.filter(user =>
         user.full_name?.toLowerCase().includes(mentionQuery.toLowerCase()) ||
         user.email?.toLowerCase().includes(mentionQuery.toLowerCase())
       );
       setSuggestions(filtered);
       setSelectedIndex(0);
     }
-  }, [mentionQuery, showSuggestions]);
+  }, [mentionQuery, showSuggestions, teamMembers]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -172,7 +206,7 @@ export const MentionInput: React.FC<MentionInputProps> = ({
       <Card className="absolute z-50 w-full max-w-sm mt-1 shadow-lg">
         <CardContent className="p-2">
           <div className="text-xs text-muted-foreground mb-2 px-2">
-            Mention someone
+            {isLoadingMembers ? 'Loading team members...' : 'Mention someone'}
           </div>
           <div className="space-y-1 max-h-40 overflow-y-auto" ref={suggestionsRef}>
             {suggestions.map((user, index) => (

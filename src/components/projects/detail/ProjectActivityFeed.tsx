@@ -29,6 +29,7 @@ import { format, isToday, isYesterday, subDays } from 'date-fns';
 import { useUser } from '@/contexts';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ActivityService } from '@/services/activityService';
 
 interface ActivityItem {
   id: string;
@@ -56,80 +57,70 @@ export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
-  // Enhanced mock activity data with better mobile presentation
-  const mockActivities: ActivityItem[] = [
-    {
-      id: '1',
-      type: 'project_updated',
-      description: 'Updated project status to Active',
-      userId: user?.id,
-      userName: user?.email?.split('@')[0] || 'You',
-      timestamp: new Date(),
-      priority: 'medium',
-    },
-    {
-      id: '2',
-      type: 'analysis_completed',
-      description: 'Completed competitive analysis for 3 competitors',
-      userId: 'user2',
-      userName: 'Sarah Chen',
-      userAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b400?w=100',
-      timestamp: subDays(new Date(), 1),
-      priority: 'high',
-      metadata: { competitorCount: 3, analysisType: 'competitive' }
-    },
-    {
-      id: '3',
-      type: 'member_added',
-      description: 'Added John Smith as a team member',
-      userId: 'user3',
-      userName: 'Mike Johnson',
-      timestamp: subDays(new Date(), 2),
-      priority: 'medium',
-      metadata: { newMemberRole: 'analyst' }
-    },
-    {
-      id: '4',
-      type: 'comment_added',
-      description: 'Left a comment on the project',
-      userId: 'user4',
-      userName: 'Emily Davis',
-      userAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
-      timestamp: subDays(new Date(), 3),
-      priority: 'low',
-      metadata: { 
-        comment: "Great progress on the competitor analysis! The insights about market positioning are particularly valuable. We should schedule a meeting to discuss the next steps and how we can leverage these findings for our strategy."
-      }
-    },
-    {
-      id: '5',
-      type: 'settings_changed',
-      description: 'Updated notification settings',
-      userId: user?.id,
-      userName: user?.email?.split('@')[0] || 'You',
-      timestamp: subDays(new Date(), 4),
-      priority: 'low',
-    },
-    {
-      id: '6',
-      type: 'role_changed',
-      description: 'Changed role from Member to Admin',
-      userId: 'user5',
-      userName: 'Alex Rivera',
-      timestamp: subDays(new Date(), 5),
-      priority: 'medium',
-      metadata: { oldRole: 'member', newRole: 'admin' }
-    },
-  ];
+  // Fetch real activity data from the database
+  const fetchActivitiesFromDB = async () => {
+    try {
+      const realActivities = await ActivityService.getProjectActivities(projectId, { limit: 20 });
+      
+      // Transform real activities to ActivityItem format
+      const transformedActivities: ActivityItem[] = realActivities.map(activity => ({
+        id: activity.id,
+        type: mapActivityTypeToComponent(activity.activity_type),
+        description: activity.description || activity.action,
+        userId: activity.user_id,
+        userName: activity.profiles?.full_name || activity.profiles?.email?.split('@')[0] || 'Unknown User',
+        userAvatar: activity.profiles?.avatar_url,
+        timestamp: new Date(activity.created_at),
+        priority: mapSeverityToPriority(activity.severity),
+        metadata: activity.metadata
+      }));
+      
+      return transformedActivities;
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      return [];
+    }
+  };
+
+  // Helper function to map activity types to component types
+  const mapActivityTypeToComponent = (activityType: string): ActivityItem['type'] => {
+    switch (activityType) {
+      case 'team_management': return 'member_added';
+      case 'content_activity': return 'comment_added';
+      case 'project_access': return 'project_updated';
+      case 'competitive_intel': return 'analysis_completed';
+      case 'role_management': return 'role_changed';
+      case 'system_event': return 'settings_changed';
+      default: return 'project_updated';
+    }
+  };
+
+  // Helper function to map severity to priority
+  const mapSeverityToPriority = (severity: string): ActivityItem['priority'] => {
+    switch (severity) {
+      case 'critical':
+      case 'error': return 'high';
+      case 'warning': return 'medium';
+      default: return 'low';
+    }
+  };
 
   useEffect(() => {
-    // Simulate loading with more realistic delay
-    const timer = setTimeout(() => {
-      setActivities(mockActivities);
-      setIsLoading(false);
-    }, 1200);
+    const loadActivities = async () => {
+      setIsLoading(true);
+      try {
+        const realActivities = await fetchActivitiesFromDB();
+        setActivities(realActivities);
+      } catch (error) {
+        console.error('Error loading activities:', error);
+        // Fallback to empty array instead of mock data
+        setActivities([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    loadActivities();
   }, [projectId]);
 
   // Set up real-time subscription for project activities

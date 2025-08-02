@@ -23,7 +23,7 @@ export function ProjectProgressTracking({ project, analytics }: ProjectProgressT
     differenceInDays(project.targetEndDate, project.startDate) : null;
   const daysElapsed = project.startDate ? differenceInDays(now, project.startDate) : 0;
 
-  // Mock milestones data
+  // Generate milestones based on project data
   const milestones = [
     {
       id: 1,

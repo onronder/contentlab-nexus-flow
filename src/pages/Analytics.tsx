@@ -18,7 +18,7 @@ import {
   DollarSign,
   Eye
 } from "lucide-react";
-import { mockAnalyticsMetrics } from "@/data/mockData";
+
 import { OptimizedChart } from "@/components/charts/OptimizedChart";
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/loading-skeletons";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
@@ -53,7 +53,7 @@ const Analytics = () => {
   const [dateRange, setDateRange] = useState("30");
   const { data: analyticsData, isLoading } = useAnalyticsData();
   
-  // Use real data if available, fallback to mock structure
+  // Use real data if available, provide default structure if no data
   const realMetrics = analyticsData ? [
     { id: '1', name: 'Total Projects', value: analyticsData.totalProjects, change: 15, changeType: 'increase', category: 'content' },
     { id: '2', name: 'Active Projects', value: analyticsData.activeProjects, change: 8, changeType: 'increase', category: 'content' },
@@ -61,7 +61,14 @@ const Analytics = () => {
     { id: '4', name: 'Team Members', value: analyticsData.teamMembers, change: 5, changeType: 'increase', category: 'social' },
     { id: '5', name: 'Content Items', value: analyticsData.contentPerformance.reduce((sum, cp) => sum + cp.value, 0), change: 23, changeType: 'increase', category: 'seo' },
     { id: '6', name: 'Market Coverage', value: 87, change: 3, changeType: 'increase', category: 'market' }
-  ] : mockAnalyticsMetrics;
+  ] : [
+    { id: '1', name: 'Total Projects', value: 0, change: 0, changeType: 'neutral', category: 'content' },
+    { id: '2', name: 'Active Projects', value: 0, change: 0, changeType: 'neutral', category: 'content' },
+    { id: '3', name: 'Completion Rate', value: 0, change: 0, changeType: 'neutral', category: 'competitive' },
+    { id: '4', name: 'Team Members', value: 0, change: 0, changeType: 'neutral', category: 'social' },
+    { id: '5', name: 'Content Items', value: 0, change: 0, changeType: 'neutral', category: 'seo' },
+    { id: '6', name: 'Market Coverage', value: 0, change: 0, changeType: 'neutral', category: 'market' }
+  ];
 
   // Use real chart data when available
   const chartData = useMemo(() => ({
@@ -334,7 +341,7 @@ const Analytics = () => {
               <CardContent>
                 {isLoading ? (
                   <TableSkeleton rows={6} cols={5} />
-                ) : (
+                ) : analyticsData ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -351,15 +358,21 @@ const Analytics = () => {
                           <tr key={metric.id} className="border-b hover:bg-muted/50">
                             <td className="p-2 font-medium">{metric.name}</td>
                             <td className="p-2">{metric.value}</td>
-                            <td className="p-2">{(metric.value - metric.change).toFixed(1)}</td>
+                            <td className="p-2">{Math.max(0, metric.value - metric.change)}</td>
                             <td className="p-2">{formatChange(metric.change, metric.changeType)}</td>
                             <td className="p-2">
-                              <Badge variant="outline">{(metric.value + 10).toFixed(1)}</Badge>
+                              <Badge variant="outline">{metric.value + 10}</Badge>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Analytics Data</h3>
+                    <p className="text-muted-foreground">Start creating projects to see analytics data here</p>
                   </div>
                 )}
               </CardContent>

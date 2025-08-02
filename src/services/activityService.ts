@@ -142,21 +142,124 @@ export class ActivityService {
     });
   }
 
-  // Activity Queries - Using existing project_activities table 
+  // Activity Queries - Using activity_logs table for real data
   static async getTeamActivities(
     teamId: string, 
     filters?: ActivityFilters
   ): Promise<ActivityLog[]> {
-    // Return mock data for now until full implementation is available
-    return this.getMockActivities(teamId, filters);
+    try {
+      let query = supabase
+        .from('activity_logs')
+        .select(`
+          *,
+          profiles:user_id(id, full_name, email, avatar_url)
+        `)
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: false });
+
+      if (filters?.activityType) {
+        query = query.eq('activity_type', filters.activityType as any);
+      }
+      if (filters?.userId) {
+        query = query.eq('user_id', filters.userId);
+      }
+      if (filters?.dateFrom) {
+        query = query.gte('created_at', filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        query = query.lte('created_at', filters.dateTo);
+      }
+      if (filters?.severity) {
+        query = query.eq('severity', filters.severity as any);
+      }
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return (data || []).map(item => ({
+        id: item.id,
+        team_id: item.team_id,
+        user_id: item.user_id,
+        project_id: item.project_id,
+        activity_type: item.activity_type as string,
+        action: item.action,
+        resource_type: item.resource_type,
+        resource_id: item.resource_id,
+        target_user_id: item.target_user_id,
+        description: item.description,
+        metadata: (typeof item.metadata === 'object' && item.metadata !== null) ? item.metadata as Record<string, any> : {},
+        ip_address: item.ip_address as string,
+        user_agent: item.user_agent as string,
+        session_id: item.session_id as string,
+        severity: item.severity as string,
+        created_at: item.created_at,
+        profiles: item.profiles && typeof item.profiles === 'object' && !Array.isArray(item.profiles) ? item.profiles : undefined
+      }));
+    } catch (error) {
+      console.error('Error fetching team activities:', error);
+      return [];
+    }
   }
 
   static async getUserActivities(
     userId: string, 
     filters?: ActivityFilters
   ): Promise<ActivityLog[]> {
-    // Return mock data for now until full implementation is available
-    return this.getMockActivities(undefined, { ...filters, userId });
+    try {
+      let query = supabase
+        .from('activity_logs')
+        .select(`
+          *,
+          profiles:user_id(id, full_name, email, avatar_url)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (filters?.activityType) {
+        query = query.eq('activity_type', filters.activityType as any);
+      }
+      if (filters?.dateFrom) {
+        query = query.gte('created_at', filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        query = query.lte('created_at', filters.dateTo);
+      }
+      if (filters?.severity) {
+        query = query.eq('severity', filters.severity as any);
+      }
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return (data || []).map(item => ({
+        id: item.id,
+        team_id: item.team_id,
+        user_id: item.user_id,
+        project_id: item.project_id,
+        activity_type: item.activity_type as string,
+        action: item.action,
+        resource_type: item.resource_type,
+        resource_id: item.resource_id,
+        target_user_id: item.target_user_id,
+        description: item.description,
+        metadata: (typeof item.metadata === 'object' && item.metadata !== null) ? item.metadata as Record<string, any> : {},
+        ip_address: item.ip_address as string,
+        user_agent: item.user_agent as string,
+        session_id: item.session_id as string,
+        severity: item.severity as string,
+        created_at: item.created_at,
+        profiles: item.profiles && typeof item.profiles === 'object' && !Array.isArray(item.profiles) ? item.profiles : undefined
+      }));
+    } catch (error) {
+      console.error('Error fetching user activities:', error);
+      return [];
+    }
   }
 
   static async getProjectActivities(
@@ -204,14 +307,58 @@ export class ActivityService {
     page: number = 1, 
     limit: number = 20
   ): Promise<{ activities: ActivityLog[]; total: number }> {
-    // Return mock data for now
-    const activities = this.getMockActivities(teamId);
-    const offset = (page - 1) * limit;
-    
-    return {
-      activities: activities.slice(offset, offset + limit),
-      total: activities.length
-    };
+    try {
+      const offset = (page - 1) * limit;
+      
+      // Get paginated activities
+      const { data: activities, error: activitiesError } = await supabase
+        .from('activity_logs')
+        .select(`
+          *,
+          profiles:user_id(id, full_name, email, avatar_url)
+        `)
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (activitiesError) throw activitiesError;
+
+      // Get total count
+      const { count, error: countError } = await supabase
+        .from('activity_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', teamId);
+
+      if (countError) throw countError;
+
+      const transformedActivities: ActivityLog[] = (activities || []).map(item => ({
+        id: item.id,
+        team_id: item.team_id,
+        user_id: item.user_id,
+        project_id: item.project_id,
+        activity_type: item.activity_type as string,
+        action: item.action,
+        resource_type: item.resource_type,
+        resource_id: item.resource_id,
+        target_user_id: item.target_user_id,
+        description: item.description,
+        metadata: (typeof item.metadata === 'object' && item.metadata !== null) ? item.metadata as Record<string, any> : {},
+        ip_address: item.ip_address as string,
+        user_agent: item.user_agent as string,
+        session_id: item.session_id as string,
+        severity: item.severity as string,
+        created_at: item.created_at,
+        profiles: item.profiles && typeof item.profiles === 'object' && !Array.isArray(item.profiles) ? item.profiles : undefined
+      }));
+
+      return {
+        activities: transformedActivities,
+        total: count || 0
+      };
+    } catch (error) {
+      console.error('Error fetching activity feed:', error);
+      return { activities: [], total: 0 };
+    }
   }
 
   // Activity Analytics
@@ -219,127 +366,243 @@ export class ActivityService {
     teamId: string, 
     period: string = '7d'
   ): Promise<ActivitySummary> {
-    // Return mock summary for now
-    return {
-      totalActivities: 156,
-      activitiesByType: {
-        'team_management': 45,
-        'content_activity': 67,
-        'project_access': 32,
-        'security_event': 12
-      },
-      activitiesByUser: {
-        'user-1': 78,
-        'user-2': 45,
-        'user-3': 33
-      },
-      activitiesByDay: [
-        { date: '2024-01-01', count: 23 },
-        { date: '2024-01-02', count: 31 },
-        { date: '2024-01-03', count: 28 }
-      ],
-      topActions: [
-        { action: 'created_project', count: 15 },
-        { action: 'updated_content', count: 12 },
-        { action: 'invited_member', count: 8 }
-      ]
-    };
+    try {
+      // Calculate date range
+      const periodDays = parseInt(period.replace('d', ''));
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - periodDays);
+
+      // Get activities within period
+      const { data: activities, error } = await supabase
+        .from('activity_logs')
+        .select(`
+          *,
+          profiles:user_id(id, full_name, email)
+        `)
+        .eq('team_id', teamId)
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const activitiesList = activities || [];
+      const totalActivities = activitiesList.length;
+
+      // Group by type
+      const activitiesByType: Record<string, number> = {};
+      activitiesList.forEach(activity => {
+        activitiesByType[activity.activity_type] = (activitiesByType[activity.activity_type] || 0) + 1;
+      });
+
+      // Group by user
+      const activitiesByUser: Record<string, number> = {};
+      activitiesList.forEach(activity => {
+        if (activity.user_id) {
+          activitiesByUser[activity.user_id] = (activitiesByUser[activity.user_id] || 0) + 1;
+        }
+      });
+
+      // Group by day
+      const activitiesByDay: Array<{ date: string; count: number }> = [];
+      const dayGroups: Record<string, number> = {};
+      activitiesList.forEach(activity => {
+        const date = new Date(activity.created_at).toISOString().split('T')[0];
+        dayGroups[date] = (dayGroups[date] || 0) + 1;
+      });
+
+      Object.entries(dayGroups).forEach(([date, count]) => {
+        activitiesByDay.push({ date, count });
+      });
+
+      // Top actions
+      const actionGroups: Record<string, number> = {};
+      activitiesList.forEach(activity => {
+        actionGroups[activity.action] = (actionGroups[activity.action] || 0) + 1;
+      });
+
+      const topActions = Object.entries(actionGroups)
+        .map(([action, count]) => ({ action, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      return {
+        totalActivities,
+        activitiesByType,
+        activitiesByUser,
+        activitiesByDay: activitiesByDay.sort((a, b) => a.date.localeCompare(b.date)),
+        topActions
+      };
+    } catch (error) {
+      console.error('Error fetching activity summary:', error);
+      return {
+        totalActivities: 0,
+        activitiesByType: {},
+        activitiesByUser: {},
+        activitiesByDay: [],
+        topActions: []
+      };
+    }
   }
 
   static async getMemberActivityStats(
     teamId: string, 
     userId: string
   ): Promise<MemberActivityStats> {
-    const activities = this.getMockActivities(teamId, { userId, limit: 10 });
-    
-    const activitiesByType: Record<string, number> = {};
-    activities.forEach(activity => {
-      activitiesByType[activity.activity_type] = 
-        (activitiesByType[activity.activity_type] || 0) + 1;
-    });
+    try {
+      // Get all activities for this user in the team
+      const { data: allActivities, error: allError } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('team_id', teamId)
+        .eq('user_id', userId);
 
-    return {
-      userId,
-      totalActivities: activities.length,
-      activitiesByType,
-      recentActivities: activities,
-      engagementScore: 75,
-      lastActivity: activities[0]?.created_at
-    };
+      if (allError) throw allError;
+
+      // Get recent activities with profile info
+      const { data: recentActivities, error: recentError } = await supabase
+        .from('activity_logs')
+        .select(`
+          *,
+          profiles:user_id(id, full_name, email, avatar_url)
+        `)
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (recentError) throw recentError;
+
+      const activities = allActivities || [];
+      const recent = recentActivities || [];
+
+      // Group by type
+      const activitiesByType: Record<string, number> = {};
+      activities.forEach(activity => {
+        activitiesByType[activity.activity_type] = (activitiesByType[activity.activity_type] || 0) + 1;
+      });
+
+      // Calculate engagement score based on activity frequency and recency
+      const now = new Date();
+      const recentActivitiesCount = activities.filter(activity => {
+        const activityDate = new Date(activity.created_at);
+        const daysDiff = (now.getTime() - activityDate.getTime()) / (1000 * 3600 * 24);
+        return daysDiff <= 7; // Last 7 days
+      }).length;
+      
+      const engagementScore = Math.min(100, Math.round((recentActivitiesCount / Math.max(activities.length, 1)) * 100));
+
+      const transformedRecentActivities: ActivityLog[] = recent.map(item => ({
+        id: item.id,
+        team_id: item.team_id,
+        user_id: item.user_id,
+        project_id: item.project_id,
+        activity_type: item.activity_type as string,
+        action: item.action,
+        resource_type: item.resource_type,
+        resource_id: item.resource_id,
+        target_user_id: item.target_user_id,
+        description: item.description,
+        metadata: (typeof item.metadata === 'object' && item.metadata !== null) ? item.metadata as Record<string, any> : {},
+        ip_address: item.ip_address as string,
+        user_agent: item.user_agent as string,
+        session_id: item.session_id as string,
+        severity: item.severity as string,
+        created_at: item.created_at,
+        profiles: item.profiles && typeof item.profiles === 'object' && !Array.isArray(item.profiles) ? item.profiles : undefined
+      }));
+
+      return {
+        userId,
+        totalActivities: activities.length,
+        activitiesByType,
+        recentActivities: transformedRecentActivities,
+        engagementScore,
+        lastActivity: activities[0]?.created_at
+      };
+    } catch (error) {
+      console.error('Error fetching member activity stats:', error);
+      return {
+        userId,
+        totalActivities: 0,
+        activitiesByType: {},
+        recentActivities: [],
+        engagementScore: 0,
+        lastActivity: undefined
+      };
+    }
   }
 
   static async getTeamEngagementMetrics(teamId: string): Promise<EngagementMetrics> {
-    return {
-      teamId,
-      memberCount: 8,
-      activeMembers: 6,
-      totalActivities: 156,
-      avgActivitiesPerMember: 19.5,
-      engagementRate: 75,
-      topContributors: [
-        { userId: 'user-1', activityCount: 45 },
-        { userId: 'user-2', activityCount: 38 },
-        { userId: 'user-3', activityCount: 22 }
-      ]
-    };
+    try {
+      // Get team member count
+      const { count: memberCount, error: memberError } = await supabase
+        .from('team_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', teamId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      if (memberError) throw memberError;
+
+      // Get all activities for the team
+      const { data: activities, error: activitiesError } = await supabase
+        .from('activity_logs')
+        .select('user_id, created_at')
+        .eq('team_id', teamId);
+
+      if (activitiesError) throw activitiesError;
+
+      const activitiesList = activities || [];
+      const totalActivities = activitiesList.length;
+
+      // Calculate active members (members with activity in last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const activeUserIds = new Set(
+        activitiesList
+          .filter(activity => new Date(activity.created_at) >= thirtyDaysAgo)
+          .map(activity => activity.user_id)
+      );
+      const activeMembers = activeUserIds.size;
+
+      // Calculate top contributors
+      const contributorCounts: Record<string, number> = {};
+      activitiesList.forEach(activity => {
+        if (activity.user_id) {
+          contributorCounts[activity.user_id] = (contributorCounts[activity.user_id] || 0) + 1;
+        }
+      });
+
+      const topContributors = Object.entries(contributorCounts)
+        .map(([userId, activityCount]) => ({ userId, activityCount }))
+        .sort((a, b) => b.activityCount - a.activityCount)
+        .slice(0, 5);
+
+      const avgActivitiesPerMember = memberCount && memberCount > 0 ? totalActivities / memberCount : 0;
+      const engagementRate = memberCount && memberCount > 0 ? Math.round((activeMembers / memberCount) * 100) : 0;
+
+      return {
+        teamId,
+        memberCount: memberCount || 0,
+        activeMembers,
+        totalActivities,
+        avgActivitiesPerMember: Math.round(avgActivitiesPerMember * 10) / 10,
+        engagementRate,
+        topContributors
+      };
+    } catch (error) {
+      console.error('Error fetching team engagement metrics:', error);
+      return {
+        teamId,
+        memberCount: 0,
+        activeMembers: 0,
+        totalActivities: 0,
+        avgActivitiesPerMember: 0,
+        engagementRate: 0,
+        topContributors: []
+      };
+    }
   }
 
-  // Helper method to generate mock activities
-  private static getMockActivities(teamId?: string, filters?: ActivityFilters): ActivityLog[] {
-    const mockActivities: ActivityLog[] = [
-      {
-        id: '1',
-        team_id: teamId,
-        user_id: 'user-1',
-        project_id: 'project-1',
-        activity_type: 'team_management',
-        action: 'invited_member',
-        description: 'Invited new team member to join the project',
-        metadata: { member_email: 'newuser@example.com' },
-        severity: 'info',
-        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        profiles: { id: 'user-1', full_name: 'John Doe', email: 'john@example.com' }
-      },
-      {
-        id: '2',
-        team_id: teamId,
-        user_id: 'user-2',
-        project_id: 'project-1',
-        activity_type: 'content_activity',
-        action: 'created_content',
-        description: 'Created new content item for review',
-        metadata: { content_type: 'article' },
-        severity: 'info',
-        created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-        profiles: { id: 'user-2', full_name: 'Jane Smith', email: 'jane@example.com' }
-      },
-      {
-        id: '3',
-        team_id: teamId,
-        user_id: 'user-3',
-        project_id: 'project-1',
-        activity_type: 'project_access',
-        action: 'viewed_analytics',
-        description: 'Viewed project analytics dashboard',
-        metadata: { section: 'performance' },
-        severity: 'info',
-        created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        profiles: { id: 'user-3', full_name: 'Mike Johnson', email: 'mike@example.com' }
-      }
-    ];
-
-    let filtered = mockActivities;
-
-    if (filters?.userId) {
-      filtered = filtered.filter(a => a.user_id === filters.userId);
-    }
-    if (filters?.activityType) {
-      filtered = filtered.filter(a => a.activity_type === filters.activityType);
-    }
-    if (filters?.limit) {
-      filtered = filtered.slice(0, filters.limit);
-    }
-
-    return filtered;
-  }
 }
