@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RealTimeCommentService, Comment } from '@/services/realTimeCommentService';
+import { RealTimeCommentService, ProjectComment } from '@/services/realTimeCommentService';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
@@ -7,7 +7,7 @@ import type { Database } from '@/integrations/supabase/types';
 type ResourceType = Database['public']['Enums']['comment_resource_type'];
 
 export function useRealTimeComments(resourceType: ResourceType, resourceId: string, teamId: string) {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<ProjectComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const userId = useCurrentUserId();

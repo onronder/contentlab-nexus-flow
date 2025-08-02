@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { useRealTimeComments } from '@/hooks/useRealTimeComments';
 import { MentionInput } from './MentionInput';
-import type { Comment as CommentType } from '@/services/realTimeCommentService';
+import type { ProjectComment as CommentType } from '@/services/realTimeCommentService';
 import type { Database } from '@/integrations/supabase/types';
 
 type ResourceType = Database['public']['Enums']['comment_resource_type'];

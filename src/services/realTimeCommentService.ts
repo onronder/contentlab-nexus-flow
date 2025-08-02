@@ -4,7 +4,7 @@ import type { Database } from '@/integrations/supabase/types';
 type ResourceType = Database['public']['Enums']['comment_resource_type'];
 type ContentFormat = Database['public']['Enums']['content_format'];
 
-export interface Comment {
+export interface ProjectComment {
   id: string;
   parent_id?: string;
   author_id: string;
@@ -22,7 +22,7 @@ export interface Comment {
   metadata: Record<string, any>;
   created_at: string;
   updated_at: string;
-  replies?: Comment[];
+  replies?: ProjectComment[];
   author?: {
     id: string;
     full_name?: string;
@@ -31,7 +31,7 @@ export interface Comment {
   };
 }
 
-export interface CommentCreateInput {
+export interface ProjectCommentCreateInput {
   parent_id?: string;
   team_id: string;
   resource_type: ResourceType;
@@ -44,7 +44,7 @@ export interface CommentCreateInput {
 }
 
 export class RealTimeCommentService {
-  static async getComments(resourceType: ResourceType, resourceId: string): Promise<Comment[]> {
+  static async getComments(resourceType: ResourceType, resourceId: string): Promise<ProjectComment[]> {
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -76,7 +76,7 @@ export class RealTimeCommentService {
           }
 
           // Transform the comment data to match our interface
-          const transformedComment: Comment = {
+          const transformedComment: ProjectComment = {
             ...comment,
             mentions: Array.isArray(comment.mentions) ? comment.mentions as string[] : [],
             attachments: Array.isArray(comment.attachments) ? comment.attachments as Array<{ name: string; url: string; size: number; type: string }> : [],
@@ -102,7 +102,7 @@ export class RealTimeCommentService {
     }
   }
 
-  static async createComment(commentData: CommentCreateInput): Promise<Comment | null> {
+  static async createComment(commentData: ProjectCommentCreateInput): Promise<ProjectComment | null> {
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error('User not authenticated');
