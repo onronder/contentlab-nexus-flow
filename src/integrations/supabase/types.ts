@@ -1880,12 +1880,6 @@ export type Database = {
         Args: { p_team_id: string; p_options?: Json }
         Returns: Json
       }
-      get_user_teams: {
-        Args: { user_id_param: string }
-        Returns: {
-          team_id: string
-        }[]
-      }
       is_project_admin_or_manager: {
         Args: { project_id: string; user_id: string }
         Returns: boolean
@@ -1896,14 +1890,6 @@ export type Database = {
       }
       is_project_team_member: {
         Args: { project_id: string; user_id: string }
-        Returns: boolean
-      }
-      is_team_admin: {
-        Args: { team_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
-      is_team_member: {
-        Args: { team_id_param: string; user_id_param: string }
         Returns: boolean
       }
       log_team_activity: {
