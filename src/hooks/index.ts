@@ -145,7 +145,10 @@ export {
   useUserTeamRoles,
   useTeamPermissions,
   useTeamStats,
-  useAvailableRoles
+  useAvailableRoles,
+  useTeamsByType,
+  useTeamMembersByRole,
+  useTeamActivity
 } from './useTeamQueries';
 
 export {
@@ -157,3 +160,33 @@ export {
   useRemoveTeamMember,
   useBulkMemberOperations
 } from './useTeamMutations';
+
+export { useTeamSettings } from './useTeamSettings';
+export type { TeamSettingsData } from './useTeamSettings';
+
+// User profile hooks
+export { 
+  useUserProfile, 
+  useUserSettings, 
+  useUpdateUserProfile 
+} from './useUserProfile';
+export type { UserProfile, UserSettings } from './useUserProfile';
+
+// Invitation hooks
+export {
+  useTeamInvitations,
+  useInvitationByToken,
+  usePendingInvitations,
+  useInvitationStatus,
+  useInvitationsByStatus,
+  useInvitationMetrics
+} from './useInvitationQueries';
+
+export {
+  useSendInvitation,
+  useBulkInvitation,
+  useAcceptInvitation,
+  useDeclineInvitation,
+  useCancelInvitation,
+  useResendInvitation
+} from './useInvitationMutations';
