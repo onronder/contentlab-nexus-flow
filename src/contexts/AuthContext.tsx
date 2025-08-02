@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { devLog, devWarn, logError } from '@/utils/productionUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -29,9 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.removeItem(key);
         }
       });
-      console.log('Cleared invalid session data from localStorage');
+      devLog('Cleared invalid session data from localStorage');
     } catch (error) {
-      console.error('Error clearing session data:', error);
+      logError(error as Error, 'AuthContext.clearInvalidSession');
     }
   };
 
@@ -40,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        console.error('Session validation error:', error);
+        logError(error, 'AuthContext.validateSession');
         // Clear invalid tokens on validation error
         if (error.message?.includes('refresh_token_not_found') || 
             error.message?.includes('Invalid Refresh Token')) {
@@ -50,14 +51,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (session) {
-        console.log('Session validated successfully, expires at:', session.expires_at);
+        devLog('Session validated successfully, expires at:', session.expires_at);
         return true;
       }
       
-      console.warn('No active session found during validation');
+      devWarn('No active session found during validation');
       return false;
     } catch (error) {
-      console.error('Session validation failed:', error);
+      logError(error as Error, 'AuthContext.validateSession');
       clearInvalidSession();
       return false;
     }
@@ -71,12 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state changed:', event, session);
-        console.log('JWT token present:', !!session?.access_token);
+        devLog('Auth state changed:', event, !!session);
+        devLog('JWT token present:', !!session?.access_token);
         
         // Handle refresh token errors by clearing session
         if (event === 'TOKEN_REFRESHED' && !session) {
-          console.warn('Token refresh failed, clearing stored session');
+          devWarn('Token refresh failed, clearing stored session');
           clearInvalidSession();
         }
         
@@ -94,21 +95,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         
         if (error) {
-          console.error('Error getting initial session:', error);
+          logError(error, 'AuthContext.getInitialSession');
           // If it's a refresh token error, clear the invalid session
           if (error.message?.includes('refresh_token_not_found') || 
               error.message?.includes('Invalid Refresh Token')) {
-            console.warn('Invalid refresh token detected, clearing session');
+            devWarn('Invalid refresh token detected, clearing session');
             clearInvalidSession();
           }
         } else {
-          console.log('Initial session loaded:', !!session);
-          console.log('JWT token present:', !!session?.access_token);
+          devLog('Initial session loaded:', !!session);
+          devLog('JWT token present:', !!session?.access_token);
           setSession(session);
           setUser(session?.user ?? null);
         }
       } catch (error) {
-        console.error('Failed to get initial session:', error);
+        logError(error as Error, 'AuthContext.getInitialSession');
         // Clear session on any authentication error
         clearInvalidSession();
       } finally {

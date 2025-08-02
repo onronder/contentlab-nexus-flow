@@ -10,6 +10,7 @@ import {
 } from '@/services/projectService';
 import { Project, ProjectCreationInput, ProjectUpdateInput } from '@/types/projects';
 import { toast } from 'sonner';
+import { devLog, logError } from '@/utils/productionUtils';
 
 /**
  * Hook to create a new project with optimistic updates
@@ -21,9 +22,9 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: async (projectData: ProjectCreationInput) => {
-      console.log('Creating project mutation started');
-      console.log('User:', !!user?.id, user?.id);
-      console.log('Session:', !!session, session?.access_token ? 'has token' : 'no token');
+      devLog('Creating project mutation started');
+      devLog('User:', !!user?.id, user?.id);
+      devLog('Session:', !!session, session?.access_token ? 'has token' : 'no token');
       
       if (!user?.id) throw new Error('User not authenticated');
       if (!session) throw new Error('No session available');
@@ -90,7 +91,7 @@ export function useCreateProject() {
         );
       }
       toast.error('Failed to create project. Please try again.');
-      console.error('Create project error:', err);
+      logError(err as Error, 'useCreateProject');
     },
     onSuccess: (data) => {
       toast.success('Project created successfully!');
@@ -176,7 +177,7 @@ export function useUpdateProject() {
         }
       }
       toast.error('Failed to update project. Please try again.');
-      console.error('Update project error:', err);
+      logError(err as Error, 'useUpdateProject');
     },
     onSuccess: (data, { projectId }) => {
       toast.success('Project updated successfully!');
@@ -236,7 +237,7 @@ export function useDeleteProject() {
         );
       }
       toast.error('Failed to delete project. Please try again.');
-      console.error('Delete project error:', err);
+      logError(err as Error, 'useDeleteProject');
     },
     onSuccess: (_, projectId) => {
       toast.success('Project deleted successfully.');
@@ -326,7 +327,7 @@ export function useArchiveProject() {
         }
       }
       toast.error('Failed to archive project. Please try again.');
-      console.error('Archive project error:', err);
+      logError(err as Error, 'useArchiveProject');
     },
     onSuccess: (data) => {
       toast.success('Project archived successfully.');
@@ -371,7 +372,7 @@ export function useRestoreProject() {
     },
     onError: (err) => {
       toast.error('Failed to restore project. Please try again.');
-      console.error('Restore project error:', err);
+      logError(err as Error, 'useRestoreProject');
     },
   });
 }

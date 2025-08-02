@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
 import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationPage';
 import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
+import { isDevelopment } from '@/utils/productionUtils';
 
 const App = () => (
   <TooltipProvider>
@@ -34,8 +35,8 @@ const App = () => (
     <Sonner />
     <BrowserRouter>
       <Routes>
-        {/* Authentication testing route (public for debugging) */}
-        <Route path="/auth-test" element={<AuthTestingPanel />} />
+        {/* Authentication testing route (only in development) */}
+        {isDevelopment() && <Route path="/auth-test" element={<AuthTestingPanel />} />}
         
         {/* Public invitation route */}
         <Route path="/invite/:token" element={<AcceptInvitationPage />} />

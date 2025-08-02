@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/contexts';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { devLog, devWarn, isDevelopment } from '@/utils/productionUtils';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -35,7 +36,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Add debug logging
   useEffect(() => {
     const log = `[${new Date().toLocaleTimeString()}] Auth state - Loading: ${isLoading}, Authenticated: ${isAuthenticated}`;
-    console.log('ProtectedRoute:', log);
+    devLog('ProtectedRoute:', log);
     setDebugInfo(prev => [...prev.slice(-4), log]); // Keep last 5 logs
   }, [isLoading, isAuthenticated]);
 
@@ -47,7 +48,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
 
     const timer = setTimeout(() => {
-      console.warn('ProtectedRoute: Authentication check timed out');
+      devWarn('ProtectedRoute: Authentication check timed out');
       setHasTimedOut(true);
     }, timeout);
 
@@ -91,7 +92,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               Go to Login
             </Button>
           </div>
-          {process.env.NODE_ENV === 'development' && (
+          {isDevelopment() && (
             <details className="text-left">
               <summary className="text-xs text-muted-foreground cursor-pointer">
                 Debug Information
@@ -127,7 +128,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <div className="w-full max-w-xs bg-muted rounded-full h-1">
               <div className="bg-primary h-1 rounded-full animate-pulse" style={{ width: '60%' }} />
             </div>
-            {process.env.NODE_ENV === 'development' && (
+            {isDevelopment() && (
               <details className="text-left w-full">
                 <summary className="text-xs text-muted-foreground cursor-pointer">
                   Debug Information
@@ -148,12 +149,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Redirect if authentication requirements aren't met
   if (requireAuth && !isAuthenticated) {
-    console.log('ProtectedRoute: Redirecting unauthenticated user to:', getRedirectUrl());
+    devLog('ProtectedRoute: Redirecting unauthenticated user to:', getRedirectUrl());
     return <Navigate to={getRedirectUrl()} replace />;
   }
 
   // Render protected content
-  console.log('ProtectedRoute: Rendering protected content');
+  devLog('ProtectedRoute: Rendering protected content');
   return <>{children}</>;
 };
 
@@ -183,7 +184,7 @@ export const PublicRoute: React.FC<ProtectedRouteProps> = ({
     }
 
     const timer = setTimeout(() => {
-      console.warn('PublicRoute: Authentication check timed out');
+      devWarn('PublicRoute: Authentication check timed out');
       setHasTimedOut(true);
     }, timeout);
 
@@ -238,12 +239,12 @@ export const PublicRoute: React.FC<ProtectedRouteProps> = ({
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && !isLoading) {
     const redirectUrl = getRedirectUrl(location, redirectTo);
-    console.log('PublicRoute: Redirecting authenticated user to:', redirectUrl);
+    devLog('PublicRoute: Redirecting authenticated user to:', redirectUrl);
     return <Navigate to={redirectUrl} replace />;
   }
 
   // Render public content
-  console.log('PublicRoute: Rendering public content');
+  devLog('PublicRoute: Rendering public content');
   return <>{children}</>;
 };
 
