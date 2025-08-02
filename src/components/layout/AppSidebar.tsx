@@ -33,7 +33,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { LogoutButton } from "@/components/ui/logout-button";
-import { useTeams, useTeamMembers } from "@/hooks/useTeamQueries";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useMonitoringAlerts } from "@/hooks/useMonitoringAlerts";
 
 const settingsItems = [
   { title: "Settings", url: "/settings", icon: Settings },
@@ -46,16 +47,22 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  // Fetch real data for badge counts
-  const { data: teams } = useTeams();
-  const currentTeam = teams?.[0];
-  const { data: membersResponse } = useTeamMembers(currentTeam?.id || "");
+  // Fetch real data for badge counts and quick stats
+  const { data: dashboardStats, isLoading: statsLoading } = useDashboardStats();
+  const { data: alerts } = useMonitoringAlerts();
 
   // Memoize dynamic badge counts for performance
   const badgeCounts = useMemo(() => ({
-    content: 0, // Will be replaced with real content count later
-    team: membersResponse?.members?.length || 0,
-  }), [membersResponse?.members?.length]);
+    content: dashboardStats?.contentItems || 0,
+    team: dashboardStats?.teamMembers || 0,
+  }), [dashboardStats?.contentItems, dashboardStats?.teamMembers]);
+
+  // Quick stats data
+  const quickStats = useMemo(() => ({
+    competitors: dashboardStats?.competitorsTracked || 0,
+    alerts: alerts?.filter(alert => !alert.isRead).length || 0,
+    performanceChange: dashboardStats?.projectsChange || 0,
+  }), [dashboardStats?.competitorsTracked, dashboardStats?.projectsChange, alerts]);
 
   const mainNavItems = [
     { 
@@ -280,20 +287,27 @@ export function AppSidebar() {
                   <TrendingUp className="h-3 w-3" />
                   Quick Stats
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Competitors</span>
-                    <span className="font-medium">24</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Alerts</span>
-                    <span className="font-medium text-warning">8</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Performance</span>
-                    <span className="font-medium text-success">+12%</span>
-                  </div>
-                </div>
+                 <div className="space-y-2">
+                   <div className="flex justify-between text-sm">
+                     <span>Competitors</span>
+                     <span className="font-medium">{statsLoading ? "..." : quickStats.competitors}</span>
+                   </div>
+                   <div className="flex justify-between text-sm">
+                     <span>Alerts</span>
+                     <span className={cn("font-medium", quickStats.alerts > 0 ? "text-warning" : "text-muted-foreground")}>
+                       {statsLoading ? "..." : quickStats.alerts}
+                     </span>
+                   </div>
+                   <div className="flex justify-between text-sm">
+                     <span>Performance</span>
+                     <span className={cn("font-medium", 
+                       quickStats.performanceChange > 0 ? "text-success" : 
+                       quickStats.performanceChange < 0 ? "text-destructive" : "text-muted-foreground"
+                     )}>
+                       {statsLoading ? "..." : `${quickStats.performanceChange > 0 ? "+" : ""}${quickStats.performanceChange}%`}
+                     </span>
+                   </div>
+                 </div>
               </div>
             </div>
           )}
