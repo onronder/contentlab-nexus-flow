@@ -23,6 +23,7 @@ import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { THREAT_LEVELS, COMPETITIVE_TIERS, CompetitorCreateInput } from "@/types/competitors";
 import { Competitor } from "@/types/competitors";
 import { useToast } from "@/hooks/use-toast";
+import { AddCompetitorData } from "@/data/mockData";
 
 export default function Competitive() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -95,7 +96,34 @@ export default function Competitive() {
     }
   };
 
-  const handleAddCompetitor = async (competitorData: CompetitorCreateInput) => {
+  // Transform AddCompetitorData to CompetitorCreateInput
+  const transformCompetitorData = (formData: AddCompetitorData): CompetitorCreateInput => {
+    // Map alert_frequency to analysis_frequency with proper type safety
+    const getAnalysisFrequency = (frequency: string): 'daily' | 'weekly' | 'monthly' | 'quarterly' => {
+      switch (frequency) {
+        case 'daily': return 'daily';
+        case 'weekly': return 'weekly';
+        case 'monthly': return 'monthly';
+        default: return 'weekly'; // Default fallback
+      }
+    };
+
+    return {
+      company_name: formData.name,
+      domain: formData.domain,
+      industry: formData.industry,
+      company_size: formData.market_size,
+      description: formData.description || undefined,
+      competitive_tier: 'direct', // Default to direct competitor
+      threat_level: formData.priority_level === 'high' ? 'high' : 
+                   formData.priority_level === 'low' ? 'low' : 'medium',
+      monitoring_enabled: formData.monitoring_enabled,
+      analysis_frequency: getAnalysisFrequency(formData.alert_frequency),
+      tags: formData.tags || []
+    };
+  };
+
+  const handleAddCompetitor = async (formData: AddCompetitorData) => {
     if (!currentProject?.id) {
       toast({
         title: "Error",
@@ -106,6 +134,7 @@ export default function Competitive() {
     }
 
     try {
+      const competitorData = transformCompetitorData(formData);
       await createCompetitorMutation.mutateAsync({
         projectId: currentProject.id,
         competitorData

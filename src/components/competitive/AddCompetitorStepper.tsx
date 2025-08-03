@@ -25,7 +25,7 @@ import { industries, type AddCompetitorData, initialAddCompetitorData } from "@/
 import { cn } from "@/lib/utils";
 
 interface AddCompetitorStepperProps {
-  onComplete: (competitorData: any) => void;
+  onComplete: (competitorData: AddCompetitorData) => void;
   onCancel: () => void;
 }
 
