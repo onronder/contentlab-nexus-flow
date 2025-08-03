@@ -7,6 +7,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting and retry utilities
+async function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function retryWithExponentialBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Don't retry on non-rate-limit errors
+      if (!error.message.includes('429') && !error.message.includes('Too Many Requests')) {
+        throw error;
+      }
+      
+      if (attempt === maxRetries) {
+        break;
+      }
+      
+      const delayMs = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.log(`Rate limited, retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      await delay(delayMs);
+    }
+  }
+  
+  throw lastError;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -92,27 +128,35 @@ Return response in this exact JSON format:
   "generatedAt": "${new Date().toISOString()}"
 }`;
 
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.4,
-        max_tokens: 3000,
-      }),
-    });
+    // Call OpenAI API with retry logic
+    const response = await retryWithExponentialBackoff(async () => {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1-2025-04-14',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.4,
+          max_tokens: 2500, // Reduced to save tokens
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-    }
+      if (!res.ok) {
+        const errorText = await res.text();
+        if (res.status === 429) {
+          throw new Error(`429 Too Many Requests: ${errorText}`);
+        }
+        throw new Error(`OpenAI API error: ${res.status} ${res.statusText} - ${errorText}`);
+      }
+      
+      return res;
+    });
 
     const data = await response.json();
     const content = data.choices[0].message.content;
@@ -168,8 +212,40 @@ Return response in this exact JSON format:
 
   } catch (error) {
     console.error('Error in generate-insights function:', error);
+    
+    // Handle rate limiting specifically
+    if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+      return new Response(JSON.stringify({ 
+        error: 'AI analysis is temporarily rate limited. Please try again in a few moments.',
+        errorType: 'rate_limited',
+        status: 'failed',
+        retryAfter: 60 // seconds
+      }), {
+        status: 429,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Retry-After': '60'
+        },
+      });
+    }
+    
+    // Handle other API errors
+    if (error.message.includes('OpenAI API error')) {
+      return new Response(JSON.stringify({ 
+        error: 'AI analysis service is temporarily unavailable. Please try again later.',
+        errorType: 'service_unavailable',
+        status: 'failed'
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Generic error handling
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: 'Analysis failed due to an unexpected error.',
+      errorType: 'internal_error',
       status: 'failed'
     }), {
       status: 500,

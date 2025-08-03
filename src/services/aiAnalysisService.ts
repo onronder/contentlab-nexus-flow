@@ -72,6 +72,14 @@ export class AIAnalysisService {
 
       if (error) {
         console.error('Analysis error:', error);
+        
+        // Handle rate limiting errors with user-friendly messages
+        if (error.message?.includes('rate limited') || error.status === 429) {
+          throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
+        } else if (error.message?.includes('service_unavailable') || error.status === 503) {
+          throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
+        }
+        
         throw new Error(`Analysis failed: ${error.message}`);
       }
 
@@ -130,6 +138,14 @@ export class AIAnalysisService {
 
       if (insightsError) {
         console.error('Insights generation error:', insightsError);
+        
+        // Handle rate limiting errors with user-friendly messages
+        if (insightsError.message?.includes('rate limited') || insightsError.status === 429) {
+          throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
+        } else if (insightsError.message?.includes('service_unavailable') || insightsError.status === 503) {
+          throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
+        }
+        
         throw new Error(`Insights generation failed: ${insightsError.message}`);
       }
 
