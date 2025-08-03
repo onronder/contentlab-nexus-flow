@@ -19,6 +19,19 @@ import {
   useAcknowledgeAlert,
   useDismissAlert
 } from "@/hooks";
+import { 
+  useGenerateProjectInsights,
+  useStartAnalysis,
+  useCancelAnalysis
+} from "@/hooks/useAnalysisMutations";
+import { 
+  useProjectInsights,
+  useProjectAnalyses,
+  useAnalysisStats
+} from "@/hooks/useAnalysisQueries";
+import { AnalysisResults } from "@/components/competitive/AnalysisResults";
+import { AnalysisProgress } from "@/components/competitive/AnalysisProgress";
+import { AnalysisMetrics } from "@/components/competitive/AnalysisMetrics";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { THREAT_LEVELS, COMPETITIVE_TIERS, CompetitorCreateInput } from "@/types/competitors";
 import { Competitor } from "@/types/competitors";
@@ -62,6 +75,26 @@ export default function Competitive() {
   const deleteCompetitorMutation = useDeleteCompetitor();
   const acknowledgeAlertMutation = useAcknowledgeAlert();
   const dismissAlertMutation = useDismissAlert();
+  
+  // Analysis mutations and queries
+  const generateInsightsMutation = useGenerateProjectInsights();
+  const startAnalysisMutation = useStartAnalysis();
+  const cancelAnalysisMutation = useCancelAnalysis();
+  
+  const { data: projectInsights, isLoading: insightsLoading, refetch: refetchInsights } = useProjectInsights(
+    currentProject?.id || '',
+    !!currentProject?.id
+  );
+  
+  const { data: projectAnalyses, isLoading: analysesLoading } = useProjectAnalyses(
+    currentProject?.id || '',
+    !!currentProject?.id
+  );
+  
+  const { data: analysisStats } = useAnalysisStats(
+    currentProject?.id || '',
+    !!currentProject?.id
+  );
   
   const competitors = competitorsResult?.competitors || [];
   
@@ -166,6 +199,52 @@ export default function Competitive() {
       });
     } catch (error) {
       console.error('Error deleting competitor:', error);
+    }
+  };
+
+  // Analysis handlers
+  const handleStartProjectAnalysis = async () => {
+    if (!currentProject?.id) {
+      toast({
+        title: "Error",
+        description: "No project selected. Please create a project first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (competitors.length === 0) {
+      toast({
+        title: "No Competitors",
+        description: "Add competitors before starting analysis.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      await generateInsightsMutation.mutateAsync({ projectId: currentProject.id });
+    } catch (error) {
+      console.error('Error starting project analysis:', error);
+    }
+  };
+
+  const handleStartCompetitorAnalysis = async (competitorId: string) => {
+    try {
+      await startAnalysisMutation.mutateAsync({
+        competitorId,
+        analysisType: 'positioning'
+      });
+    } catch (error) {
+      console.error('Error starting competitor analysis:', error);
+    }
+  };
+
+  const handleCancelAnalysis = async (analysisId: string) => {
+    try {
+      await cancelAnalysisMutation.mutateAsync({ analysisId });
+    } catch (error) {
+      console.error('Error canceling analysis:', error);
     }
   };
 
@@ -337,6 +416,10 @@ export default function Competitive() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleStartCompetitorAnalysis(competitor.id)}>
+                          <Activity className="w-4 h-4 mr-2" />
+                          Start Analysis
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleToggleMonitoring(competitor)}>
                           {competitor.monitoring_enabled ? (
                             <>
@@ -436,53 +519,72 @@ export default function Competitive() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analysis">
-          <Card>
-            <CardHeader>
-              <CardTitle>Competitive Analysis</CardTitle>
-              <CardDescription>
-                Deep dive into competitive insights and market positioning
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <TrendingUp className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Advanced Analytics</h3>
-                <p className="text-muted-foreground mb-6">
-                  Generate comprehensive competitive analysis reports with AI-powered insights.
-                </p>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    if (!currentProject?.id) {
-                      toast({
-                        title: "Error",
-                        description: "No project selected. Please create a project first.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    
-                    if (competitors.length === 0) {
-                      toast({
-                        title: "No Competitors",
-                        description: "Add competitors before starting analysis.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    
-                    toast({
-                      title: "Analysis Started",
-                      description: "Competitive analysis has been initiated. You'll receive alerts when complete.",
-                    });
-                  }}
-                >
-                  Start Analysis
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="analysis" className="space-y-6">
+          {/* Analysis Metrics */}
+          {analysisStats && (
+            <AnalysisMetrics
+              totalAnalyses={analysisStats.totalAnalyses}
+              completedAnalyses={analysisStats.completedAnalyses}
+              pendingAnalyses={analysisStats.pendingAnalyses}
+              failedAnalyses={analysisStats.failedAnalyses}
+              averageConfidence={analysisStats.averageConfidence}
+              analysesByType={analysisStats.analysesByType}
+              recentAnalyses={analysisStats.recentAnalyses}
+            />
+          )}
+
+          {/* Analysis Progress */}
+          {projectAnalyses && projectAnalyses.length > 0 && (
+            <AnalysisProgress
+              analyses={projectAnalyses}
+              onCancelAnalysis={handleCancelAnalysis}
+            />
+          )}
+
+          {/* Analysis Results */}
+          <AnalysisResults
+            insights={projectInsights}
+            isLoading={insightsLoading}
+            onRefresh={() => refetchInsights()}
+          />
+
+          {/* Start Analysis Section */}
+          {(!projectInsights || !insightsLoading) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Generate New Analysis</CardTitle>
+                <CardDescription>
+                  Create comprehensive competitive analysis reports with AI-powered insights
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <TrendingUp className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Competitive Analysis</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Analyze {competitors.length} competitors to generate strategic insights and recommendations.
+                  </p>
+                  <Button 
+                    onClick={handleStartProjectAnalysis}
+                    disabled={generateInsightsMutation.isPending || competitors.length === 0}
+                    size="lg"
+                  >
+                    {generateInsightsMutation.isPending ? (
+                      <>
+                        <Activity className="mr-2 h-4 w-4 animate-spin" />
+                        Generating Analysis...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="mr-2 h-4 w-4" />
+                        Start Analysis
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
