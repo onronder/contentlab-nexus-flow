@@ -29,7 +29,7 @@ export default function Competitive() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddCompetitor, setShowAddCompetitor] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterThreatLevel, setFilterThreatLevel] = useState("");
+  const [filterThreatLevel, setFilterThreatLevel] = useState("all-threats");
   const [filterTier, setFilterTier] = useState("");
   
   const userId = useCurrentUserId();
@@ -279,7 +279,7 @@ export default function Competitive() {
                 <SelectValue placeholder="Filter by threat level" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All threat levels</SelectItem>
+                <SelectItem value="all-threats">All threat levels</SelectItem>
                 {THREAT_LEVELS.map((level) => (
                   <SelectItem key={level.value} value={level.value}>
                     {level.label}

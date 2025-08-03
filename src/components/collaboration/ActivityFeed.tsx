@@ -225,7 +225,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const handleFilterChange = (key: keyof ActivityFilters, value: string) => {
     setFilters(prev => ({
       ...prev,
-      [key]: value || undefined
+      [key]: (value && !value.startsWith('all-')) ? value : undefined
     }));
   };
 
@@ -263,12 +263,12 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               />
             </div>
             
-            <Select value={filters.activityType || ''} onValueChange={(value) => handleFilterChange('activityType', value)}>
+            <Select value={filters.activityType || 'all-types'} onValueChange={(value) => handleFilterChange('activityType', value)}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all-types">All Types</SelectItem>
                 <SelectItem value="team_management">Team Management</SelectItem>
                 <SelectItem value="content_activity">Content Activity</SelectItem>
                 <SelectItem value="project_access">Project Access</SelectItem>
@@ -277,12 +277,12 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               </SelectContent>
             </Select>
 
-            <Select value={filters.severity || ''} onValueChange={(value) => handleFilterChange('severity', value)}>
+            <Select value={filters.severity || 'all-severities'} onValueChange={(value) => handleFilterChange('severity', value)}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All</SelectItem>
+                <SelectItem value="all-severities">All</SelectItem>
                 <SelectItem value="info">Info</SelectItem>
                 <SelectItem value="warning">Warning</SelectItem>
                 <SelectItem value="error">Error</SelectItem>
