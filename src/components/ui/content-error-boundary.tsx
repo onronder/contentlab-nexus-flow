@@ -1,5 +1,6 @@
 import React from 'react';
 import { ErrorAlert } from '@/components/ui/error-alert';
+import { productionLogger } from '@/utils/logger';
 
 interface ContentErrorBoundaryState {
   hasError: boolean;
@@ -18,7 +19,7 @@ class ContentErrorBoundary extends React.Component<ContentErrorBoundaryProps, Co
   }
 
   static getDerivedStateFromError(error: Error): ContentErrorBoundaryState {
-    console.warn('Content error boundary caught:', error);
+    productionLogger.warn('Content error boundary caught:', error);
     return { hasError: true, error };
   }
 
@@ -27,12 +28,19 @@ class ContentErrorBoundary extends React.Component<ContentErrorBoundaryProps, Co
     if (error.message?.includes('deref') || 
         error.message?.includes('content_script') ||
         error.stack?.includes('extension://')) {
-      console.warn('Ignoring browser extension error:', error);
+      productionLogger.warn('Ignoring browser extension error:', error.message);
       this.setState({ hasError: false });
       return;
     }
     
-    console.error('Content error boundary error:', error, errorInfo);
+    productionLogger.errorWithContext(
+      error,
+      'ContentErrorBoundary',
+      {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: 'content'
+      }
+    );
   }
 
   render() {

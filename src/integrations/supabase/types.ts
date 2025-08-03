@@ -1880,12 +1880,24 @@ export type Database = {
         Args: { p_team_id: string; p_options?: Json }
         Returns: Json
       }
+      get_user_projects_safe: {
+        Args: { p_user_id: string }
+        Returns: {
+          project_id: string
+        }[]
+      }
       get_user_team_role_level_safe: {
         Args: { p_team_id: string; p_user_id: string }
         Returns: number
       }
       get_user_teams: {
         Args: { user_id_param: string }
+        Returns: {
+          team_id: string
+        }[]
+      }
+      get_user_teams_safe: {
+        Args: { p_user_id: string }
         Returns: {
           team_id: string
         }[]

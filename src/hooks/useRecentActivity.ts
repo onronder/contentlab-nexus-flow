@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentUserId } from './useCurrentUserId';
+import { logDatabaseError } from '@/utils/errorMonitoring';
 
 export interface ActivityItem {
   id: string;
@@ -14,36 +15,37 @@ export interface ActivityItem {
 }
 
 const fetchRecentActivity = async (userId: string): Promise<ActivityItem[]> => {
-  const { data: activities, error } = await supabase
-    .from('activity_logs')
-    .select(`
-      id,
-      action,
-      description,
-      activity_type,
-      created_at,
-      metadata,
-      user_id,
-      project_id,
-      team_id
-    `)
-    .or(`user_id.eq.${userId},project_id.in.(${await getUserProjectIds(userId)})`)
-    .order('created_at', { ascending: false })
-    .limit(10);
+  try {
+    // Simplified query that works with the new RLS policies
+    const { data: activities, error } = await supabase
+      .from('activity_logs')
+      .select(`
+        id,
+        action,
+        description,
+        activity_type,
+        created_at,
+        metadata,
+        user_id,
+        project_id,
+        team_id
+      `)
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-  if (error) throw error;
+    if (error) {
+      logDatabaseError(error, 'fetchRecentActivity', { userId });
+      return [];
+    }
 
-  return activities?.map(activity => transformActivityToItem(activity)) || [];
+    return activities?.map(activity => transformActivityToItem(activity)) || [];
+  } catch (error) {
+    logDatabaseError(error as Error, 'fetchRecentActivity', { userId });
+    return [];
+  }
 };
 
-const getUserProjectIds = async (userId: string): Promise<string> => {
-  const { data: projects } = await supabase
-    .from('projects')
-    .select('id')
-    .eq('created_by', userId);
-  
-  return projects?.map(p => p.id).join(',') || '';
-};
+// Remove this function as it's no longer needed with the simplified query
 
 const transformActivityToItem = (activity: any): ActivityItem => {
   const timeAgo = getTimeAgo(new Date(activity.created_at));
@@ -101,5 +103,14 @@ export const useRecentActivity = () => {
     enabled: !!userId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on RLS policy errors
+      if (error?.message?.includes('permission denied') || 
+          error?.message?.includes('policy')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };

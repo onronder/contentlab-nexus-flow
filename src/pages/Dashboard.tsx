@@ -25,6 +25,9 @@ import { useDashboardStats, type DashboardStats } from '@/hooks/useDashboardStat
 import { useRecentActivity, type ActivityItem } from '@/hooks/useRecentActivity';
 import { useMonitoringAlerts, type MonitoringAlert } from '@/hooks/useMonitoringAlerts';
 import { usePerformanceMetrics, type PerformanceMetrics } from '@/hooks/usePerformanceMetrics';
+import { QueryErrorBoundary } from '@/components/ui/query-error-boundary';
+import { ContentErrorBoundary } from '@/components/ui/content-error-boundary';
+import { HealthMonitor } from '@/components/debug/HealthMonitor';
 
 const Dashboard = () => {
   const { data: dashboardStats, isLoading: isStatsLoading } = useDashboardStats();
@@ -223,55 +226,57 @@ const Dashboard = () => {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Activity */}
-        <Card className="lg:col-span-2 shadow-elegant">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
-                <CardTitle>Recent Activity</CardTitle>
+        <QueryErrorBoundary>
+          <Card className="lg:col-span-2 shadow-elegant">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  <CardTitle>Recent Activity</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/projects">
+                    View All
+                    <ArrowRight className="h-3 w-3 ml-1" />
+                  </Link>
+                </Button>
               </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/projects">
-                  View All
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Link>
-              </Button>
-            </div>
-            <CardDescription>
-              Latest updates from across your projects and team
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isActivityLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <LoadingSpinner />
-              </div>
-            ) : activities && activities.length > 0 ? (
-              <div className="space-y-4">
-                {activities.map((activity, index) => (
-                  <div key={activity.id}>
-                    <div className="flex items-center gap-4">
-                      <div className={`w-2 h-2 ${activity.color} rounded-full`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium text-sm">{activity.title}</p>
-                          <span className="text-xs text-muted-foreground">{activity.time}</span>
+              <CardDescription>
+                Latest updates from across your projects and team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isActivityLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner />
+                </div>
+              ) : activities && activities.length > 0 ? (
+                <div className="space-y-4">
+                  {activities.map((activity, index) => (
+                    <div key={activity.id}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-2 h-2 ${activity.color} rounded-full`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-sm">{activity.title}</p>
+                            <span className="text-xs text-muted-foreground">{activity.time}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
                       </div>
+                      {index < activities.length - 1 && <Separator className="my-4" />}
                     </div>
-                    {index < activities.length - 1 && <Separator className="my-4" />}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground text-sm">No recent activity</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground text-sm">No recent activity</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </QueryErrorBoundary>
 
         {/* Quick Actions */}
         <Card className="shadow-elegant">
@@ -368,9 +373,10 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Phase 4 Testing Section */}
+      {/* Health Monitoring and Testing Section */}
       <div id="auth-test">
         <AuthDatabaseTester />
+        <HealthMonitor />
       </div>
     </div>
   );
