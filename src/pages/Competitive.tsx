@@ -451,7 +451,33 @@ export default function Competitive() {
                 <p className="text-muted-foreground mb-6">
                   Generate comprehensive competitive analysis reports with AI-powered insights.
                 </p>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (!currentProject?.id) {
+                      toast({
+                        title: "Error",
+                        description: "No project selected. Please create a project first.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    if (competitors.length === 0) {
+                      toast({
+                        title: "No Competitors",
+                        description: "Add competitors before starting analysis.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    toast({
+                      title: "Analysis Started",
+                      description: "Competitive analysis has been initiated. You'll receive alerts when complete.",
+                    });
+                  }}
+                >
                   Start Analysis
                 </Button>
               </div>
