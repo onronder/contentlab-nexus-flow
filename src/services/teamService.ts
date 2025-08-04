@@ -158,8 +158,18 @@ export class TeamService {
     try {
       let query = (supabase as any)
         .from('teams')
-        .select('*')
-        .eq('is_active', true);
+        .select(`
+          *,
+          team_members!inner(
+            user_id,
+            status,
+            is_active
+          )
+        `)
+        .eq('is_active', true)
+        .eq('team_members.user_id', userId)
+        .eq('team_members.is_active', true)
+        .eq('team_members.status', 'active');
 
       // Apply filters if provided
       if (options?.filters) {
@@ -313,7 +323,12 @@ export class TeamService {
     try {
       let query = (supabase as any)
         .from('team_members')
-        .select('*, role:user_roles(*), team:teams(*)', { count: 'exact' })
+        .select(`
+          *,
+          role:user_roles(*),
+          team:teams(*),
+          user:profiles(id, email, full_name, avatar_url)
+        `, { count: 'exact' })
         .eq('team_id', teamId);
 
       // Apply filters
