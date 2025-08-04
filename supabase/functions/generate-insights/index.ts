@@ -14,8 +14,8 @@ async function delay(ms: number) {
 
 async function retryWithExponentialBackoff<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
+  maxRetries: number = 4,
+  baseDelay: number = 8000
 ): Promise<T> {
   let lastError: Error;
   
@@ -34,7 +34,11 @@ async function retryWithExponentialBackoff<T>(
         break;
       }
       
-      const delayMs = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      // More aggressive exponential backoff with longer delays
+      const exponentialDelay = baseDelay * Math.pow(2, attempt);
+      const jitter = Math.random() * 3000; // Up to 3 seconds jitter
+      const delayMs = Math.min(exponentialDelay + jitter, 180000); // Max 3 minutes
+      
       console.log(`Rate limited, retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
       await delay(delayMs);
     }
@@ -137,13 +141,13 @@ Return response in this exact JSON format:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4.1-2025-04-14',
+          model: 'gpt-4o-mini', // Use cheaper, faster model
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
           temperature: 0.4,
-          max_tokens: 2500, // Reduced to save tokens
+          max_tokens: 2000, // Further reduced to save tokens
         }),
       });
 

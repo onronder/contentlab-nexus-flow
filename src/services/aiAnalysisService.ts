@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Competitor, CompetitorAnalysisMetadata } from '@/types/competitors';
+import { requestQueueService } from './requestQueueService';
 
 export interface AnalysisRequest {
   competitorId: string;
@@ -62,13 +63,16 @@ export class AIAnalysisService {
         industryContext: competitor.industry || 'general'
       };
 
-      // Call the analyze-competitor edge function
-      const { data, error } = await supabase.functions.invoke('analyze-competitor', {
-        body: { 
-          competitor,
-          analysisRequest
-        }
-      });
+      // Queue the analysis request to prevent rate limiting
+      const { data, error } = await requestQueueService.enqueueRequest(
+        () => supabase.functions.invoke('analyze-competitor', {
+          body: { 
+            competitor,
+            analysisRequest
+          }
+        }),
+        'normal'
+      );
 
       if (error) {
         console.error('Analysis error:', error);
@@ -127,14 +131,17 @@ export class AIAnalysisService {
         throw new Error(`Failed to fetch project: ${projectError.message}`);
       }
 
-      // Call the generate-insights edge function
-      const { data, error: insightsError } = await supabase.functions.invoke('generate-insights', {
-        body: { 
-          projectId,
-          competitors,
-          project
-        }
-      });
+      // Queue the insights generation request to prevent rate limiting
+      const { data, error: insightsError } = await requestQueueService.enqueueRequest(
+        () => supabase.functions.invoke('generate-insights', {
+          body: { 
+            projectId,
+            competitors,
+            project
+          }
+        }),
+        'high' // Project insights have high priority
+      );
 
       if (insightsError) {
         console.error('Insights generation error:', insightsError);
@@ -187,28 +194,15 @@ export class AIAnalysisService {
   ): Promise<AnalysisResult[]> {
     const results: AnalysisResult[] = [];
     
-    // Process competitors in batches to avoid overwhelming the API
-    const batchSize = 3;
-    for (let i = 0; i < competitorIds.length; i += batchSize) {
-      const batch = competitorIds.slice(i, i + batchSize);
-      const batchPromises = batch.map(id => this.analyzeCompetitor(id, analysisType));
-      
+    // Process competitors sequentially to avoid rate limiting
+    // The request queue service will handle proper spacing and retries
+    for (const competitorId of competitorIds) {
       try {
-        const batchResults = await Promise.allSettled(batchPromises);
-        batchResults.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            results.push(result.value);
-          } else {
-            console.error(`Analysis failed for competitor ${batch[index]}:`, result.reason);
-          }
-        });
+        const result = await this.analyzeCompetitor(competitorId, analysisType);
+        results.push(result);
       } catch (error) {
-        console.error('Batch analysis error:', error);
-      }
-
-      // Add delay between batches to respect rate limits
-      if (i + batchSize < competitorIds.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.error(`Analysis failed for competitor ${competitorId}:`, error);
+        // Continue with other competitors even if one fails
       }
     }
 
@@ -252,6 +246,13 @@ export class AIAnalysisService {
       console.error('Cancel analysis failed:', error);
       return false;
     }
+  }
+
+  /**
+   * Get queue status for UI feedback
+   */
+  getQueueStatus() {
+    return requestQueueService.getQueueStatus();
   }
 
   /**
