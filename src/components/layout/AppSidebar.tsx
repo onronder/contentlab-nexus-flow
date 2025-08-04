@@ -35,6 +35,7 @@ import { useMemo } from "react";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useMonitoringAlerts } from "@/hooks/useMonitoringAlerts";
+import { TeamSelector } from "@/components/navigation/TeamSelector";
 
 const settingsItems = [
   { title: "Settings", url: "/settings", icon: Settings },
@@ -230,31 +231,34 @@ export function AppSidebar() {
           "border-b border-sidebar-border/50 transition-all duration-300",
           collapsed ? "p-2" : "p-6"
         )}>
-          <div className="flex items-center gap-3">
-            {!collapsed && (
-              <>
-                <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center shadow-elegant">
-                  <Sparkles className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div>
-                  <h2 className="logo-contentlab text-xl font-bold">CONTENTLAB</h2>
-                  <p className="text-xs text-sidebar-foreground/60">Nexus Platform</p>
-                </div>
-              </>
-            )}
-            {collapsed && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center mx-auto shadow-elegant cursor-pointer">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              {!collapsed && (
+                <>
+                  <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center shadow-elegant">
                     <Sparkles className="h-5 w-5 text-primary-foreground" />
                   </div>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="font-medium">
-                  <div className="text-sm">CONTENTLAB</div>
-                  <div className="text-xs text-muted-foreground">Nexus Platform</div>
-                </TooltipContent>
-              </Tooltip>
-            )}
+                  <div>
+                    <h2 className="logo-contentlab text-xl font-bold">CONTENTLAB</h2>
+                    <p className="text-xs text-sidebar-foreground/60">Nexus Platform</p>
+                  </div>
+                </>
+              )}
+              {collapsed && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center mx-auto shadow-elegant cursor-pointer">
+                      <Sparkles className="h-5 w-5 text-primary-foreground" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium">
+                    <div className="text-sm">CONTENTLAB</div>
+                    <div className="text-xs text-muted-foreground">Nexus Platform</div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            {!collapsed && <TeamSelector />}
           </div>
         </SidebarHeader>
 

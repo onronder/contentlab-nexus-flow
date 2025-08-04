@@ -135,13 +135,30 @@ export async function getCompetitorsByProject(
   filters?: CompetitorFilters,
   sort?: CompetitorSortOptions,
   page: number = 1,
-  limit: number = 50
+  limit: number = 50,
+  teamId?: string
 ): Promise<CompetitorSearchResult> {
   try {
     let query = supabase
       .from('project_competitors')
       .select('*', { count: 'exact' })
       .eq('project_id', projectId);
+
+    // Add team-based filtering if teamId provided
+    if (teamId) {
+      // Only show competitors added by team members
+      const { data: teamMembers } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', teamId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      const teamMemberIds = teamMembers?.map(tm => tm.user_id) || [];
+      if (teamMemberIds.length > 0) {
+        query = query.in('added_by', teamMemberIds);
+      }
+    }
 
     // Apply filters
     if (filters) {

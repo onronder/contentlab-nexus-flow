@@ -142,12 +142,28 @@ export class ContentService {
 
   // ==================== ADVANCED QUERY OPERATIONS ====================
 
-  async getContentByProject(projectId: string, filters?: ContentFilters): Promise<ContentItem[]> {
+  async getContentByProject(projectId: string, filters?: ContentFilters, teamId?: string): Promise<ContentItem[]> {
     try {
       let query = supabase
         .from('content_items')
         .select(this.getSelectQuery())
         .eq('project_id', projectId);
+
+      // Add team-based filtering if teamId provided
+      if (teamId) {
+        // Only show content created by team members
+        const { data: teamMembers } = await supabase
+          .from('team_members')
+          .select('user_id')
+          .eq('team_id', teamId)
+          .eq('is_active', true)
+          .eq('status', 'active');
+
+        const teamMemberIds = teamMembers?.map(tm => tm.user_id) || [];
+        if (teamMemberIds.length > 0) {
+          query = query.in('user_id', teamMemberIds);
+        }
+      }
 
       query = this.applyFilters(query, filters);
 

@@ -191,13 +191,45 @@ export async function createProject(userId: string, projectData: ProjectCreation
   }
 }
 
-export async function fetchUserProjects(userId: string): Promise<Project[]> {
+export async function fetchUserProjects(userId: string, teamId?: string): Promise<Project[]> {
   try {
-    // Query 1: Projects created by the user
-    const { data: ownedProjects, error: ownedError } = await supabase
+    let ownedQuery = supabase
       .from('projects')
       .select('*')
-      .eq('created_by', userId)
+      .eq('created_by', userId);
+
+    let memberQuery = supabase
+      .from('projects')
+      .select(`
+        *,
+        project_team_members!inner(user_id, role, invitation_status)
+      `)
+      .eq('project_team_members.user_id', userId)
+      .eq('project_team_members.invitation_status', 'active');
+
+    // Add team filtering if teamId is provided
+    if (teamId) {
+      // Get team member IDs for filtering
+      const { data: teamMembers } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', teamId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      const teamMemberIds = teamMembers?.map(tm => tm.user_id) || [];
+
+      if (teamMemberIds.length > 0) {
+        // Filter owned projects by team members
+        ownedQuery = ownedQuery.in('created_by', teamMemberIds);
+        
+        // Filter member projects by team members
+        memberQuery = memberQuery.in('project_team_members.user_id', teamMemberIds);
+      }
+    }
+
+    // Execute queries
+    const { data: ownedProjects, error: ownedError } = await ownedQuery
       .order('updated_at', { ascending: false });
 
     if (ownedError) {
@@ -205,15 +237,7 @@ export async function fetchUserProjects(userId: string): Promise<Project[]> {
       throw new Error(`Failed to fetch projects: ${ownedError.message}`);
     }
 
-    // Query 2: Projects where user is a team member
-    const { data: memberProjects, error: memberError } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        project_team_members!inner(user_id, role, invitation_status)
-      `)
-      .eq('project_team_members.user_id', userId)
-      .eq('project_team_members.invitation_status', 'active')
+    const { data: memberProjects, error: memberError } = await memberQuery
       .order('updated_at', { ascending: false });
 
     if (memberError) {

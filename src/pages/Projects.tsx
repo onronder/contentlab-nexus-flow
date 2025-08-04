@@ -15,7 +15,7 @@ import { AdvancedSearchDialog } from '@/components/projects/AdvancedSearchDialog
 import { ProjectBulkActions } from '@/components/projects/ProjectBulkActions';
 import { ProjectGridView } from '@/components/projects/ProjectGridView';
 import { ProjectListView } from '@/components/projects/ProjectListView';
-import { useProjects } from '@/hooks';
+import { useTeamProjects, useTeamProjectsStats } from '@/hooks/queries/useTeamAwareProjectQueries';
 import { useUser } from '@/contexts';
 import { useAdvancedProjectFilters } from '@/hooks/useAdvancedProjectFilters';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -50,7 +50,8 @@ const Projects = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
-  const { data: projects = [], isLoading, error, refetch } = useProjects();
+  const { data: projects = [], isLoading, error, refetch } = useTeamProjects();
+  const { stats } = useTeamProjectsStats();
 
   // Advanced filtering hook
   const {
@@ -387,7 +388,7 @@ const Projects = () => {
 
           {/* Analytics Cards */}
           <section aria-label="Project analytics overview">
-            <ProjectAnalyticsCards projects={projects} isLoading={isLoading} />
+            <ProjectAnalyticsCards projects={projects} isLoading={isLoading} teamStats={stats} />
           </section>
 
           {/* Main Content Area */}

@@ -27,9 +27,22 @@ import { Project } from '@/types/projects';
 interface ProjectAnalyticsCardsProps {
   projects: Project[];
   isLoading: boolean;
+  teamStats?: {
+    total: number;
+    active: number;
+    planning: number;
+    completed: number;
+    paused: number;
+    archived: number;
+    cancelled: number;
+    highPriority: number;
+    mediumPriority: number;
+    lowPriority: number;
+    criticalPriority: number;
+  };
 }
 
-export function ProjectAnalyticsCards({ projects, isLoading }: ProjectAnalyticsCardsProps) {
+export function ProjectAnalyticsCards({ projects, isLoading, teamStats }: ProjectAnalyticsCardsProps) {
   const {
     analytics,
     isLoading: analyticsLoading,
