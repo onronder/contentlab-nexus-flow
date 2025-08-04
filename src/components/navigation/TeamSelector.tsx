@@ -19,11 +19,20 @@ interface TeamSelectorProps {
 export function TeamSelector({ className }: TeamSelectorProps) {
   const { currentTeam, availableTeams, switchTeam, isLoading } = useTeamContext();
 
-  if (isLoading || availableTeams.length === 0) {
+  if (isLoading) {
     return (
       <div className={cn("flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground", className)}>
         <Users className="h-4 w-4" />
         <span>Loading teams...</span>
+      </div>
+    );
+  }
+
+  if (availableTeams.length === 0) {
+    return (
+      <div className={cn("flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground", className)}>
+        <Users className="h-4 w-4" />
+        <span>No teams available</span>
       </div>
     );
   }

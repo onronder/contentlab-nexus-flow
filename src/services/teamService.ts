@@ -160,16 +160,17 @@ export class TeamService {
         .from('teams')
         .select(`
           *,
-          team_members!inner(
+          members:team_members!inner(
             user_id,
             status,
-            is_active
+            is_active,
+            role:user_roles(id, name, slug)
           )
         `)
         .eq('is_active', true)
-        .eq('team_members.user_id', userId)
-        .eq('team_members.is_active', true)
-        .eq('team_members.status', 'active');
+        .eq('members.user_id', userId)
+        .eq('members.is_active', true)
+        .eq('members.status', 'active');
 
       // Apply filters if provided
       if (options?.filters) {
