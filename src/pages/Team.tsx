@@ -15,7 +15,9 @@ import {
   Settings as SettingsIcon,
   AlertTriangle,
   Mail,
-  Shield
+  Shield,
+  MessageCircle,
+  Bell
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeams, useTeamMembers, useTeamStats, useTeamActivity } from "@/hooks/useTeamQueries";
@@ -26,6 +28,9 @@ import { RoleManagement } from "@/components/team/RoleManagement";
 import { TeamSettings } from "@/components/team/TeamSettings";
 import { TeamAnalytics } from "@/components/team/TeamAnalytics";
 import { ActivityFeed } from "@/components/collaboration/ActivityFeed";
+import { TeamChat } from "@/components/team/TeamChat";
+import { TeamActivityFeed } from "@/components/team/TeamActivityFeed";
+import { NotificationCenter } from "@/components/team/NotificationCenter";
 
 const Team = () => {
   const { user } = useAuth();
@@ -191,8 +196,16 @@ const Team = () => {
         </div>
 
         {/* Team Content */}
-        <Tabs defaultValue="members" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="communication" className="w-full">
+          <TabsList className="grid w-full grid-cols-8">
+            <TabsTrigger value="communication">
+              <MessageCircle className="h-4 w-4 mr-1" />
+              Communication
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Bell className="h-4 w-4 mr-1" />
+              Notifications
+            </TabsTrigger>
             <TabsTrigger value="members">Team Members ({totalMembers})</TabsTrigger>
             <TabsTrigger value="invitations">Invitations</TabsTrigger>
             <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
@@ -200,6 +213,17 @@ const Team = () => {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="settings">Team Settings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="communication" className="mt-6">
+            <TeamChat teamId={teamId || ""} />
+          </TabsContent>
+
+          <TabsContent value="notifications" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <NotificationCenter teamId={teamId || ""} />
+              <TeamActivityFeed teamId={teamId || ""} />
+            </div>
+          </TabsContent>
 
           <TabsContent value="members" className="mt-6">
             <MemberDirectory 
