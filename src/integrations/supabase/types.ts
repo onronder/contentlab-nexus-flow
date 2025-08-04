@@ -1465,6 +1465,59 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_tasks: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_created_at: string | null
+          name: string
+          next_due_at: string | null
+          recurrence_pattern: Json
+          team_id: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_created_at?: string | null
+          name: string
+          next_due_at?: string | null
+          recurrence_pattern: Json
+          team_id: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_created_at?: string | null
+          name?: string
+          next_due_at?: string | null
+          recurrence_pattern?: Json
+          team_id?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_recurring_tasks_template"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           granted_at: string
@@ -1547,6 +1600,387 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      task_assignments: {
+        Row: {
+          accepted_at: string | null
+          assigned_at: string
+          assigned_by: string
+          completed_at: string | null
+          id: string
+          role: string | null
+          status: Database["public"]["Enums"]["assignment_status"]
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_at?: string
+          assigned_by: string
+          completed_at?: string | null
+          id?: string
+          role?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_at?: string
+          assigned_by?: string
+          completed_at?: string | null
+          id?: string
+          role?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_assignments_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          attachments: Json | null
+          comment_type: string
+          content: string
+          created_at: string
+          id: string
+          mentions: Json | null
+          parent_comment_id: string | null
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          comment_type?: string
+          content: string
+          created_at?: string
+          id?: string
+          mentions?: Json | null
+          parent_comment_id?: string | null
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          comment_type?: string
+          content?: string
+          created_at?: string
+          id?: string
+          mentions?: Json | null
+          parent_comment_id?: string | null
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_comments_parent"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "task_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_task_comments_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_dependencies: {
+        Row: {
+          created_at: string
+          created_by: string
+          dependency_type: string
+          depends_on_task_id: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          dependency_type?: string
+          depends_on_task_id: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          dependency_type?: string
+          depends_on_task_id?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_dependencies_depends_on"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_task_dependencies_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_label_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          id: string
+          label_id: string
+          task_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          label_id: string
+          task_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          label_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_label_assignments_label"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "task_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_task_label_assignments_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_labels: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          team_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          team_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          team_id?: string
+        }
+        Relationships: []
+      }
+      task_templates: {
+        Row: {
+          checklist: Json | null
+          created_at: string
+          created_by: string
+          custom_fields: Json | null
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          is_public: boolean | null
+          name: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          story_points: number | null
+          tags: string[] | null
+          task_type: Database["public"]["Enums"]["task_type"]
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          checklist?: Json | null
+          created_at?: string
+          created_by: string
+          custom_fields?: Json | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          story_points?: number | null
+          tags?: string[] | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          checklist?: Json | null
+          created_at?: string
+          created_by?: string
+          custom_fields?: Json | null
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          story_points?: number | null
+          tags?: string[] | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_time_tracking: {
+        Row: {
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          hours_logged: number
+          id: string
+          is_billable: boolean | null
+          logged_date: string
+          started_at: string | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          hours_logged: number
+          id?: string
+          is_billable?: boolean | null
+          logged_date?: string
+          started_at?: string | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          hours_logged?: number
+          id?: string
+          is_billable?: boolean | null
+          logged_date?: string
+          started_at?: string | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_time_tracking_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_watchers: {
+        Row: {
+          created_at: string
+          id: string
+          notification_preferences: Json | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_preferences?: Json | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_preferences?: Json | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_watchers_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "team_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_workflows: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          statuses: Json
+          task_types: Database["public"]["Enums"]["task_type"][] | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          statuses: Json
+          task_types?: Database["public"]["Enums"]["task_type"][] | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          statuses?: Json
+          task_types?: Database["public"]["Enums"]["task_type"][] | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       team_channels: {
         Row: {
@@ -1819,6 +2253,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      team_tasks: {
+        Row: {
+          actual_hours: number | null
+          archived_at: string | null
+          assignee_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          custom_fields: Json | null
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          parent_task_id: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          project_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          story_points: number | null
+          tags: string[] | null
+          task_type: Database["public"]["Enums"]["task_type"]
+          team_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          archived_at?: string | null
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          custom_fields?: Json | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          parent_task_id?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          story_points?: number | null
+          tags?: string[] | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          team_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          archived_at?: string | null
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          custom_fields?: Json | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          parent_task_id?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          story_points?: number | null
+          tags?: string[] | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          team_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       teams: {
         Row: {
@@ -2163,6 +2672,7 @@ export type Database = {
         | "competitive_intel"
         | "system_event"
         | "security_event"
+      assignment_status: "assigned" | "accepted" | "declined" | "completed"
       comment_resource_type:
         | "project"
         | "content_item"
@@ -2190,6 +2700,15 @@ export type Database = {
         | "viewer"
       role_type: "system" | "organizational" | "project" | "custom"
       severity_level: "debug" | "info" | "warning" | "error" | "critical"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status:
+        | "backlog"
+        | "todo"
+        | "in_progress"
+        | "in_review"
+        | "done"
+        | "cancelled"
+      task_type: "feature" | "bug" | "improvement" | "research" | "maintenance"
       team_type:
         | "organization"
         | "department"
@@ -2332,6 +2851,7 @@ export const Constants = {
         "system_event",
         "security_event",
       ],
+      assignment_status: ["assigned", "accepted", "declined", "completed"],
       comment_resource_type: [
         "project",
         "content_item",
@@ -2362,6 +2882,16 @@ export const Constants = {
       ],
       role_type: ["system", "organizational", "project", "custom"],
       severity_level: ["debug", "info", "warning", "error", "critical"],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: [
+        "backlog",
+        "todo",
+        "in_progress",
+        "in_review",
+        "done",
+        "cancelled",
+      ],
+      task_type: ["feature", "bug", "improvement", "research", "maintenance"],
       team_type: [
         "organization",
         "department",
