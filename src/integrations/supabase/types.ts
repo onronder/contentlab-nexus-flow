@@ -690,6 +690,77 @@ export type Database = {
           },
         ]
       }
+      enhanced_notifications: {
+        Row: {
+          action_url: string | null
+          category: string
+          channel_id: string | null
+          created_at: string
+          delivery_channels: Json | null
+          expires_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          notification_type: string
+          priority: string
+          read_at: string | null
+          recipient_id: string
+          scheduled_for: string | null
+          sender_id: string | null
+          team_id: string | null
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          category?: string
+          channel_id?: string | null
+          created_at?: string
+          delivery_channels?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          priority?: string
+          read_at?: string | null
+          recipient_id: string
+          scheduled_for?: string | null
+          sender_id?: string | null
+          team_id?: string | null
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          category?: string
+          channel_id?: string | null
+          created_at?: string
+          delivery_channels?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          priority?: string
+          read_at?: string | null
+          recipient_id?: string
+          scheduled_for?: string | null
+          sender_id?: string | null
+          team_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enhanced_notifications_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_data_logs: {
         Row: {
           api_endpoint: string
@@ -1477,6 +1548,48 @@ export type Database = {
           },
         ]
       }
+      team_channels: {
+        Row: {
+          channel_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          is_private: boolean
+          metadata: Json | null
+          name: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel_type?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_private?: boolean
+          metadata?: Json | null
+          name: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_private?: boolean
+          metadata?: Json | null
+          name?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_invitations: {
         Row: {
           accepted_at: string | null
@@ -1605,6 +1718,104 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_message_reads: {
+        Row: {
+          id: string
+          message_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_message_reads_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_messages: {
+        Row: {
+          attachments: Json | null
+          channel_id: string
+          content: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          is_deleted: boolean | null
+          is_edited: boolean | null
+          mentions: Json | null
+          message_type: string
+          metadata: Json | null
+          reactions: Json | null
+          reply_to_id: string | null
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          channel_id: string
+          content: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          is_edited?: boolean | null
+          mentions?: Json | null
+          message_type?: string
+          metadata?: Json | null
+          reactions?: Json | null
+          reply_to_id?: string | null
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          channel_id?: string
+          content?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          is_edited?: boolean | null
+          mentions?: Json | null
+          message_type?: string
+          metadata?: Json | null
+          reactions?: Json | null
+          reply_to_id?: string | null
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
             referencedColumns: ["id"]
           },
         ]
