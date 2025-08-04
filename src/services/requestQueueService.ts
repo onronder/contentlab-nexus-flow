@@ -24,6 +24,7 @@ export class RequestQueueService {
   private readonly MAX_QUEUE_SIZE = 50;
   private circuitBreakerOpen = false;
   private circuitBreakerTimeout: NodeJS.Timeout | null = null;
+  private circuitBreakerOpenedAt: number | null = null;
   private consecutiveFailures = 0;
   private readonly CIRCUIT_BREAKER_THRESHOLD = 3;
   private readonly CIRCUIT_BREAKER_TIMEOUT = 600000; // 10 minutes
@@ -85,7 +86,9 @@ export class RequestQueueService {
       queueLength: this.queue.length,
       isProcessing: this.isProcessing,
       circuitBreakerOpen: this.circuitBreakerOpen,
-      estimatedWaitTime: this.calculateEstimatedWaitTime()
+      estimatedWaitTime: this.calculateEstimatedWaitTime(),
+      consecutiveFailures: this.consecutiveFailures,
+      circuitBreakerOpenedAt: this.circuitBreakerOpenedAt
     };
   }
 
@@ -222,6 +225,7 @@ export class RequestQueueService {
 
   private openCircuitBreaker() {
     this.circuitBreakerOpen = true;
+    this.circuitBreakerOpenedAt = Date.now();
     console.warn('Circuit breaker opened due to consecutive rate limit failures');
     
     this.circuitBreakerTimeout = setTimeout(() => {
@@ -232,6 +236,7 @@ export class RequestQueueService {
   private resetCircuitBreaker() {
     this.circuitBreakerOpen = false;
     this.consecutiveFailures = 0;
+    this.circuitBreakerOpenedAt = null;
     if (this.circuitBreakerTimeout) {
       clearTimeout(this.circuitBreakerTimeout);
       this.circuitBreakerTimeout = null;
@@ -249,3 +254,8 @@ export class RequestQueueService {
 }
 
 export const requestQueueService = RequestQueueService.getInstance();
+
+// Make service globally accessible for debugging
+if (typeof window !== 'undefined') {
+  (window as any).requestQueueService = requestQueueService;
+}

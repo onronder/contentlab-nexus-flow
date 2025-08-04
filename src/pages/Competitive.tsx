@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { CircuitBreakerStatus } from "@/components/ui/circuit-breaker-status";
 import { Building2, TrendingUp, Users, Activity, Plus, Search, Filter, MoreHorizontal, Globe, MapPin, DollarSign, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { AddCompetitorStepper } from "@/components/competitive/AddCompetitorStepper";
 import { useState } from "react";
@@ -284,6 +285,9 @@ export default function Competitive() {
           Add Competitor
         </Button>
       </div>
+
+      {/* Circuit Breaker Status */}
+      <CircuitBreakerStatus showAdminControls={true} />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

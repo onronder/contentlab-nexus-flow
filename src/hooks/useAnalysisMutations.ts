@@ -40,9 +40,25 @@ export function useStartAnalysis() {
     },
     onError: (error: Error) => {
       console.error('Analysis start failed:', error);
+      
+      // Enhanced error handling for circuit breaker scenarios
+      let title = "Analysis Failed";
+      let description = error.message || "Failed to start competitive analysis. Please try again.";
+      
+      if (error.message?.includes('temporarily unavailable') || error.message?.includes('rate limit')) {
+        title = "Service Temporarily Unavailable";
+        description = "The analysis service is currently rate limited. Please wait a few minutes before trying again.";
+      } else if (error.message?.includes('circuit breaker')) {
+        title = "Analysis Service Overloaded";
+        description = "The analysis service is temporarily overloaded. It will automatically recover in a few minutes.";
+      } else if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+        title = "Rate Limit Exceeded";
+        description = "API rate limit reached. The service will automatically retry when the limit resets.";
+      }
+
       toast({
-        title: "Analysis Failed",
-        description: error.message || "Failed to start competitive analysis. Please try again.",
+        title,
+        description,
         variant: "destructive",
       });
     },
