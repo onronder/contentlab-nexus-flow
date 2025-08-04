@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { AuthProvider } from '@/contexts'
-import { TeamProvider } from '@/contexts/TeamContext'
 import { GlobalErrorBoundary } from '@/components/errors/GlobalErrorBoundary'
 import App from './App.tsx'
 import './index.css'
@@ -15,10 +14,8 @@ createRoot(document.getElementById("root")!).render(
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TeamProvider>
-            <App />
-            {isDevelopment() && <ReactQueryDevtools initialIsOpen={false} />}
-          </TeamProvider>
+          <App />
+          {isDevelopment() && <ReactQueryDevtools initialIsOpen={false} />}
         </AuthProvider>
       </QueryClientProvider>
     </GlobalErrorBoundary>

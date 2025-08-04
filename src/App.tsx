@@ -28,12 +28,14 @@ import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
 import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationPage';
 import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
 import { isDevelopment } from '@/utils/productionUtils';
+import { TeamProvider } from '@/contexts/TeamContext';
 
 const App = () => (
   <TooltipProvider>
     <Toaster />
     <Sonner />
     <BrowserRouter>
+      <TeamProvider>
       <Routes>
         {/* Authentication testing route (only in development) */}
         {isDevelopment() && <Route path="/auth-test" element={<AuthTestingPanel />} />}
@@ -228,7 +230,8 @@ const App = () => (
             <NotFound />
           </Layout>
         } />
-      </Routes>
+        </Routes>
+      </TeamProvider>
     </BrowserRouter>
   </TooltipProvider>
 );
