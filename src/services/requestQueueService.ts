@@ -25,8 +25,8 @@ export class RequestQueueService {
   private circuitBreakerOpen = false;
   private circuitBreakerTimeout: NodeJS.Timeout | null = null;
   private consecutiveFailures = 0;
-  private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
-  private readonly CIRCUIT_BREAKER_TIMEOUT = 300000; // 5 minutes
+  private readonly CIRCUIT_BREAKER_THRESHOLD = 3;
+  private readonly CIRCUIT_BREAKER_TIMEOUT = 600000; // 10 minutes
 
   static getInstance(): RequestQueueService {
     if (!RequestQueueService.instance) {
@@ -47,7 +47,7 @@ export class RequestQueueService {
     return new Promise((resolve, reject) => {
       // Check circuit breaker
       if (this.circuitBreakerOpen) {
-        reject(new Error('AI analysis service is temporarily unavailable due to rate limiting. Please try again in a few minutes.'));
+        reject(new Error('AI analysis service is temporarily unavailable due to rate limiting. Service will resume automatically in 10 minutes. Please check your OpenAI API quota if this persists.'));
         return;
       }
 

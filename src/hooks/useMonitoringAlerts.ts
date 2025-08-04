@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentUserId } from './useCurrentUserId';
+import { useOptimizedQuery } from './useOptimizedQueries';
 
 export interface MonitoringAlert {
   id: string;
@@ -102,11 +102,14 @@ const getTimeAgo = (date: Date): string => {
 export const useMonitoringAlerts = () => {
   const userId = useCurrentUserId();
 
-  return useQuery({
+  return useOptimizedQuery({
     queryKey: ['monitoring-alerts', userId],
     queryFn: () => fetchMonitoringAlerts(userId),
     enabled: !!userId,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 3 * 60 * 1000, // 3 minutes
+    enabledOnline: true,
+    offlineStaleTime: 15 * 60 * 1000, // 15 minutes offline
   });
 };

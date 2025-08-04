@@ -29,8 +29,7 @@ const Login = () => {
   React.useEffect(() => {
     if (user) {
       const searchParams = new URLSearchParams(location.search);
-      const returnUrl = searchParams.get('returnUrl') || location.state?.from?.pathname || '/';
-      console.log('User authenticated, redirecting to:', returnUrl);
+      const returnUrl = searchParams.get('returnUrl') || location.state?.from?.pathname || '/dashboard';
       navigate(returnUrl, { replace: true });
     }
   }, [user, navigate, location]);
@@ -61,53 +60,53 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login form submitted with:', { email, password: password ? '[HIDDEN]' : 'empty' });
+    
+    if (isLoading) return; // Prevent duplicate submissions
     
     if (!validateForm()) {
-      console.log('Form validation failed');
       return;
     }
-
-    console.log('Form validation passed, attempting sign in...');
 
     setIsLoading(true);
     setErrors({});
 
     try {
-      console.log('Calling Supabase signInWithPassword...');
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      console.log('Supabase signInWithPassword result:', { error });
 
       if (error) {
-        setErrors({ general: error.message });
+        // Handle specific error cases
+        let errorMessage = error.message;
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please confirm your email address before signing in.';
+        }
+        
+        setErrors({ general: errorMessage });
         toast({
           variant: "destructive",
           title: "Sign in failed",
-          description: error.message,
+          description: errorMessage,
         });
       } else {
-        console.log('Sign in successful, waiting for auth state change...');
         toast({
           title: "Welcome back!",
           description: "You have been successfully signed in.",
         });
-        
-        // Don't redirect immediately - let the useEffect handle it when user state updates
+        // Auth state change will handle redirect
       }
     } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = 'An unexpected error occurred. Please try again.';
+      const errorMessage = 'Connection error. Please check your internet and try again.';
       setErrors({ general: errorMessage });
       toast({
         variant: "destructive",
-        title: "Sign in failed",
+        title: "Connection Error",
         description: errorMessage,
       });
     } finally {
-      console.log('Login attempt finished, setting loading to false');
       setIsLoading(false);
     }
   };

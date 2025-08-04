@@ -21,6 +21,17 @@ export const isDevelopment = (): boolean => {
  */
 export const devLog = (...args: any[]): void => {
   if (isDevelopment()) {
+    // Reduce noise in development
+    const message = args[0];
+    if (typeof message === 'string' && (
+      message.includes('auth state') ||
+      message.includes('Index page') ||
+      message.includes('Login form') ||
+      message.includes('Form validation') ||
+      message.includes('Supabase signIn')
+    )) {
+      return; // Skip these frequent logs
+    }
     console.log('[DEV]', ...args);
   }
 };
