@@ -305,6 +305,7 @@ export interface TaskLabelInput {
 
 // Query and filter interfaces
 export interface TaskFilters {
+  team_id?: string;
   status?: TaskStatus[];
   priority?: TaskPriority[];
   task_type?: TaskType[];
