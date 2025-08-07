@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Competitor, CompetitorAnalysisMetadata } from '@/types/competitors';
 import { requestQueueService } from './requestQueueService';
-
+import { apiMonitoringService } from './apiMonitoringService';
 export interface AnalysisRequest {
   competitorId: string;
   analysisType: 'positioning' | 'content_gap' | 'market_share' | 'feature_comparison' | 'pricing' | 'marketing';
@@ -63,7 +63,9 @@ export class AIAnalysisService {
         industryContext: competitor.industry || 'general'
       };
 
-      // Queue the analysis request to prevent rate limiting
+      // Queue the analysis request to prevent rate limiting and track usage
+      const startedAt = Date.now();
+      const { estimatedTokens, estimatedCost } = this.getAnalysisCostEstimate(1, analysisType);
       const { data, error } = await requestQueueService.enqueueRequest(
         () => supabase.functions.invoke('analyze-competitor', {
           body: { 
@@ -74,18 +76,47 @@ export class AIAnalysisService {
         'normal'
       );
 
+      const responseTime = Date.now() - startedAt;
+
       if (error) {
+        // Record failed usage
+        apiMonitoringService.recordUsage({
+          endpoint: 'analyze-competitor',
+          method: 'POST',
+          status: error.status || 500,
+          responseTime,
+          tokensUsed: estimatedTokens,
+          cost: estimatedCost,
+          errorMessage: error.message,
+        });
         console.error('Analysis error:', error);
         
-        // Handle rate limiting errors with user-friendly messages
-        if (error.message?.includes('rate limited') || error.status === 429) {
+        // Handle specific errors with user-friendly messages
+        if (error.status === 401 || /unauthorized|invalid api key/i.test(error.message || '')) {
+          throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
+        }
+        if (error.status === 429 || /rate limited|too many requests/i.test(error.message || '')) {
           throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
-        } else if (error.message?.includes('service_unavailable') || error.status === 503) {
+        }
+        if (error.status === 503 || /service_unavailable|unavailable/i.test(error.message || '')) {
           throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
+        }
+        if (error.status >= 500 || /timeout|network|connection|ECONNRESET|ETIMEDOUT/i.test(error.message || '')) {
+          throw new Error('Network or server issue occurred during analysis. It will be retried automatically.');
         }
         
         throw new Error(`Analysis failed: ${error.message}`);
       }
+
+      // Record successful usage
+      apiMonitoringService.recordUsage({
+        endpoint: 'analyze-competitor',
+        method: 'POST',
+        status: 200,
+        responseTime,
+        tokensUsed: estimatedTokens,
+        cost: estimatedCost,
+      });
 
       // Store results in database
       const result = await this.storeAnalysisResult(data);
@@ -131,7 +162,9 @@ export class AIAnalysisService {
         throw new Error(`Failed to fetch project: ${projectError.message}`);
       }
 
-      // Queue the insights generation request to prevent rate limiting
+      // Queue the insights generation request to prevent rate limiting and track usage
+      const startedAt = Date.now();
+      const { estimatedTokens, estimatedCost } = this.getAnalysisCostEstimate(competitors.length, 'positioning');
       const { data, error: insightsError } = await requestQueueService.enqueueRequest(
         () => supabase.functions.invoke('generate-insights', {
           body: { 
@@ -143,18 +176,47 @@ export class AIAnalysisService {
         'high' // Project insights have high priority
       );
 
+      const responseTime = Date.now() - startedAt;
+
       if (insightsError) {
+        // Record failed usage
+        apiMonitoringService.recordUsage({
+          endpoint: 'generate-insights',
+          method: 'POST',
+          status: insightsError.status || 500,
+          responseTime,
+          tokensUsed: estimatedTokens,
+          cost: estimatedCost,
+          errorMessage: insightsError.message,
+        });
         console.error('Insights generation error:', insightsError);
         
-        // Handle rate limiting errors with user-friendly messages
-        if (insightsError.message?.includes('rate limited') || insightsError.status === 429) {
+        // Enhanced specific error handling
+        if (insightsError.status === 401 || /unauthorized|invalid api key/i.test(insightsError.message || '')) {
+          throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
+        }
+        if (insightsError.status === 429 || /rate limited|too many requests/i.test(insightsError.message || '')) {
           throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
-        } else if (insightsError.message?.includes('service_unavailable') || insightsError.status === 503) {
+        }
+        if (insightsError.status === 503 || /service_unavailable|unavailable/i.test(insightsError.message || '')) {
           throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
+        }
+        if (insightsError.status >= 500 || /timeout|network|connection|ECONNRESET|ETIMEDOUT/i.test(insightsError.message || '')) {
+          throw new Error('Network or server issue occurred during insights generation. It will be retried automatically.');
         }
         
         throw new Error(`Insights generation failed: ${insightsError.message}`);
       }
+
+      // Record successful usage
+      apiMonitoringService.recordUsage({
+        endpoint: 'generate-insights',
+        method: 'POST',
+        status: 200,
+        responseTime,
+        tokensUsed: estimatedTokens,
+        cost: estimatedCost,
+      });
 
       return data;
     } catch (error) {

@@ -255,6 +255,13 @@ export class ApiMonitoringService {
   }
 
   /**
+   * Get recent usage events (most recent first)
+   */
+  getRecentEvents(limit: number = 50): ApiUsageEvent[] {
+    return [...this.usageEvents].slice(-limit).reverse();
+  }
+
+  /**
    * Export usage data for analysis
    */
   exportUsageData(format: 'json' | 'csv' = 'json'): string {

@@ -29,11 +29,13 @@ import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationP
 import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
 import { isDevelopment } from '@/utils/productionUtils';
 import { TeamProvider } from '@/contexts/TeamContext';
+import { ApiConfigValidator } from '@/components/debug/ApiConfigValidator';
 
 const App = () => (
   <TooltipProvider>
     <Toaster />
     <Sonner />
+    <ApiConfigValidator />
     <BrowserRouter>
       <TeamProvider>
       <Routes>

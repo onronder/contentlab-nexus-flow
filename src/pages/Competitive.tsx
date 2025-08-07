@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CircuitBreakerStatus } from "@/components/ui/circuit-breaker-status";
 import { Building2, TrendingUp, Users, Activity, Plus, Search, Filter, MoreHorizontal, Globe, MapPin, DollarSign, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { AddCompetitorStepper } from "@/components/competitive/AddCompetitorStepper";
+import { ApiStatusIndicator } from "@/components/competitive/ApiStatusIndicator";
 import { useState } from "react";
 import { 
   useProjects, 
