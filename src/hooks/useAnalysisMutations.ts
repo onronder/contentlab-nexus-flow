@@ -41,24 +41,40 @@ export function useStartAnalysis() {
     onError: (error: Error) => {
       console.error('Analysis start failed:', error);
       
-      // Enhanced error handling for circuit breaker scenarios
+      // Enhanced error handling with specific guidance
       let title = "Analysis Failed";
       let description = error.message || "Failed to start competitive analysis. Please try again.";
+      let actionText = "";
       
-      if (error.message?.includes('temporarily unavailable') || error.message?.includes('rate limit')) {
+      if (error.message?.includes('temporarily unavailable')) {
         title = "Service Temporarily Unavailable";
-        description = "The analysis service is currently rate limited. Please wait a few minutes before trying again.";
-      } else if (error.message?.includes('circuit breaker')) {
-        title = "Analysis Service Overloaded";
-        description = "The analysis service is temporarily overloaded. It will automatically recover in a few minutes.";
-      } else if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
-        title = "Rate Limit Exceeded";
-        description = "API rate limit reached. The service will automatically retry when the limit resets.";
+        description = "The AI analysis service is currently unavailable due to high demand or API issues.";
+        actionText = "The service will automatically recover. You can monitor the status in the API health indicator.";
+      } else if (error.message?.includes('circuit breaker') || error.message?.includes('repeated failures')) {
+        title = "Service Protection Activated";
+        description = "The analysis service has been temporarily disabled due to repeated API failures.";
+        actionText = "This protects against further issues. Service will automatically resume when the API is healthy.";
+      } else if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+        title = "Rate Limit Reached";
+        description = "API rate limit has been reached. Your request has been queued for automatic retry.";
+        actionText = "No action needed - the system will automatically process your request when quota is available.";
+      } else if (error.message?.includes('queue is full')) {
+        title = "Queue at Capacity";
+        description = "The analysis queue is currently full due to high demand.";
+        actionText = "Please try again in a few minutes, or cancel some pending analyses to free up queue space.";
+      } else if (error.message?.includes('API key') || error.message?.includes('unauthorized')) {
+        title = "API Configuration Issue";
+        description = "There's an issue with the OpenAI API configuration.";
+        actionText = "Please contact support or check your API key configuration.";
+      } else if (error.message?.includes('Competitor not found')) {
+        title = "Invalid Competitor";
+        description = "The selected competitor data could not be found or is invalid.";
+        actionText = "Please refresh the page and try selecting the competitor again.";
       }
 
       toast({
         title,
-        description,
+        description: `${description}${actionText ? ` ${actionText}` : ''}`,
         variant: "destructive",
       });
     },
