@@ -117,7 +117,7 @@ export function useOptimizedTeam(teamId: string) {
     queryKey: ['team', 'optimized', teamId],
     queryFn: async () => {
       const result = await TeamService.getTeamsByUser(teamId);
-      return result?.teams?.[0] || null;
+      return result?.[0] || null;
     },
     enabled: !!teamId,
     staleTime: 5 * 60 * 1000, // 5 minutes
