@@ -2489,8 +2489,16 @@ export type Database = {
         Args: { project_id: string; user_id: string }
         Returns: boolean
       }
+      can_manage_team_members_safe: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
       can_view_project_team: {
         Args: { project_id: string; user_id: string }
+        Returns: boolean
+      }
+      can_view_team_members_safe: {
+        Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
       }
       cancel_team_invitation: {
