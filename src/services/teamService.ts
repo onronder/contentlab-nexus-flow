@@ -152,60 +152,113 @@ export class TeamService {
   }
 
   /**
-   * Gets all teams for a specific user
+   * Gets all teams for a specific user using separate queries to avoid RLS recursion
    */
   static async getTeamsByUser(userId: string, options?: TeamQueryOptions): Promise<Team[]> {
     try {
-      let query = (supabase as any)
-        .from('teams')
-        .select(`
-          *,
-          members:team_members!inner(
-            user_id,
-            status,
-            is_active,
-            role:user_roles(id, name, slug)
-          )
-        `)
-        .eq('is_active', true)
-        .eq('members.user_id', userId)
-        .eq('members.is_active', true)
-        .eq('members.status', 'active');
+      const allTeams: Team[] = [];
+      const teamIds = new Set<string>();
 
-      // Apply filters if provided
+      // Step 1: Get teams where user is owner (no RLS issues)
+      let ownedTeamsQuery = supabase
+        .from('teams')
+        .select('*')
+        .eq('owner_id', userId)
+        .eq('is_active', true);
+
+      // Step 2: Get team IDs where user is a member (avoid inner join to prevent RLS recursion)
+      const { data: membershipData } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('status', 'active');
+
+      const memberTeamIds = membershipData?.map(m => m.team_id) || [];
+
+      // Step 3: Get member teams data separately
+      let memberTeamsQuery = supabase
+        .from('teams')
+        .select('*')
+        .in('id', memberTeamIds)
+        .eq('is_active', true);
+
+      // Apply filters to both queries
       if (options?.filters) {
         if (options.filters.team_type) {
-          query = query.eq('team_type', options.filters.team_type);
+          ownedTeamsQuery = ownedTeamsQuery.eq('team_type', options.filters.team_type);
+          memberTeamsQuery = memberTeamsQuery.eq('team_type', options.filters.team_type);
         }
         if (options.filters.owner_id) {
-          query = query.eq('owner_id', options.filters.owner_id);
+          ownedTeamsQuery = ownedTeamsQuery.eq('owner_id', options.filters.owner_id);
+          memberTeamsQuery = memberTeamsQuery.eq('owner_id', options.filters.owner_id);
         }
         if (options.filters.search) {
-          query = query.or(`name.ilike.%${options.filters.search}%,description.ilike.%${options.filters.search}%`);
+          const searchFilter = `name.ilike.%${options.filters.search}%,description.ilike.%${options.filters.search}%`;
+          ownedTeamsQuery = ownedTeamsQuery.or(searchFilter);
+          memberTeamsQuery = memberTeamsQuery.or(searchFilter);
         }
       }
 
+      // Execute both queries in parallel
+      const [ownedResult, memberResult] = await Promise.all([
+        ownedTeamsQuery,
+        memberTeamIds.length > 0 ? memberTeamsQuery : Promise.resolve({ data: [], error: null })
+      ]);
+
+      if (ownedResult.error) {
+        console.error('Error fetching owned teams:', ownedResult.error);
+        throw new Error(`Failed to fetch owned teams: ${ownedResult.error.message}`);
+      }
+
+      if (memberResult.error) {
+        console.error('Error fetching member teams:', memberResult.error);
+        throw new Error(`Failed to fetch member teams: ${memberResult.error.message}`);
+      }
+
+      // Combine and deduplicate results
+      const ownedTeams = ownedResult.data || [];
+      const memberTeams = memberResult.data || [];
+
+      // Add owned teams first
+      ownedTeams.forEach(team => {
+        if (!teamIds.has(team.id)) {
+          teamIds.add(team.id);
+          allTeams.push(team as Team);
+        }
+      });
+
+      // Add member teams (skip if already added as owned)
+      memberTeams.forEach(team => {
+        if (!teamIds.has(team.id)) {
+          teamIds.add(team.id);
+          allTeams.push(team as Team);
+        }
+      });
+
       // Apply sorting
       if (options?.sort) {
-        query = query.order(options.sort.field, { ascending: options.sort.direction === 'asc' });
+        allTeams.sort((a, b) => {
+          const aValue = a[options.sort!.field as keyof Team];
+          const bValue = b[options.sort!.field as keyof Team];
+          const modifier = options.sort!.direction === 'asc' ? 1 : -1;
+          
+          if (aValue < bValue) return -1 * modifier;
+          if (aValue > bValue) return 1 * modifier;
+          return 0;
+        });
       } else {
-        query = query.order('created_at', { ascending: false });
+        allTeams.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       }
 
       // Apply pagination
       if (options?.page && options?.limit) {
         const from = (options.page - 1) * options.limit;
-        query = query.range(from, from + options.limit - 1);
+        const to = from + options.limit;
+        return allTeams.slice(from, to);
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching user teams:', error);
-        throw new Error(`Failed to fetch user teams: ${error.message}`);
-      }
-
-      return data || [];
+      return allTeams;
     } catch (error) {
       console.error('TeamService.getTeamsByUser error:', error);
       throw error;
