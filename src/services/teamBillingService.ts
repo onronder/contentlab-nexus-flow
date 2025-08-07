@@ -42,20 +42,31 @@ export class TeamBillingService {
         .from('team_billing')
         .select('*')
         .eq('team_id', teamId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          return null; // No billing record found
-        }
         console.error('Error fetching team billing:', error);
-        throw new Error(`Failed to fetch team billing: ${error.message}`);
+        return null;
+      }
+
+      // If no billing record exists, create a default one
+      if (!data) {
+        try {
+          return await this.createTeamBilling({
+            team_id: teamId,
+            subscription_tier: 'basic',
+            billing_cycle: 'monthly'
+          });
+        } catch (createError) {
+          console.error('Error creating default billing:', createError);
+          return null;
+        }
       }
 
       return data as TeamBilling;
     } catch (error) {
       console.error('TeamBillingService.getTeamBilling error:', error);
-      throw error;
+      return null;
     }
   }
 

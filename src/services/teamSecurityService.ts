@@ -170,10 +170,15 @@ export class TeamSecurityService {
   static async getSecurityMetrics(teamId: string): Promise<SecurityMetrics> {
     try {
       // Get total events count
-      const { count: totalEvents } = await supabase
+      const { count: totalEvents, error: totalError } = await supabase
         .from('team_security_events')
         .select('*', { count: 'exact', head: true })
         .eq('team_id', teamId);
+
+      if (totalError) {
+        console.error('Error fetching total events:', totalError);
+        return this.getDefaultSecurityMetrics();
+      }
 
       // Get critical events count
       const { count: criticalEvents } = await supabase
@@ -226,8 +231,20 @@ export class TeamSecurityService {
       };
     } catch (error) {
       console.error('TeamSecurityService.getSecurityMetrics error:', error);
-      throw error;
+      return this.getDefaultSecurityMetrics();
     }
+  }
+
+  private static getDefaultSecurityMetrics(): SecurityMetrics {
+    return {
+      total_events: 0,
+      critical_events: 0,
+      open_incidents: 0,
+      resolved_incidents: 0,
+      average_resolution_time: 0,
+      risk_score_trend: [],
+      top_threats: []
+    };
   }
 
   /**
