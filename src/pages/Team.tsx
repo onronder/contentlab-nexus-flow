@@ -31,6 +31,8 @@ import { ActivityFeed } from "@/components/collaboration/ActivityFeed";
 import { TeamChat } from "@/components/team/TeamChat";
 import { TeamActivityFeed } from "@/components/team/TeamActivityFeed";
 import { NotificationCenter } from "@/components/team/NotificationCenter";
+import { TeamAdminDashboard } from "@/components/team/TeamAdminDashboard";
+import { TeamBillingDashboard } from "@/components/team/TeamBillingDashboard";
 
 const Team = () => {
   const { user } = useAuth();
@@ -196,8 +198,10 @@ const Team = () => {
         </div>
 
         {/* Team Content */}
-        <Tabs defaultValue="communication" className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
+        <Tabs defaultValue="admin" className="w-full">
+          <TabsList className="grid w-full grid-cols-10">
+            <TabsTrigger value="admin">Enterprise Admin</TabsTrigger>
+            <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="communication">
               <MessageCircle className="h-4 w-4 mr-1" />
               Communication
@@ -213,6 +217,14 @@ const Team = () => {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="settings">Team Settings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="admin" className="mt-6">
+            <TeamAdminDashboard teamId={teamId || ""} />
+          </TabsContent>
+
+          <TabsContent value="billing" className="mt-6">
+            <TeamBillingDashboard teamId={teamId || ""} />
+          </TabsContent>
 
           <TabsContent value="communication" className="mt-6">
             <TeamChat teamId={teamId || ""} />
