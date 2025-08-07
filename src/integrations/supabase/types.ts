@@ -2027,6 +2027,69 @@ export type Database = {
           },
         ]
       }
+      team_billing: {
+        Row: {
+          billing_contact_id: string | null
+          billing_cycle: string
+          created_at: string
+          current_usage: Json
+          id: string
+          monthly_cost: number
+          next_billing_date: string | null
+          payment_method: Json | null
+          subscription_status: string
+          subscription_tier: string
+          team_id: string
+          updated_at: string
+          usage_limits: Json
+        }
+        Insert: {
+          billing_contact_id?: string | null
+          billing_cycle?: string
+          created_at?: string
+          current_usage?: Json
+          id?: string
+          monthly_cost?: number
+          next_billing_date?: string | null
+          payment_method?: Json | null
+          subscription_status?: string
+          subscription_tier?: string
+          team_id: string
+          updated_at?: string
+          usage_limits?: Json
+        }
+        Update: {
+          billing_contact_id?: string | null
+          billing_cycle?: string
+          created_at?: string
+          current_usage?: Json
+          id?: string
+          monthly_cost?: number
+          next_billing_date?: string | null
+          payment_method?: Json | null
+          subscription_status?: string
+          subscription_tier?: string
+          team_id?: string
+          updated_at?: string
+          usage_limits?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_billing_billing_contact_id_fkey"
+            columns: ["billing_contact_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_billing_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_channels: {
         Row: {
           channel_type: string
@@ -2068,6 +2131,125 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      team_compliance: {
+        Row: {
+          audit_score: number | null
+          compliance_framework: string
+          created_at: string
+          evidence_documents: Json | null
+          findings: Json | null
+          id: string
+          last_audit_date: string | null
+          next_audit_date: string | null
+          remediation_plan: Json | null
+          status: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          audit_score?: number | null
+          compliance_framework: string
+          created_at?: string
+          evidence_documents?: Json | null
+          findings?: Json | null
+          id?: string
+          last_audit_date?: string | null
+          next_audit_date?: string | null
+          remediation_plan?: Json | null
+          status?: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          audit_score?: number | null
+          compliance_framework?: string
+          created_at?: string
+          evidence_documents?: Json | null
+          findings?: Json | null
+          id?: string
+          last_audit_date?: string | null
+          next_audit_date?: string | null
+          remediation_plan?: Json | null
+          status?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_compliance_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_data_exports: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          download_count: number
+          expires_at: string
+          export_format: string
+          export_type: string
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          included_data: Json
+          requested_by: string
+          retention_days: number
+          status: string
+          team_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          download_count?: number
+          expires_at?: string
+          export_format?: string
+          export_type: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          included_data?: Json
+          requested_by: string
+          retention_days?: number
+          status?: string
+          team_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          download_count?: number
+          expires_at?: string
+          export_format?: string
+          export_type?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          included_data?: Json
+          requested_by?: string
+          retention_days?: number
+          status?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_data_exports_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_data_exports_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_invitations: {
         Row: {
@@ -2306,6 +2488,161 @@ export type Database = {
           },
         ]
       }
+      team_policies: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          effective_date: string
+          enforcement_level: string
+          expiry_date: string | null
+          id: string
+          is_active: boolean
+          policy_description: string | null
+          policy_name: string
+          policy_rules: Json
+          policy_type: string
+          team_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          effective_date?: string
+          enforcement_level?: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          policy_description?: string | null
+          policy_name: string
+          policy_rules?: Json
+          policy_type: string
+          team_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          effective_date?: string
+          enforcement_level?: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          policy_description?: string | null
+          policy_name?: string
+          policy_rules?: Json
+          policy_type?: string
+          team_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_policies_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_policies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_policies_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_security_events: {
+        Row: {
+          created_at: string
+          event_description: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          location_data: Json | null
+          metadata: Json | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          risk_score: number | null
+          severity: string
+          team_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_description: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          location_data?: Json | null
+          metadata?: Json | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_score?: number | null
+          severity?: string
+          team_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_description?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          location_data?: Json | null
+          metadata?: Json | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_score?: number | null
+          severity?: string
+          team_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_security_events_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_security_events_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_security_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_tasks: {
         Row: {
           actual_hours: number | null
@@ -2380,6 +2717,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      team_usage_metrics: {
+        Row: {
+          active_users: number
+          api_calls: number
+          collaboration_sessions: number
+          content_items_created: number
+          created_at: string
+          data_processed_gb: number
+          features_used: Json | null
+          id: string
+          metric_date: string
+          performance_metrics: Json | null
+          storage_used_gb: number
+          team_id: string
+          total_projects: number
+        }
+        Insert: {
+          active_users?: number
+          api_calls?: number
+          collaboration_sessions?: number
+          content_items_created?: number
+          created_at?: string
+          data_processed_gb?: number
+          features_used?: Json | null
+          id?: string
+          metric_date?: string
+          performance_metrics?: Json | null
+          storage_used_gb?: number
+          team_id: string
+          total_projects?: number
+        }
+        Update: {
+          active_users?: number
+          api_calls?: number
+          collaboration_sessions?: number
+          content_items_created?: number
+          created_at?: string
+          data_processed_gb?: number
+          features_used?: Json | null
+          id?: string
+          metric_date?: string
+          performance_metrics?: Json | null
+          storage_used_gb?: number
+          team_id?: string
+          total_projects?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_usage_metrics_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teams: {
         Row: {
