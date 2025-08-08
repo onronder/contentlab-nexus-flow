@@ -34,6 +34,8 @@ import { TeamActivityFeed } from "@/components/team/TeamActivityFeed";
 import { NotificationCenter } from "@/components/team/NotificationCenter";
 import { TeamAdminDashboard } from "@/components/team/TeamAdminDashboard";
 import { TeamBillingDashboard } from "@/components/team/TeamBillingDashboard";
+import { TeamProjectsOverview } from "@/components/team/TeamProjectsOverview";
+import { TeamContentLibrary } from "@/components/team/TeamContentLibrary";
 
 const Team = () => {
   const { user } = useAuth();
@@ -212,7 +214,7 @@ const Team = () => {
 
         {/* Team Content */}
         <Tabs defaultValue="members" className="w-full">
-          <TabsList className="grid w-full grid-cols-10">
+          <TabsList className="grid w-full grid-cols-12">
             <TabsTrigger value="admin">Enterprise Admin</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="communication">
@@ -228,6 +230,8 @@ const Team = () => {
             <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
             <TabsTrigger value="activity">Recent Activity</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="content">Content Library</TabsTrigger>
             <TabsTrigger value="settings">Team Settings</TabsTrigger>
           </TabsList>
 

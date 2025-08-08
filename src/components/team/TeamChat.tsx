@@ -1,40 +1,78 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Hash, Plus, Send } from 'lucide-react';
+import { MessageCircle, Hash, Plus, Send, Megaphone } from 'lucide-react';
 import { useTeamCommunication } from '@/hooks/useTeamCommunication';
 import { TeamCommunicationService } from '@/services/teamCommunicationService';
+import { MentionInput } from '@/components/collaboration/MentionInput';
+import { useTeamMembers } from '@/hooks/useTeamQueries';
 
 interface TeamChatProps {
   teamId: string;
 }
 
 export function TeamChat({ teamId }: TeamChatProps) {
-  const { channels, loading } = useTeamCommunication(teamId);
+  const { channels, loading, refetch } = useTeamCommunication(teamId);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [messageLoading, setMessageLoading] = useState(false);
+  const { data: membersData } = useTeamMembers(teamId);
+  const teamMembers = (membersData?.members || []).map((m: any) => ({
+    id: m.user?.id || m.user_id,
+    name: m.user?.display_name || m.user?.full_name || m.user?.email || m.user_id
+  }));
 
-  const loadMessages = async (channelId: string) => {
-    const data = await TeamCommunicationService.getChannelMessages(channelId);
-    setMessages(data.messages);
-  };
+const loadMessages = async (channelId: string) => {
+  const data = await TeamCommunicationService.getChannelMessages(channelId);
+  setMessages(data.messages);
+};
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedChannel) return;
-    
-    setMessageLoading(true);
-    await TeamCommunicationService.sendMessage({
-      channel_id: selectedChannel,
-      content: newMessage.trim()
-    });
-    setNewMessage('');
-    setMessageLoading(false);
-    loadMessages(selectedChannel);
-  };
+const getMentionedUserIds = (text: string): string[] => {
+  if (!text) return [];
+  const names = Array.from(text.matchAll(/@([\w\s.\-@]+)/g)).map(m => m[1].trim().toLowerCase());
+  const ids = teamMembers
+    .filter((u: any) => names.some(n => (u.name || '').toLowerCase().includes(n)))
+    .map((u: any) => u.id);
+  return Array.from(new Set(ids)).filter(Boolean);
+};
+
+const createAnnouncementsChannel = async () => {
+  const existing = channels.find((c: any) => c.name === 'announcements' || c.channel_type === 'announcement');
+  if (existing) {
+    setSelectedChannel(existing.id);
+    loadMessages(existing.id);
+    return;
+  }
+  const created = await TeamCommunicationService.createChannel({
+    team_id: teamId,
+    name: 'announcements',
+    description: 'Team-wide announcements',
+    channel_type: 'announcement',
+    is_private: false,
+  });
+  await refetch?.();
+  const newId = created?.id || channels.find((c: any) => c.name === 'announcements')?.id;
+  if (newId) {
+    setSelectedChannel(newId);
+    loadMessages(newId);
+  }
+};
+
+const sendMessage = async () => {
+  if (!newMessage.trim() || !selectedChannel) return;
+  setMessageLoading(true);
+  const mentions = getMentionedUserIds(newMessage);
+  await TeamCommunicationService.sendMessage({
+    channel_id: selectedChannel,
+    content: newMessage.trim(),
+    mentions,
+  });
+  setNewMessage('');
+  setMessageLoading(false);
+  loadMessages(selectedChannel);
+};
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading team chat...</div>;
@@ -48,9 +86,9 @@ export function TeamChat({ teamId }: TeamChatProps) {
           <CardTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
             Channels
-            <Button size="sm" variant="ghost">
-              <Plus className="h-4 w-4" />
-            </Button>
+<Button size="sm" variant="ghost" onClick={createAnnouncementsChannel} title="Create or open announcements">
+  <Plus className="h-4 w-4" />
+</Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -64,11 +102,18 @@ export function TeamChat({ teamId }: TeamChatProps) {
                 loadMessages(channel.id);
               }}
             >
-              <Hash className="h-4 w-4 mr-2" />
-              {channel.name}
-              {channel.channel_type === 'private' && (
-                <Badge variant="outline" className="ml-auto">Private</Badge>
-              )}
+<Hash className="h-4 w-4 mr-2" />
+{channel.name}
+<span className="ml-auto flex items-center gap-2">
+  {channel.channel_type === 'private' && (
+    <Badge variant="outline">Private</Badge>
+  )}
+  {(channel.channel_type === 'announcement' || channel.name === 'announcements') && (
+    <Badge variant="secondary" className="flex items-center gap-1">
+      <Megaphone className="h-3 w-3" /> Announcement
+    </Badge>
+  )}
+</span>
             </Button>
           ))}
         </CardContent>
@@ -115,16 +160,22 @@ export function TeamChat({ teamId }: TeamChatProps) {
           {/* Message Input */}
           {selectedChannel && (
             <div className="flex gap-2">
-              <Input
-                placeholder="Type a message..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                disabled={messageLoading}
-              />
-              <Button onClick={sendMessage} disabled={messageLoading || !newMessage.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
+<div className="flex flex-col gap-2 w-full">
+  <MentionInput
+    value={newMessage}
+    onChange={setNewMessage}
+    onSubmit={() => sendMessage()}
+    teamId={teamId}
+    placeholder="Type a message... Use @ to mention"
+    disabled={messageLoading}
+    maxLength={500}
+  />
+  <div className="flex justify-end">
+    <Button onClick={sendMessage} disabled={messageLoading || !newMessage.trim()}>
+      <Send className="h-4 w-4" />
+    </Button>
+  </div>
+</div>
             </div>
           )}
         </CardContent>
