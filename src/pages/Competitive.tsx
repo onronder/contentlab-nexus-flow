@@ -543,10 +543,27 @@ export default function Competitive() {
 
           {/* Analysis Progress */}
           {projectAnalyses && projectAnalyses.length > 0 && (
-            <EnhancedAnalysisProgress
-              analyses={projectAnalyses}
-              onCancelAnalysis={handleCancelAnalysis}
-            />
+            (
+              <div className="grid gap-4">
+                {projectAnalyses.map((a) => {
+                  const mappedStatus = (a.status === 'running' ? 'processing' : a.status) as 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+                  const progress = mappedStatus === 'completed' ? 100 : mappedStatus === 'processing' ? 50 : 0;
+                  const competitorName = competitors.find(c => c.id === a.competitor_id)?.company_name;
+                  return (
+                    <EnhancedAnalysisProgress
+                      key={a.id}
+                      analysisId={a.id}
+                      competitorName={competitorName}
+                      analysisType={a.analysis_type}
+                      status={mappedStatus}
+                      progress={progress}
+                      createdAt={a.started_at || a.created_at}
+                      onCancel={() => handleCancelAnalysis(a.id)}
+                    />
+                  );
+                })}
+              </div>
+            )
           )}
 
           {/* Analysis Results */}
