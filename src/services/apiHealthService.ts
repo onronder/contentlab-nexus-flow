@@ -3,6 +3,8 @@
  * Provides intelligent health checks and circuit breaker management
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface ApiHealthStatus {
   isHealthy: boolean;
   responseTime: number;
@@ -74,54 +76,29 @@ export class ApiHealthService {
    */
   async performHealthCheck(): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
     try {
-      // Simple health check using a minimal API call
-      const response = await fetch('https://api.openai.com/v1/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.getOpenAIKey()}`,
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(this.HEALTH_CHECK_TIMEOUT)
-      });
-
+      const { data, error } = await supabase.functions.invoke('openai-health', { body: { action: 'ping' } });
       const responseTime = Date.now() - startTime;
-      const success = response.ok;
+      const success = !!data?.ok && !error;
 
       const result: HealthCheckResult = {
         success,
         responseTime,
+        error: error ? (error.message || 'Edge function error') : (!data?.ok ? 'OpenAI health check failed' : undefined)
       };
-
-      // Extract rate limit information from headers
-      if (response.headers.has('x-ratelimit-remaining-requests')) {
-        result.quotaInfo = {
-          remaining: parseInt(response.headers.get('x-ratelimit-remaining-requests') || '0'),
-          total: parseInt(response.headers.get('x-ratelimit-limit-requests') || '0'),
-          resetTime: new Date(response.headers.get('x-ratelimit-reset-requests') || Date.now())
-        };
-      }
-
-      if (!success) {
-        result.error = `HTTP ${response.status}: ${response.statusText}`;
-      }
 
       this.updateHealthStatus(result);
       this.addRecentResult(result);
-      
       return result;
-    } catch (error) {
+    } catch (err) {
       const responseTime = Date.now() - startTime;
       const result: HealthCheckResult = {
         success: false,
         responseTime,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: err instanceof Error ? err.message : 'Unknown error'
       };
-
       this.updateHealthStatus(result);
       this.addRecentResult(result);
-      
       return result;
     }
   }
