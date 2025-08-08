@@ -215,7 +215,9 @@ export class RequestQueueService {
           }
 
           // Calculate exponential backoff delay with jitter
-          const delay = this.calculateBackoffDelay(attempt);
+          const retryAfter = this.getRetryAfterMs(error);
+          const baseDelay = this.calculateBackoffDelay(attempt);
+          const delay = Math.max(baseDelay, retryAfter);
           console.log(`API error, retrying in ${delay}ms (attempt ${attempt + 1}/${this.MAX_RETRIES + 1})`);
           await this.delay(delay);
         } else {
@@ -270,7 +272,9 @@ export class RequestQueueService {
     return error?.message?.includes('429') || 
            error?.message?.includes('Too Many Requests') ||
            error?.message?.includes('rate limited') ||
-           error?.status === 429;
+           error?.status === 429 ||
+           error?.code === 'insufficient_quota' ||
+           /insufficient_quota/i.test(error?.message || '');
   }
 
   /**
@@ -417,6 +421,21 @@ export class RequestQueueService {
     
     const elapsed = Date.now() - this.circuitBreakerOpenedAt;
     return Math.max(0, this.CIRCUIT_BREAKER_TIMEOUT - elapsed);
+  }
+
+  private getRetryAfterMs(error: any): number {
+    try {
+      const header = error?.response?.headers?.get?.('retry-after') || error?.headers?.['retry-after'];
+      if (header) {
+        const seconds = parseInt(header, 10);
+        if (!isNaN(seconds)) return seconds * 1000;
+      }
+      if (typeof (error as any)?.retryAfter === 'number') return (error as any).retryAfter * 1000;
+      const msg: string = error?.message || '';
+      const match = msg.match(/retry(?:\s|-)?after\s+(\d+)(?:\s*seconds|s)?/i);
+      if (match) return parseInt(match[1], 10) * 1000;
+    } catch {}
+    return 0;
   }
 
   private delay(ms: number): Promise<void> {

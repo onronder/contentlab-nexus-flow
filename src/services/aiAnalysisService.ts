@@ -33,6 +33,7 @@ export interface ProjectInsights {
 export class AIAnalysisService {
   private static instance: AIAnalysisService;
   private inFlightProjectInsights = new Map<string, Promise<ProjectInsights>>();
+  private inFlightCompetitorAnalyses = new Map<string, Promise<AnalysisResult>>();
 
   static getInstance(): AIAnalysisService {
     if (!AIAnalysisService.instance) {
@@ -50,97 +51,114 @@ export class AIAnalysisService {
     competitorId: string,
     analysisType: AnalysisRequest['analysisType'] = 'positioning'
   ): Promise<AnalysisResult> {
-    try {
-      // Get competitor data
-      const competitor = await this.getCompetitorData(competitorId);
-      if (!competitor) {
-        throw new Error('Competitor not found');
-      }
+    const key = `${competitorId}:${analysisType}`;
+    const existing = this.inFlightCompetitorAnalyses.get(key);
+    if (existing) return existing;
 
-      // Create analysis request
-      const analysisRequest: AnalysisRequest = {
-        competitorId,
-        analysisType,
-        industryContext: competitor.industry || 'general'
-      };
+    const promise = (async (): Promise<AnalysisResult> => {
+      try {
+        // Get competitor data
+        const competitor = await this.getCompetitorData(competitorId);
+        if (!competitor) {
+          throw new Error('Competitor not found');
+        }
 
-      // Queue the analysis request to prevent rate limiting and track usage
-      const startedAt = Date.now();
-      const { estimatedTokens, estimatedCost } = this.getAnalysisCostEstimate(1, analysisType);
-      const { data, error } = await requestQueueService.enqueueRequest(
-        () => supabase.functions.invoke('analyze-competitor', {
-          body: { 
-            competitor,
-            analysisRequest
+        // Create analysis request
+        const analysisRequest: AnalysisRequest = {
+          competitorId,
+          analysisType,
+          industryContext: competitor.industry || 'general'
+        };
+
+        // Queue the analysis request to prevent rate limiting and track usage
+        const startedAt = Date.now();
+        const { estimatedTokens, estimatedCost } = this.getAnalysisCostEstimate(1, analysisType);
+        const { data, error } = await requestQueueService.enqueueRequest(
+          () => supabase.functions.invoke('analyze-competitor', {
+            body: { 
+              competitor,
+              analysisRequest
+            }
+          }),
+          'normal'
+        );
+
+        const responseTime = Date.now() - startedAt;
+
+        if (error) {
+          // Adjust rate limit on error
+          try {
+            const { rateLimitService } = await import('./rateLimitService');
+            rateLimitService.adaptRateLimit({ status: error.status || 500, headers: {} });
+          } catch {}
+          
+          // Record failed usage
+          apiMonitoringService.recordUsage({
+            endpoint: 'analyze-competitor',
+            method: 'POST',
+            status: error.status || 500,
+            responseTime,
+            tokensUsed: estimatedTokens,
+            cost: estimatedCost,
+            errorMessage: error.message,
+          });
+          console.error('Analysis error:', error);
+          
+          // Handle specific errors with user-friendly messages
+          const msg = (error.message || '').toLowerCase();
+          if (error.status === 401 || /unauthorized|invalid api key/.test(msg)) {
+            throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
           }
-        }),
-        'normal'
-      );
+          if (error.status === 429 || /rate limited|too many requests/.test(msg)) {
+            if (/insufficient_quota/.test(msg)) {
+              throw new Error('OpenAI quota exhausted. Please check your plan and billing or rotate the API key.');
+            }
+            throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
+          }
+          if (error.status === 503 || /service_unavailable|unavailable/.test(msg)) {
+            throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
+          }
+          if (error.status >= 500 || /timeout|network|connection|ECONNRESET|ETIMEDOUT/i.test(error.message || '')) {
+            throw new Error('Network or server issue occurred during analysis. It will be retried automatically.');
+          }
+          
+          throw new Error(`Analysis failed: ${error.message}`);
+        }
 
-      const responseTime = Date.now() - startedAt;
-
-      if (error) {
-        // Adjust rate limit on error
+        // On success, update rate limit adaptively
         try {
           const { rateLimitService } = await import('./rateLimitService');
-          rateLimitService.adaptRateLimit({ status: error.status || 500, headers: {} });
+          rateLimitService.adaptRateLimit({ status: 200, headers: {} });
         } catch {}
-        
-        // Record failed usage
+
+        // Record successful usage
         apiMonitoringService.recordUsage({
           endpoint: 'analyze-competitor',
           method: 'POST',
-          status: error.status || 500,
+          status: 200,
           responseTime,
           tokensUsed: estimatedTokens,
           cost: estimatedCost,
-          errorMessage: error.message,
         });
-        console.error('Analysis error:', error);
+
+        // Store results in database
+        const result = await this.storeAnalysisResult(data);
         
-        // Handle specific errors with user-friendly messages
-        if (error.status === 401 || /unauthorized|invalid api key/i.test(error.message || '')) {
-          throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
-        }
-        if (error.status === 429 || /rate limited|too many requests/i.test(error.message || '')) {
-          throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
-        }
-        if (error.status === 503 || /service_unavailable|unavailable/i.test(error.message || '')) {
-          throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
-        }
-        if (error.status >= 500 || /timeout|network|connection|ECONNRESET|ETIMEDOUT/i.test(error.message || '')) {
-          throw new Error('Network or server issue occurred during analysis. It will be retried automatically.');
-        }
-        
-        throw new Error(`Analysis failed: ${error.message}`);
+        // Update competitor's last_analyzed timestamp
+        await this.updateCompetitorAnalysisTimestamp(competitorId);
+
+        return result;
+      } catch (error) {
+        console.error('Competitor analysis failed:', error);
+        throw error;
       }
+    })();
 
-      // On success, update rate limit adaptively
-      try {
-        const { rateLimitService } = await import('./rateLimitService');
-        rateLimitService.adaptRateLimit({ status: 200, headers: {} });
-      } catch {}
-
-      // Record successful usage
-      apiMonitoringService.recordUsage({
-        endpoint: 'analyze-competitor',
-        method: 'POST',
-        status: 200,
-        responseTime,
-        tokensUsed: estimatedTokens,
-        cost: estimatedCost,
-      });
-
-      // Store results in database
-      const result = await this.storeAnalysisResult(data);
-      
-      // Update competitor's last_analyzed timestamp
-      await this.updateCompetitorAnalysisTimestamp(competitorId);
-
-      return result;
-    } catch (error) {
-      console.error('Competitor analysis failed:', error);
-      throw error;
+    this.inFlightCompetitorAnalyses.set(key, promise);
+    try {
+      return await promise;
+    } finally {
+      this.inFlightCompetitorAnalyses.delete(key);
     }
   }
 
