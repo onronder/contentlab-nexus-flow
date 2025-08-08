@@ -109,6 +109,9 @@ export class AIAnalysisService {
           if (error.status === 401 || /unauthorized|invalid api key/.test(msg)) {
             throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
           }
+          if (error.status === 402 || /quota exhausted|quota_exhausted/.test(msg)) {
+            throw new Error('OpenAI quota exhausted. Please check your plan and billing or rotate the API key.');
+          }
           if (error.status === 429 || /rate limited|too many requests/.test(msg)) {
             if (/insufficient_quota/.test(msg)) {
               throw new Error('OpenAI quota exhausted. Please check your plan and billing or rotate the API key.');
@@ -236,6 +239,9 @@ export class AIAnalysisService {
           // Enhanced specific error handling
           if (insightsError.status === 401 || /unauthorized|invalid api key/i.test(insightsError.message || '')) {
             throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
+          }
+          if (insightsError.status === 402 || /quota exhausted|quota_exhausted/i.test(insightsError.message || '')) {
+            throw new Error('OpenAI quota exhausted. Please check your plan and billing or rotate the API key.');
           }
           if (insightsError.status === 429 || /rate limited|too many requests/i.test(insightsError.message || '')) {
             throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');

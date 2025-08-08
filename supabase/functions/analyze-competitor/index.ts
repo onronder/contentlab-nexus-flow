@@ -63,7 +63,9 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: req.headers.get('Authorization') || '' } }
+    });
     const { competitor, analysisRequest } = await req.json();
 
     console.log('Starting analysis for competitor:', competitor.company_name);
@@ -209,19 +211,23 @@ Return response in this exact JSON format:
               { role: 'user', content: userPrompt }
             ],
             temperature: 0.3,
-            max_tokens: 1200, // Further reduced to save tokens
+            max_tokens: 1100, // Slightly reduced to save tokens
           }),
         });
 
         if (!res.ok) {
-          const errorText = await res.text();
+          let errorBody: any = null;
+          try { errorBody = await res.json(); } catch { errorBody = { error: await res.text() }; }
+          const e: any = new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
+          e.status = res.status;
+          e.headers = Object.fromEntries(res.headers.entries());
+          e.code = errorBody?.error?.code || errorBody?.error?.type || '';
+          e.detail = errorBody?.error?.message || JSON.stringify(errorBody);
           if (res.status === 429) {
-            throw new Error(`429 Too Many Requests: ${errorText}`);
+            const ra = res.headers.get('retry-after');
+            if (ra) e.retryAfter = parseInt(ra, 10);
           }
-          if (res.status === 401) {
-            throw new Error(`401 Unauthorized: ${errorText}`);
-          }
-          throw new Error(`OpenAI API error: ${res.status} ${res.statusText} - ${errorText}`);
+          throw e;
         }
         return res;
       });
@@ -288,33 +294,55 @@ Return response in this exact JSON format:
 
   } catch (error) {
     console.error('Error in analyze-competitor function:', error);
-    
-    // Handle rate limiting specifically
-    if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+    const err: any = error || {};
+    const retryAfter = err?.retryAfter || parseInt(err?.headers?.['retry-after'] || '60', 10) || 60;
+    const headers = { ...corsHeaders, 'Content-Type': 'application/json' } as Record<string,string>;
+
+    // Insufficient quota → 402 Payment Required
+    if (err?.code === 'insufficient_quota' || /insufficient_quota/i.test(err?.detail || err?.message || '')) {
       return new Response(JSON.stringify({ 
-        error: 'AI analysis is temporarily rate limited. Please try again in a few moments.',
+        error: 'OpenAI quota exhausted. Please check your plan and billing or rotate the API key.',
+        errorType: 'quota_exhausted',
+        status: 'failed'
+      }), {
+        status: 402,
+        headers,
+      });
+    }
+
+    // Handle rate limiting specifically
+    if (err?.status === 429 || /429|Too Many Requests|rate limited/i.test(err?.message || '')) {
+      return new Response(JSON.stringify({ 
+        error: 'AI analysis is temporarily rate limited. Please try again shortly.',
         errorType: 'rate_limited',
         status: 'failed',
-        retryAfter: 60 // seconds
+        retryAfter
       }), {
         status: 429,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Retry-After': '60'
-        },
+        headers: { ...headers, 'Retry-After': String(retryAfter) },
       });
     }
     
     // Handle other API errors
-    if (error.message.includes('OpenAI API error')) {
+    if (err?.status === 401 || /Unauthorized|invalid api key/i.test(err?.detail || err?.message || '')) {
+      return new Response(JSON.stringify({ 
+        error: 'OpenAI API key invalid or missing. Please update configuration.',
+        errorType: 'unauthorized',
+        status: 'failed'
+      }), {
+        status: 401,
+        headers,
+      });
+    }
+    
+    if (err?.message?.includes('OpenAI API error') || err?.status === 503) {
       return new Response(JSON.stringify({ 
         error: 'AI analysis service is temporarily unavailable. Please try again later.',
         errorType: 'service_unavailable',
         status: 'failed'
       }), {
         status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers,
       });
     }
     
@@ -325,7 +353,7 @@ Return response in this exact JSON format:
       status: 'failed'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers,
     });
   }
 });

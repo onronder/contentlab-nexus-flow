@@ -62,10 +62,10 @@ vector_port = 54328
 backend = "postgres"
 
 [functions.analyze-competitor]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-insights]
-verify_jwt = false
+verify_jwt = true
 
 [functions.openai-health]
 verify_jwt = false

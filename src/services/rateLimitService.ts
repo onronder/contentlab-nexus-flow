@@ -23,6 +23,7 @@ export class RateLimitService {
   private tokens: number;
   private lastRefill: number;
   private refillTimer: NodeJS.Timeout | null = null;
+  private pausedUntil: number | null = null;
   
   // Default configuration for OpenAI API
   private config: RateLimitConfig = {
@@ -77,6 +78,8 @@ export class RateLimitService {
   async consumeToken(cost: number = 1): Promise<boolean> {
     this.refillTokens(); // Update tokens first
     
+    if (this.isPaused()) return false;
+    
     if (this.tokens >= cost) {
       this.tokens -= cost;
       return true;
@@ -101,6 +104,9 @@ export class RateLimitService {
   private calculateWaitTime(cost: number): number {
     this.refillTokens();
     
+    const pausedWait = this.getPausedWaitTime();
+    if (pausedWait > 0) return pausedWait;
+    
     if (this.tokens >= cost) {
       return 0;
     }
@@ -122,7 +128,7 @@ export class RateLimitService {
       maxTokens: this.config.maxTokens,
       refillRate: this.config.refillRate,
       nextRefill: new Date(this.lastRefill + this.config.refillInterval),
-      isThrottled: this.tokens < 1,
+      isThrottled: this.tokens < 1 || this.isPaused(),
       estimatedWaitTime: this.calculateWaitTime(1)
     };
   }
@@ -157,6 +163,7 @@ export class RateLimitService {
    */
   canMakeRequest(cost: number = 1): boolean {
     this.refillTokens();
+    if (this.isPaused()) return false;
     return this.tokens >= cost;
   }
 
@@ -174,6 +181,13 @@ export class RateLimitService {
     status: number;
     headers: Record<string, string>;
   }) {
+    // Respect Retry-After header when present
+    const retryAfterHeader = response.headers?.['retry-after'];
+    if (retryAfterHeader) {
+      const seconds = parseInt(retryAfterHeader, 10);
+      if (!isNaN(seconds)) this.pauseFor(seconds * 1000);
+    }
+
     // Adjust rate limits based on API response headers
     const remaining = response.headers['x-ratelimit-remaining-requests'];
     const limit = response.headers['x-ratelimit-limit-requests'];
@@ -226,20 +240,22 @@ export class RateLimitService {
   }
 
   /**
-   * Cleanup resources
+   * Pause all requests for a given duration
    */
-  destroy() {
-    if (this.refillTimer) {
-      clearInterval(this.refillTimer);
-      this.refillTimer = null;
-    }
+  pauseFor(ms: number) {
+    const until = Date.now() + Math.max(0, ms);
+    this.pausedUntil = Math.max(this.pausedUntil || 0, until);
   }
 
-  /**
-   * Utility delay function
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  private isPaused(): boolean {
+    if (!this.pausedUntil) return false;
+    if (Date.now() < this.pausedUntil) return true;
+    this.pausedUntil = null;
+    return false;
+  }
+
+  private getPausedWaitTime(): number {
+    return this.pausedUntil ? Math.max(0, this.pausedUntil - Date.now()) : 0;
   }
 }
 
