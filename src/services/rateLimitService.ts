@@ -257,6 +257,11 @@ export class RateLimitService {
   private getPausedWaitTime(): number {
     return this.pausedUntil ? Math.max(0, this.pausedUntil - Date.now()) : 0;
   }
+
+  // Simple sleep helper used by waitForTokens
+  private async delay(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+  }
 }
 
 export const rateLimitService = RateLimitService.getInstance();

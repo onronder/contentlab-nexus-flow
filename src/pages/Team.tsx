@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ import { TeamBillingDashboard } from "@/components/team/TeamBillingDashboard";
 
 const Team = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -83,9 +85,20 @@ const Team = () => {
             <CardContent className="text-center p-6">
               <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Team Found</h3>
-              <p className="text-muted-foreground mb-4">
-                You don't belong to any team yet. Contact your administrator to get invited.
+              <p className="text-muted-foreground mb-2">
+                You don't belong to any team yet.
               </p>
+              <p className="text-muted-foreground mb-4">
+                Create your team now or ask an admin to invite you.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Button onClick={() => navigate('/onboarding')} className="gradient-primary text-white shadow-elegant">
+                  Create your team
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/dashboard')}>
+                  Go to Dashboard
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -198,7 +211,7 @@ const Team = () => {
         </div>
 
         {/* Team Content */}
-        <Tabs defaultValue="admin" className="w-full">
+        <Tabs defaultValue="members" className="w-full">
           <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="admin">Enterprise Admin</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
