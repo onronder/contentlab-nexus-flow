@@ -184,7 +184,12 @@ export class RequestQueueService {
 
     for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        return await request.operation();
+        const result = await request.operation();
+        // If operation returns a Supabase response with an error, throw to trigger retry logic
+        if (result && typeof result === 'object' && 'error' in result && result.error) {
+          throw result.error;
+        }
+        return result;
       } catch (error) {
         lastError = error as Error;
         

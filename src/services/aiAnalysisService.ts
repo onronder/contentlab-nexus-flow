@@ -32,6 +32,7 @@ export interface ProjectInsights {
 
 export class AIAnalysisService {
   private static instance: AIAnalysisService;
+  private inFlightProjectInsights = new Map<string, Promise<ProjectInsights>>();
 
   static getInstance(): AIAnalysisService {
     if (!AIAnalysisService.instance) {
@@ -147,105 +148,118 @@ export class AIAnalysisService {
    * Generate project-wide competitive insights
    */
   async generateCompetitiveInsights(projectId: string): Promise<ProjectInsights> {
-    try {
-      // Get all competitors for the project
-      const { data: competitors, error: competitorsError } = await supabase
-        .from('project_competitors')
-        .select('*')
-        .eq('project_id', projectId)
-        .eq('status', 'active');
+    // Dedupe in-flight requests per project
+    const existing = this.inFlightProjectInsights.get(projectId);
+    if (existing) return existing;
 
-      if (competitorsError) {
-        throw new Error(`Failed to fetch competitors: ${competitorsError.message}`);
-      }
+    const promise = (async (): Promise<ProjectInsights> => {
+      try {
+        // Get all competitors for the project
+        const { data: competitors, error: competitorsError } = await supabase
+          .from('project_competitors')
+          .select('*')
+          .eq('project_id', projectId)
+          .eq('status', 'active');
 
-      if (!competitors || competitors.length === 0) {
-        throw new Error('No active competitors found for this project');
-      }
+        if (competitorsError) {
+          throw new Error(`Failed to fetch competitors: ${competitorsError.message}`);
+        }
 
-      // Get project data
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single();
+        if (!competitors || competitors.length === 0) {
+          throw new Error('No active competitors found for this project');
+        }
 
-      if (projectError) {
-        throw new Error(`Failed to fetch project: ${projectError.message}`);
-      }
+        // Get project data
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
 
-      // Queue the insights generation request to prevent rate limiting and track usage
-      const startedAt = Date.now();
-      const { estimatedTokens, estimatedCost } = this.getAnalysisCostEstimate(competitors.length, 'positioning');
-      const { data, error: insightsError } = await requestQueueService.enqueueRequest(
-        () => supabase.functions.invoke('generate-insights', {
-          body: { 
-            projectId,
-            competitors,
-            project
+        if (projectError) {
+          throw new Error(`Failed to fetch project: ${projectError.message}`);
+        }
+
+        // Queue the insights generation request to prevent rate limiting and track usage
+        const startedAt = Date.now();
+        const { estimatedTokens, estimatedCost } = this.getAnalysisCostEstimate(competitors.length, 'positioning');
+        const { data, error: insightsError } = await requestQueueService.enqueueRequest(
+          () => supabase.functions.invoke('generate-insights', {
+            body: { 
+              projectId,
+              competitors,
+              project
+            }
+          }),
+          'high' // Project insights have high priority
+        );
+
+        const responseTime = Date.now() - startedAt;
+
+        if (insightsError) {
+          // Adjust rate limit on error
+          try {
+            const { rateLimitService } = await import('./rateLimitService');
+            rateLimitService.adaptRateLimit({ status: insightsError.status || 500, headers: {} });
+          } catch {}
+          
+          // Record failed usage
+          apiMonitoringService.recordUsage({
+            endpoint: 'generate-insights',
+            method: 'POST',
+            status: insightsError.status || 500,
+            responseTime,
+            tokensUsed: estimatedTokens,
+            cost: estimatedCost,
+            errorMessage: insightsError.message,
+          });
+          console.error('Insights generation error:', insightsError);
+          
+          // Enhanced specific error handling
+          if (insightsError.status === 401 || /unauthorized|invalid api key/i.test(insightsError.message || '')) {
+            throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
           }
-        }),
-        'high' // Project insights have high priority
-      );
+          if (insightsError.status === 429 || /rate limited|too many requests/i.test(insightsError.message || '')) {
+            throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
+          }
+          if (insightsError.status === 503 || /service_unavailable|unavailable/i.test(insightsError.message || '')) {
+            throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
+          }
+          if (insightsError.status >= 500 || /timeout|network|connection|ECONNRESET|ETIMEDOUT/i.test(insightsError.message || '')) {
+            throw new Error('Network or server issue occurred during insights generation. It will be retried automatically.');
+          }
+          
+          throw new Error(`Insights generation failed: ${insightsError.message}`);
+        }
 
-      const responseTime = Date.now() - startedAt;
-
-      if (insightsError) {
-        // Adjust rate limit on error
+        // On success, update rate limit adaptively
         try {
           const { rateLimitService } = await import('./rateLimitService');
-          rateLimitService.adaptRateLimit({ status: insightsError.status || 500, headers: {} });
+          rateLimitService.adaptRateLimit({ status: 200, headers: {} });
         } catch {}
-        
-        // Record failed usage
+
+        // Record successful usage
         apiMonitoringService.recordUsage({
           endpoint: 'generate-insights',
           method: 'POST',
-          status: insightsError.status || 500,
+          status: 200,
           responseTime,
           tokensUsed: estimatedTokens,
           cost: estimatedCost,
-          errorMessage: insightsError.message,
         });
-        console.error('Insights generation error:', insightsError);
-        
-        // Enhanced specific error handling
-        if (insightsError.status === 401 || /unauthorized|invalid api key/i.test(insightsError.message || '')) {
-          throw new Error('OpenAI API key is invalid or missing. Please update your API configuration.');
-        }
-        if (insightsError.status === 429 || /rate limited|too many requests/i.test(insightsError.message || '')) {
-          throw new Error('AI analysis is temporarily rate limited. Please try again in a few moments.');
-        }
-        if (insightsError.status === 503 || /service_unavailable|unavailable/i.test(insightsError.message || '')) {
-          throw new Error('AI analysis service is temporarily unavailable. Please try again later.');
-        }
-        if (insightsError.status >= 500 || /timeout|network|connection|ECONNRESET|ETIMEDOUT/i.test(insightsError.message || '')) {
-          throw new Error('Network or server issue occurred during insights generation. It will be retried automatically.');
-        }
-        
-        throw new Error(`Insights generation failed: ${insightsError.message}`);
+
+        return data;
+      } catch (error) {
+        console.error('Project insights generation failed:', error);
+        throw error;
       }
+    })();
 
-      // On success, update rate limit adaptively
-      try {
-        const { rateLimitService } = await import('./rateLimitService');
-        rateLimitService.adaptRateLimit({ status: 200, headers: {} });
-      } catch {}
-
-      // Record successful usage
-      apiMonitoringService.recordUsage({
-        endpoint: 'generate-insights',
-        method: 'POST',
-        status: 200,
-        responseTime,
-        tokensUsed: estimatedTokens,
-        cost: estimatedCost,
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Project insights generation failed:', error);
-      throw error;
+    this.inFlightProjectInsights.set(projectId, promise);
+    try {
+      return await promise;
+    } finally {
+      this.inFlightProjectInsights.delete(projectId);
     }
   }
 

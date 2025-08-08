@@ -83,9 +83,9 @@ export default function Competitive() {
   const startAnalysisMutation = useStartAnalysis();
   const cancelAnalysisMutation = useCancelAnalysis();
   
-  const { data: projectInsights, isLoading: insightsLoading, refetch: refetchInsights } = useProjectInsights(
+  const { data: projectInsights, isLoading: insightsLoading, isFetching: insightsFetching, refetch: refetchInsights } = useProjectInsights(
     currentProject?.id || '',
-    !!currentProject?.id
+    false
   );
   
   const { data: projectAnalyses, isLoading: analysesLoading } = useProjectAnalyses(
@@ -225,7 +225,7 @@ export default function Competitive() {
     }
     
     try {
-      await generateInsightsMutation.mutateAsync({ projectId: currentProject.id });
+      await refetchInsights();
     } catch (error) {
       console.error('Error starting project analysis:', error);
     }
@@ -591,10 +591,10 @@ export default function Competitive() {
                   </p>
                   <Button 
                     onClick={handleStartProjectAnalysis}
-                    disabled={generateInsightsMutation.isPending || competitors.length === 0}
+                    disabled={(insightsLoading || insightsFetching) || competitors.length === 0}
                     size="lg"
                   >
-                    {generateInsightsMutation.isPending ? (
+                    {(insightsLoading || insightsFetching) ? (
                       <>
                         <Activity className="mr-2 h-4 w-4 animate-spin" />
                         Generating Analysis...
