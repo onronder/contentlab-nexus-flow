@@ -71,4 +71,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.team-performance-report]
+verify_jwt = false
+
+[functions.team-performance-report-batch]
+verify_jwt = false
+
+[functions.team-performance-report]
 verify_jwt = true
