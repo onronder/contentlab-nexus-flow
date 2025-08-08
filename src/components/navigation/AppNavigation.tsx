@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useUser, useSupabaseClient, useSession } from '@/contexts';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { ApiStatusIndicator } from '@/components/competitive/ApiStatusIndicator';
 
 import {
   User,
@@ -285,7 +286,7 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ className }) => {
 
         {/* Right side actions */}
         <div className="flex items-center gap-4">
-          
+          <div className="hidden md:flex"><ApiStatusIndicator variant="compact" /></div>
           {/* Mobile menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>

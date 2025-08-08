@@ -74,7 +74,7 @@ export function useStartAnalysis() {
 
       toast({
         title,
-        description: `${description}${actionText ? ` ${actionText}` : ''}`,
+        description: `${description}${actionText ? ` ${actionText}` : ''} You can also review live status in the API Usage dashboard (Admin > API Usage).`,
         variant: "destructive",
       });
     },

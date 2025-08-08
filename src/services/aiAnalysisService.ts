@@ -79,6 +79,12 @@ export class AIAnalysisService {
       const responseTime = Date.now() - startedAt;
 
       if (error) {
+        // Adjust rate limit on error
+        try {
+          const { rateLimitService } = await import('./rateLimitService');
+          rateLimitService.adaptRateLimit({ status: error.status || 500, headers: {} });
+        } catch {}
+        
         // Record failed usage
         apiMonitoringService.recordUsage({
           endpoint: 'analyze-competitor',
@@ -107,6 +113,12 @@ export class AIAnalysisService {
         
         throw new Error(`Analysis failed: ${error.message}`);
       }
+
+      // On success, update rate limit adaptively
+      try {
+        const { rateLimitService } = await import('./rateLimitService');
+        rateLimitService.adaptRateLimit({ status: 200, headers: {} });
+      } catch {}
 
       // Record successful usage
       apiMonitoringService.recordUsage({
@@ -179,6 +191,12 @@ export class AIAnalysisService {
       const responseTime = Date.now() - startedAt;
 
       if (insightsError) {
+        // Adjust rate limit on error
+        try {
+          const { rateLimitService } = await import('./rateLimitService');
+          rateLimitService.adaptRateLimit({ status: insightsError.status || 500, headers: {} });
+        } catch {}
+        
         // Record failed usage
         apiMonitoringService.recordUsage({
           endpoint: 'generate-insights',
@@ -207,6 +225,12 @@ export class AIAnalysisService {
         
         throw new Error(`Insights generation failed: ${insightsError.message}`);
       }
+
+      // On success, update rate limit adaptively
+      try {
+        const { rateLimitService } = await import('./rateLimitService');
+        rateLimitService.adaptRateLimit({ status: 200, headers: {} });
+      } catch {}
 
       // Record successful usage
       apiMonitoringService.recordUsage({

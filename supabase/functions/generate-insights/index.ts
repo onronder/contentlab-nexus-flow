@@ -55,10 +55,11 @@ serve(async (req) => {
 
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const OPENAI_API_KEY_SECONDARY = Deno.env.get('OPENAI_API_KEY_SECONDARY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 
-    if (!OPENAI_API_KEY) {
+    if (!OPENAI_API_KEY && !OPENAI_API_KEY_SECONDARY) {
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
@@ -132,35 +133,54 @@ Return response in this exact JSON format:
   "generatedAt": "${new Date().toISOString()}"
 }`;
 
-    // Call OpenAI API with retry logic
-    const response = await retryWithExponentialBackoff(async () => {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini', // Use cheaper, faster model
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.4,
-          max_tokens: 2000, // Further reduced to save tokens
-        }),
-      });
+    // Call OpenAI API with retry logic and key rotation
+    async function callOpenAI(apiKey: string) {
+      return retryWithExponentialBackoff(async () => {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini', // Use cheaper, faster model
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.4,
+            max_tokens: 2000, // Further reduced to save tokens
+          }),
+        });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        if (res.status === 429) {
-          throw new Error(`429 Too Many Requests: ${errorText}`);
+        if (!res.ok) {
+          const errorText = await res.text();
+          if (res.status === 429) {
+            throw new Error(`429 Too Many Requests: ${errorText}`);
+          }
+          if (res.status === 401) {
+            throw new Error(`401 Unauthorized: ${errorText}`);
+          }
+          throw new Error(`OpenAI API error: ${res.status} ${res.statusText} - ${errorText}`);
         }
-        throw new Error(`OpenAI API error: ${res.status} ${res.statusText} - ${errorText}`);
+        
+        return res;
+      });
+    }
+
+    let activeKey = OPENAI_API_KEY || OPENAI_API_KEY_SECONDARY!;
+    let response: Response;
+    try {
+      response = await callOpenAI(activeKey);
+    } catch (err) {
+      const msg = (err as Error).message || '';
+      if (OPENAI_API_KEY_SECONDARY && (msg.includes('429') || msg.includes('401') || /unauthorized|invalid api key/i.test(msg))) {
+        activeKey = OPENAI_API_KEY_SECONDARY;
+        response = await callOpenAI(activeKey);
+      } else {
+        throw err;
       }
-      
-      return res;
-    });
+    }
 
     const data = await response.json();
     const content = data.choices[0].message.content;

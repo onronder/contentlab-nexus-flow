@@ -5,27 +5,33 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useApiUsage } from '@/hooks/useApiUsage';
-import { Activity, DollarSign, Timer, AlertTriangle, Download } from 'lucide-react';
+import { Activity, DollarSign, Timer, AlertTriangle, Download, Trash2, Clock } from 'lucide-react';
+import { apiMonitoringService } from '@/services/apiMonitoringService';
 
 export function ApiDashboard() {
-  const { metrics, alerts, cost, trends, exportCsv, recommendations } = useApiUsage();
+  const { metrics, alerts, cost, trends, exportCsv, recommendations, recentEvents } = useApiUsage();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">API Usage</h2>
-        <Button variant="outline" onClick={() => {
-          const data = exportCsv();
-          const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `api-usage-${new Date().toISOString()}.csv`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }}>
-          <Download className="w-4 h-4 mr-2" /> Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => {
+            const data = exportCsv();
+            const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `api-usage-${new Date().toISOString()}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}>
+            <Download className="w-4 h-4 mr-2" /> Export CSV
+          </Button>
+          <Button variant="destructive" onClick={() => apiMonitoringService.clearUsageData()}>
+            <Trash2 className="w-4 h-4 mr-2" /> Clear Data
+          </Button>
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -79,15 +85,24 @@ export function ApiDashboard() {
         </Card>
       )}
 
-      {/* Alerts Panel */}
-      {alerts.some(a => a.severity === 'critical') && (
-        <Alert>
-          <AlertTriangle className="w-4 h-4" />
-          <AlertDescription>
-            Critical API issues detected. Please review usage and consider reducing analysis frequency.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Recent Events */}
+      <Card>
+        <CardHeader><CardTitle>Recent API Events</CardTitle></CardHeader>
+        <CardContent>
+          {recentEvents.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No recent events.</div>
+          ) : (
+            <ul className="space-y-2">
+              {recentEvents.slice(0, 20).map((e, idx) => (
+                <li key={idx} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{e.endpoint} • {e.status}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {new Date(e.timestamp).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

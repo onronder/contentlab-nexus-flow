@@ -32,7 +32,7 @@ import {
   useAnalysisStats
 } from "@/hooks/useAnalysisQueries";
 import { AnalysisResults } from "@/components/competitive/AnalysisResults";
-import { AnalysisProgress } from "@/components/competitive/AnalysisProgress";
+import { EnhancedAnalysisProgress } from "@/components/competitive/EnhancedAnalysisProgress";
 import { AnalysisMetrics } from "@/components/competitive/AnalysisMetrics";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { THREAT_LEVELS, COMPETITIVE_TIERS, CompetitorCreateInput } from "@/types/competitors";
@@ -525,6 +525,9 @@ export default function Competitive() {
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-6">
+          {/* API Health */}
+          <ApiStatusIndicator variant="detailed" showRefreshButton />
+
           {/* Analysis Metrics */}
           {analysisStats && (
             <AnalysisMetrics
@@ -540,7 +543,7 @@ export default function Competitive() {
 
           {/* Analysis Progress */}
           {projectAnalyses && projectAnalyses.length > 0 && (
-            <AnalysisProgress
+            <EnhancedAnalysisProgress
               analyses={projectAnalyses}
               onCancelAnalysis={handleCancelAnalysis}
             />

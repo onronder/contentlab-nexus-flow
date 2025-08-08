@@ -30,6 +30,7 @@ import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWiza
 import { isDevelopment } from '@/utils/productionUtils';
 import { TeamProvider } from '@/contexts/TeamContext';
 import { ApiConfigValidator } from '@/components/debug/ApiConfigValidator';
+import { ApiDashboard } from '@/components/admin/ApiDashboard';
 
 const App = () => (
   <TooltipProvider>
@@ -211,6 +212,16 @@ const App = () => (
             <ProtectedRoute>
               <Layout>
                 <Security />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/api-usage" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ApiDashboard />
               </Layout>
             </ProtectedRoute>
           } 

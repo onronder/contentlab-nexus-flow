@@ -160,13 +160,11 @@ export class RequestQueueService {
         // Handle successful request
         this.onRequestSuccess();
         
-        // Update rate limiting based on response
-        if (result && result.headers) {
-          rateLimitService.adaptRateLimit({
-            status: 200,
-            headers: result.headers
-          });
-        }
+        // Update rate limiting based on response (fallback to success when headers are unavailable)
+        rateLimitService.adaptRateLimit({
+          status: 200,
+          headers: {}
+        });
 
         this.lastRequestTime = Date.now();
 

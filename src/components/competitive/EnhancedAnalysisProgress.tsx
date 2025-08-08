@@ -22,7 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface EnhancedAnalysisProgressProps {
   analysisId: string;
-  competitorName: string;
+  competitorName?: string;
   analysisType: string;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   progress?: number;

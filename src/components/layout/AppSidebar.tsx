@@ -102,6 +102,13 @@ export function AppSidebar() {
       badge: null
     },
     { 
+      title: "API Usage", 
+      url: "/admin/api-usage", 
+      icon: Activity,
+      description: "AI API metrics",
+      badge: null
+    },
+    { 
       title: "Team", 
       url: "/team", 
       icon: Users,

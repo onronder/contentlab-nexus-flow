@@ -15,7 +15,7 @@ serve(async (req) => {
 
   try {
     if (!openAIApiKey) {
-      return new Response(JSON.stringify({ ok: false, error: 'Missing OPENAI_API_KEY' }), {
+      return new Response(JSON.stringify({ ok: false, error: 'Missing OPENAI_API_KEY', primaryKeyPresent: false, secondaryKeyPresent: !!Deno.env.get('OPENAI_API_KEY_SECONDARY') }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -40,7 +40,7 @@ serve(async (req) => {
       clearTimeout(timeout);
     }
 
-    return new Response(JSON.stringify({ ok }), {
+    return new Response(JSON.stringify({ ok, primaryKeyPresent: !!openAIApiKey, secondaryKeyPresent: !!Deno.env.get('OPENAI_API_KEY_SECONDARY') }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
