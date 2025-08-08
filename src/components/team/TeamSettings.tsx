@@ -264,6 +264,82 @@ export const TeamSettings = ({ teamId }: TeamSettingsProps) => {
         </CardContent>
       </Card>
 
+      {/* Performance Reports */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Performance Reports
+          </CardTitle>
+          <CardDescription>
+            Configure automated performance reports and send on-demand
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Enable Reports</Label>
+              <Switch
+                checked={!!formData.settings?.performance_reports?.enabled}
+                onCheckedChange={(checked) => handleSettingsChange('performance_reports', {
+                  ...(formData.settings?.performance_reports || {}),
+                  enabled: checked,
+                })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Frequency</Label>
+              <select
+                className="w-full border rounded h-9 px-3 bg-background"
+                value={formData.settings?.performance_reports?.frequency || 'monthly'}
+                onChange={(e) => handleSettingsChange('performance_reports', {
+                  ...(formData.settings?.performance_reports || {}),
+                  frequency: e.target.value,
+                })}
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+              </select>
+            </div>
+            <div className="space-y-2 md:col-span-1">
+              <Label>Recipients (comma-separated emails)</Label>
+              <Input
+                value={formData.settings?.performance_reports?.recipients?.join(', ') || ''}
+                onChange={(e) => handleSettingsChange('performance_reports', {
+                  ...(formData.settings?.performance_reports || {}),
+                  recipients: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                })}
+                placeholder="team@company.com, lead@company.com"
+              />
+            </div>
+          </div>
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const { supabase } = await import('@/integrations/supabase/client');
+                  const { data, error } = await supabase.functions.invoke('team-performance-report', {
+                    body: {
+                      teamId,
+                      recipients: formData.settings?.performance_reports?.recipients || [],
+                    }
+                  });
+                  if (error) throw error;
+                  toast({ title: 'Report sent', description: 'Performance report has been dispatched.' });
+                } catch (err: any) {
+                  toast({ title: 'Failed to send report', description: err?.message || 'Unexpected error', variant: 'destructive' });
+                }
+              }}
+            >
+              Send report now
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Danger Zone */}
       <Card className="border-destructive/20">
         <CardHeader>

@@ -36,7 +36,7 @@ import { TeamAdminDashboard } from "@/components/team/TeamAdminDashboard";
 import { TeamBillingDashboard } from "@/components/team/TeamBillingDashboard";
 import { TeamProjectsOverview } from "@/components/team/TeamProjectsOverview";
 import { TeamContentLibrary } from "@/components/team/TeamContentLibrary";
-
+import { TeamPerformanceDashboard } from "@/components/team/TeamPerformanceDashboard";
 const Team = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -279,7 +279,11 @@ const Team = () => {
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
-            <TeamAnalytics teamId={teamId || ""} />
+            <div className="space-y-6">
+              <TeamAnalytics teamId={teamId || ""} />
+              {/* Enhanced performance dashboard */}
+              <TeamPerformanceDashboard teamId={teamId || ""} />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

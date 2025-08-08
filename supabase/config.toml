@@ -69,3 +69,6 @@ verify_jwt = true
 
 [functions.openai-health]
 verify_jwt = false
+
+[functions.team-performance-report]
+verify_jwt = true
