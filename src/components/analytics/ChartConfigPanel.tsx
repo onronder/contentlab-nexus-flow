@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 
-export type ChartType = "line" | "bar" | "area" | "pie";
+export type ChartType = "line" | "bar" | "area" | "pie" | "map";
 
 export type Annotation = { x: string | number; label: string };
 
@@ -20,11 +20,18 @@ export interface ChartBuilderConfig {
   yLabel: string;
   xKey: string;
   yKeys: string[];
+  rightAxisKeys?: string[];
+  normalization?: "none" | "minmax" | "zscore";
+  formula?: { name: string; expression: string } | null;
   showBrush: boolean;
   showLegend: boolean;
   showTrendline: boolean;
+  ciLowerKey?: string;
+  ciUpperKey?: string;
   annotations: Annotation[];
   selectionEnabled: boolean;
+  playbackEnabled?: boolean;
+  refreshInterval?: number;
   dataset: "performance" | "engagement" | "content";
 }
 
@@ -132,6 +139,7 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onCh
                 <SelectItem value="area">Area</SelectItem>
                 <SelectItem value="bar">Bar</SelectItem>
                 <SelectItem value="pie">Pie</SelectItem>
+                <SelectItem value="map">Map</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -212,6 +220,90 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onCh
           </div>
         </div>
 
+        {/* Advanced options */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Normalization</Label>
+            <Select value={config.normalization || "none"} onValueChange={(v) => update({ normalization: v as any })}>
+              <SelectTrigger>
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="minmax">Min-Max</SelectItem>
+                <SelectItem value="zscore">Z-Score</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Right Axis Series</Label>
+            <div className="flex flex-wrap gap-3">
+              {config.yKeys.map((k) => (
+                <label key={k} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!config.rightAxisKeys?.includes(k)}
+                    onChange={() => {
+                      const set = new Set(config.rightAxisKeys || []);
+                      if (set.has(k)) set.delete(k); else set.add(k);
+                      update({ rightAxisKeys: Array.from(set) });
+                    }}
+                    aria-label={`Toggle right axis for ${k}`}
+                  />
+                  {k}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>CI Lower Key</Label>
+            <Select value={config.ciLowerKey || ""} onValueChange={(v) => update({ ciLowerKey: v || undefined })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select lower bound" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {availableYKeys.map((k) => (
+                  <SelectItem key={k} value={k}>{k}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>CI Upper Key</Label>
+            <Select value={config.ciUpperKey || ""} onValueChange={(v) => update({ ciUpperKey: v || undefined })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select upper bound" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {availableYKeys.map((k) => (
+                  <SelectItem key={k} value={k}>{k}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Height (px)</Label>
+            <Input type="number" value={config.height} onChange={(e) => update({ height: Number(e.target.value || 300) })} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Computed Metric Name</Label>
+            <Input value={config.formula?.name || ""} onChange={(e) => update({ formula: { ...(config.formula || { expression: "" }), name: e.target.value } })} placeholder="e.g. engagementScore" />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <Label>Formula</Label>
+            <Input value={config.formula?.expression || ""} onChange={(e) => update({ formula: { ...(config.formula || { name: "" }), expression: e.target.value } })} placeholder="likes + shares * 0.5" />
+            <p className="text-xs text-muted-foreground">Use field names and math operators. Example: (likes + comments*0.5) / shares</p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="brush">Zoom/Brush</Label>
@@ -229,9 +321,9 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onCh
             <Label htmlFor="select">Selection</Label>
             <Switch id="select" checked={config.selectionEnabled} onCheckedChange={(v) => update({ selectionEnabled: v })} />
           </div>
-          <div className="space-y-2">
-            <Label>Height (px)</Label>
-            <Input type="number" value={config.height} onChange={(e) => update({ height: Number(e.target.value || 300) })} />
+          <div className="flex items-center justify-between">
+            <Label htmlFor="playback">Playback</Label>
+            <Switch id="playback" checked={!!config.playbackEnabled} onCheckedChange={(v) => update({ playbackEnabled: v })} />
           </div>
         </div>
 

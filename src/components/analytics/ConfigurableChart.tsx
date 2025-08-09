@@ -21,6 +21,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartBuilderConfig } from "./ChartConfigPanel";
+import { applyNormalization, computeFormula } from "./dataTransforms";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
 function linearRegression(points: Array<{ x: number; y: number }>) {
   const n = points.length;
