@@ -1,5 +1,5 @@
 
-import { useState, useMemo, Suspense, lazy } from "react";
+import { useState, useMemo, useEffect, Suspense, lazy } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,10 +48,29 @@ import {
   Tooltip, 
   Legend 
 } from 'recharts';
+import ChartConfigPanel, { ChartBuilderConfig } from "@/components/analytics/ChartConfigPanel";
+import ConfigurableChart from "@/components/analytics/ConfigurableChart";
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState("30");
   const { data: analyticsData, isLoading } = useAnalyticsData();
+  const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>({
+    chartType: "line",
+    palette: "default",
+    customColors: [],
+    height: 320,
+    title: "Custom Chart",
+    xLabel: "",
+    yLabel: "",
+    xKey: "name",
+    yKeys: ["performance"],
+    showBrush: true,
+    showLegend: true,
+    showTrendline: false,
+    annotations: [],
+    selectionEnabled: true,
+    dataset: "performance",
+  });
   
   // Use real data if available, provide default structure if no data
   const realMetrics = analyticsData ? [
@@ -107,6 +126,29 @@ const Analytics = () => {
       { name: 'Week 4', likes: 2780, shares: 3908, comments: 2000 },
     ]
   }), [analyticsData]);
+
+  const selectedData = useMemo(() => {
+    if (chartConfig.dataset === "performance") return chartData.performanceData;
+    if (chartConfig.dataset === "engagement") return chartData.engagementData;
+    return chartData.contentPerformanceData;
+  }, [chartConfig.dataset, chartData]);
+
+  const availableXKeys = useMemo(() => {
+    const first = selectedData?.[0] ?? {} as any;
+    return Object.keys(first).filter((k) => typeof (first as any)[k] !== 'object');
+  }, [selectedData]);
+
+  const availableYKeys = useMemo(() => {
+    const keys = new Set<string>();
+    selectedData?.forEach((row: any) => {
+      Object.keys(row).forEach((k) => {
+        if (k !== chartConfig.xKey && typeof row[k] === 'number') keys.add(k);
+      });
+    });
+    const arr = Array.from(keys);
+    return arr.length ? arr : ["value"];
+  }, [selectedData, chartConfig.xKey]);
+
 
   const formatChange = (value: number, type: string) => {
     const isPositive = type === "increase";
