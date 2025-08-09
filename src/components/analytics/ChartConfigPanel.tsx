@@ -80,6 +80,7 @@ export function getPaletteColors(palette: ChartBuilderConfig["palette"], customC
 
 export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onChange, availableXKeys, availableYKeys }) => {
   const update = (partial: Partial<ChartBuilderConfig>) => onChange(partial);
+  const NONE = "__none__";
 
   const handleCustomColorChange = (idx: number, value: string) => {
     const updated = [...config.customColors];
@@ -260,12 +261,12 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onCh
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>CI Lower Key</Label>
-            <Select value={config.ciLowerKey || ""} onValueChange={(v) => update({ ciLowerKey: v || undefined })}>
+            <Select value={config.ciLowerKey ?? NONE} onValueChange={(v) => update({ ciLowerKey: v === NONE ? undefined : v })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select lower bound" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value={NONE}>None</SelectItem>
                 {availableYKeys.map((k) => (
                   <SelectItem key={k} value={k}>{k}</SelectItem>
                 ))}
@@ -274,12 +275,12 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onCh
           </div>
           <div className="space-y-2">
             <Label>CI Upper Key</Label>
-            <Select value={config.ciUpperKey || ""} onValueChange={(v) => update({ ciUpperKey: v || undefined })}>
+            <Select value={config.ciUpperKey ?? NONE} onValueChange={(v) => update({ ciUpperKey: v === NONE ? undefined : v })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select upper bound" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value={NONE}>None</SelectItem>
                 {availableYKeys.map((k) => (
                   <SelectItem key={k} value={k}>{k}</SelectItem>
                 ))}
