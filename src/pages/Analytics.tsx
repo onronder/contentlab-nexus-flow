@@ -50,11 +50,13 @@ import {
 } from 'recharts';
 import ChartConfigPanel, { ChartBuilderConfig } from "@/components/analytics/ChartConfigPanel";
 import ConfigurableChart from "@/components/analytics/ConfigurableChart";
+import { toast } from "@/hooks/use-toast";
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState("30");
   const { data: analyticsData, isLoading } = useAnalyticsData();
-  const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>({
+  const STORAGE_KEY = "analytics.customChartConfig";
+  const defaultChartConfig: ChartBuilderConfig = {
     chartType: "line",
     palette: "default",
     customColors: [],
@@ -64,13 +66,43 @@ const Analytics = () => {
     yLabel: "",
     xKey: "name",
     yKeys: ["performance"],
+    rightAxisKeys: [],
+    normalization: "none",
+    formula: null,
     showBrush: true,
     showLegend: true,
     showTrendline: false,
+    ciLowerKey: undefined,
+    ciUpperKey: undefined,
     annotations: [],
     selectionEnabled: true,
+    playbackEnabled: false,
+    refreshInterval: 1000,
     dataset: "performance",
-  });
+  };
+  const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartConfig);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setChartConfig((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chartConfig));
+    } catch {}
+  }, [chartConfig]);
+
+  const handleReset = () => {
+    setChartConfig(defaultChartConfig);
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    toast({ title: "Chart reset", description: "Your custom chart has been reset." });
+  };
   
   // Use real data if available, provide default structure if no data
   const realMetrics = analyticsData ? [
@@ -189,6 +221,28 @@ const Analytics = () => {
               <Download className="h-4 w-4" />
               Export
             </Button>
+          </div>
+        </div>
+
+        {/* Custom Chart Builder */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-1">
+            <ChartConfigPanel
+              config={chartConfig}
+              onChange={(partial) => setChartConfig((prev) => ({ ...prev, ...partial }))}
+              availableXKeys={availableXKeys}
+              availableYKeys={availableYKeys}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <div className="flex justify-end mb-3">
+              <Button variant="outline" onClick={handleReset}>Reset</Button>
+            </div>
+            <ConfigurableChart
+              title={chartConfig.title || "Custom Chart"}
+              data={selectedData as any[]}
+              config={chartConfig}
+            />
           </div>
         </div>
 
