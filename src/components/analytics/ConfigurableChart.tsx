@@ -16,7 +16,7 @@ import {
   Legend,
   Brush,
   ReferenceLine,
-  ResponsiveContainer,
+  
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -226,17 +226,15 @@ const transformed = useMemo(() => {
     if (config.chartType === "pie") {
       const valueKey = config.yKeys[0] || "value";
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart onClick={(e: any) => e?.activePayload?.[0]?.payload?.name && addOrRemoveSelected(e.activePayload[0].payload.name)}>
-            <Tooltip />
-            <Pie data={vizData} dataKey={valueKey} nameKey={config.xKey} cx="50%" cy="50%" outerRadius={Math.min(120, (config.height || 300) / 2 - 20)} label>
-              {vizData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={palette[index % palette.length]} opacity={selectedNames.length ? (selectedNames.includes(entry[config.xKey]) ? 1 : 0.4) : 1} />
-              ))}
-            </Pie>
-            {config.showLegend && <Legend />}
-          </PieChart>
-        </ResponsiveContainer>
+        <PieChart onClick={(e: any) => e?.activePayload?.[0]?.payload?.name && addOrRemoveSelected(e.activePayload[0].payload.name)}>
+          <Tooltip />
+          <Pie data={vizData} dataKey={valueKey} nameKey={config.xKey} cx="50%" cy="50%" outerRadius={Math.min(120, (config.height || 300) / 2 - 20)} label>
+            {vizData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={palette[index % palette.length]} opacity={selectedNames.length ? (selectedNames.includes(entry[config.xKey]) ? 1 : 0.4) : 1} />
+            ))}
+          </Pie>
+          {config.showLegend && <Legend />}
+        </PieChart>
       );
     }
 
@@ -267,37 +265,31 @@ const transformed = useMemo(() => {
 
     if (config.chartType === "bar") {
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={vizData} onClick={(d: any) => d?.activeLabel && addOrRemoveSelected(String(d.activeLabel))}>
-            {commonAxes}
-            {LinesOrAreas}
-          </BarChart>
-        </ResponsiveContainer>
+        <BarChart data={vizData} onClick={(d: any) => d?.activeLabel && addOrRemoveSelected(String(d.activeLabel))}>
+          {commonAxes}
+          {LinesOrAreas}
+        </BarChart>
       );
     }
 
     if (config.chartType === "area") {
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={vizData}>
-            {commonAxes}
-            {ciBand}
-            {LinesOrAreas}
-            {trend}
-          </AreaChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={vizData}>
+        <AreaChart data={vizData}>
           {commonAxes}
           {ciBand}
           {LinesOrAreas}
           {trend}
-        </LineChart>
-      </ResponsiveContainer>
+        </AreaChart>
+      );
+    }
+
+    return (
+      <LineChart data={vizData}>
+        {commonAxes}
+        {ciBand}
+        {LinesOrAreas}
+        {trend}
+      </LineChart>
     );
   };
 

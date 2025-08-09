@@ -5,11 +5,17 @@ export type ChartPreset = {
 };
 
 const PRESETS_KEY = "analytics.chartPresets";
+const PRESETS_VERSION = 1;
+const PRESETS_MAX = 50;
 
 export function loadPresets(): ChartPreset[] {
   try {
     const raw = localStorage.getItem(PRESETS_KEY);
-    return raw ? (JSON.parse(raw) as ChartPreset[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as ChartPreset[]; // backward compat
+    if (parsed && Array.isArray(parsed.items)) return parsed.items as ChartPreset[];
+    return [];
   } catch {
     return [];
   }
@@ -17,7 +23,8 @@ export function loadPresets(): ChartPreset[] {
 
 export function savePresets(presets: ChartPreset[]) {
   try {
-    localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+    const items = presets.slice(-PRESETS_MAX);
+    localStorage.setItem(PRESETS_KEY, JSON.stringify({ version: PRESETS_VERSION, items }));
   } catch {}
 }
 
