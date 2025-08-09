@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -94,16 +94,54 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
     return Object.fromEntries(entries);
   }, [config.yKeys, colorsByKey]);
 
+  const transformed = useMemo(() => {
+    let out = data;
+    const f = computeFormula(out, config.formula);
+    out = f.data;
+    const addedKey = f.addedKey;
+    const normKeys = config.normalization && config.normalization !== "none" ? [...config.yKeys, ...(addedKey ? [addedKey] : [])] : [];
+    if (normKeys.length) {
+      out = applyNormalization(out, normKeys, config.normalization!);
+    }
+    if (config.ciLowerKey && config.ciUpperKey) {
+      out = out.map((row: any) => {
+        const lower = Number(row[config.ciLowerKey!]) || 0;
+        const upper = Number(row[config.ciUpperKey!]) || 0;
+        return { ...row, __ciWidth: Math.max(0, upper - lower) };
+      });
+    }
+    return out;
+  }, [data, config.formula, config.normalization, config.yKeys, config.ciLowerKey, config.ciUpperKey]);
+
+  const [frame, setFrame] = useState<number>(-1);
+  useEffect(() => {
+    if (!config.playbackEnabled) { setFrame(-1); return; }
+    let i = 1;
+    const id = window.setInterval(() => {
+      i = (i + 1) % (transformed.length + 1);
+      setFrame(i);
+    }, config.refreshInterval || 1000);
+    return () => window.clearInterval(id);
+  }, [config.playbackEnabled, config.refreshInterval, transformed.length]);
+
+  const vizData = useMemo(() => {
+    if (frame <= 0) return transformed;
+    return transformed.slice(0, frame);
+  }, [transformed, frame]);
+
   const withTrend = useMemo(() => {
     if (!config.showTrendline || config.chartType === "pie" || config.yKeys.length !== 1) return null;
-    return buildTrendline(data, config.xKey, config.yKeys[0]);
-  }, [config.showTrendline, config.chartType, config.yKeys, data, config.xKey]);
+    return buildTrendline(vizData, config.xKey, config.yKeys[0]);
+  }, [config.showTrendline, config.chartType, config.yKeys, vizData, config.xKey]);
 
   const commonAxes = (
     <>
       <CartesianGrid strokeDasharray="3 3" />
       <XAxis dataKey={config.xKey} label={config.xLabel ? { value: config.xLabel, position: "insideBottom", offset: -5 } : undefined} />
-      <YAxis label={config.yLabel ? { value: config.yLabel, angle: -90, position: "insideLeft" } : undefined} />
+      <YAxis yAxisId="left" label={config.yLabel ? { value: config.yLabel, angle: -90, position: "insideLeft" } : undefined} />
+      {config.rightAxisKeys?.length ? (
+        <YAxis yAxisId="right" orientation="right" />
+      ) : null}
       <ChartTooltip content={<ChartTooltipContent />} />
       {config.showLegend && <Legend />}
       {config.showBrush && <Brush dataKey={config.xKey} height={24} travellerWidth={8} />}
@@ -116,14 +154,52 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
   const heightStyle = { height: `${config.height || 300}px` } as React.CSSProperties;
 
   const renderByType = () => {
+    if (config.chartType === "map") {
+      const valueKey = config.yKeys[0] || "value";
+      const values = vizData.map((d: any) => Number(d[valueKey] ?? 0));
+      const min = Math.min(...values, 0);
+      const max = Math.max(...values, 1);
+      const getOpacity = (v: number) => {
+        if (!isFinite(v) || max === min) return 0.3;
+        const t = (v - min) / (max - min);
+        return 0.2 + t * 0.7;
+      };
+      return (
+        <div style={{ width: "100%", height: "100%" }}>
+          <ComposableMap projectionConfig={{ scale: 140 }}>
+            <Geographies geography="/maps/countries-110m.json">
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const props: any = geo.properties as any;
+                  const gName = props.name || props.NAME || props.NAME_LONG || "";
+                  const row = vizData.find((r: any) => String(r[config.xKey]) === gName);
+                  const v = row ? Number(row[valueKey] ?? 0) : 0;
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={palette[0]}
+                      fillOpacity={getOpacity(v)}
+                      stroke="hsl(var(--border))"
+                      strokeWidth={0.3}
+                    />
+                  );
+                })
+              }
+            </Geographies>
+          </ComposableMap>
+        </div>
+      );
+    }
+
     if (config.chartType === "pie") {
       const valueKey = config.yKeys[0] || "value";
       return (
         <ResponsiveContainer width="100%" height="100%">
           <PieChart onClick={(e: any) => e?.activePayload?.[0]?.payload?.name && addOrRemoveSelected(e.activePayload[0].payload.name)}>
             <Tooltip />
-            <Pie data={data} dataKey={valueKey} nameKey={config.xKey} cx="50%" cy="50%" outerRadius={Math.min(120, (config.height || 300) / 2 - 20)} label>
-              {data.map((entry, index) => (
+            <Pie data={vizData} dataKey={valueKey} nameKey={config.xKey} cx="50%" cy="50%" outerRadius={Math.min(120, (config.height || 300) / 2 - 20)} label>
+              {vizData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={palette[index % palette.length]} opacity={selectedNames.length ? (selectedNames.includes(entry[config.xKey]) ? 1 : 0.4) : 1} />
               ))}
             </Pie>
@@ -133,16 +209,24 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
       );
     }
 
-    const LinesOrAreas = config.yKeys.map((k, i) => {
+    const LinesOrAreas = config.yKeys.map((k) => {
       const color = colorsByKey[k];
+      const yAxisId = config.rightAxisKeys?.includes(k) ? "right" : "left";
       if (config.chartType === "area") {
-        return <Area key={k} type="monotone" dataKey={k} stroke={color} fill={color} fillOpacity={0.25} strokeWidth={2} />;
+        return <Area key={k} yAxisId={yAxisId} type="monotone" dataKey={k} stroke={color} fill={color} fillOpacity={0.25} strokeWidth={2} />;
       }
       if (config.chartType === "bar") {
-        return <Bar key={k} dataKey={k} fill={color} onClick={(d: any) => d?.activeLabel && addOrRemoveSelected(String(d.activeLabel))} />;
+        return <Bar key={k} yAxisId={yAxisId} dataKey={k} fill={color} onClick={(d: any) => d?.activeLabel && addOrRemoveSelected(String(d.activeLabel))} />;
       }
-      return <Line key={k} type="monotone" dataKey={k} stroke={color} strokeWidth={2} dot={false} />;
+      return <Line key={k} yAxisId={yAxisId} type="monotone" dataKey={k} stroke={color} strokeWidth={2} dot={false} />;
     });
+
+    const ciBand = config.ciLowerKey && config.ciUpperKey ? (
+      <>
+        <Area yAxisId="left" type="monotone" dataKey={config.ciLowerKey} stroke="transparent" fill="transparent" isAnimationActive={false} stackId="ci" />
+        <Area yAxisId="left" type="monotone" dataKey="__ciWidth" stroke="none" fill={colorsByKey[config.yKeys[0]] || palette[0]} fillOpacity={0.15} isAnimationActive={false} stackId="ci" />
+      </>
+    ) : null;
 
     const trend = withTrend && (
       <>
@@ -153,7 +237,7 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
     if (config.chartType === "bar") {
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} onClick={(d: any) => d?.activeLabel && addOrRemoveSelected(String(d.activeLabel))}>
+          <BarChart data={vizData} onClick={(d: any) => d?.activeLabel && addOrRemoveSelected(String(d.activeLabel))}>
             {commonAxes}
             {LinesOrAreas}
           </BarChart>
@@ -164,8 +248,9 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
     if (config.chartType === "area") {
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
+          <AreaChart data={vizData}>
             {commonAxes}
+            {ciBand}
             {LinesOrAreas}
             {trend}
           </AreaChart>
@@ -175,8 +260,9 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
 
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
+        <LineChart data={vizData}>
           {commonAxes}
+          {ciBand}
           {LinesOrAreas}
           {trend}
         </LineChart>
