@@ -1,4 +1,5 @@
 import { Parser } from "expr-eval";
+import { startOfDay, startOfWeek, startOfMonth, format } from "date-fns";
 
 export type Normalization = "none" | "minmax" | "zscore";
 
@@ -58,3 +59,61 @@ export function rSquared(points: Array<{ x: number; y: number }>, m: number, b: 
   const r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
   return Number.isFinite(r2) ? r2 : 0;
 }
+
+export type TimeBucket = "none" | "day" | "week" | "month";
+
+export function bucketByTime<T extends Record<string, any>>(data: T[], xKey: string, yKeys: string[], mode: TimeBucket): T[] {
+  if (!data?.length || mode === "none") return data;
+  const parseDate = (v: any): Date | null => {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  // If xKey cannot be parsed as dates, return original
+  const parsed = data.map((row) => parseDate((row as any)[xKey]));
+  if (parsed.some((d) => d === null)) return data;
+
+  const normalize = (d: Date) => {
+    if (mode === "day") return startOfDay(d);
+    if (mode === "week") return startOfWeek(d, { weekStartsOn: 1 });
+    return startOfMonth(d);
+  };
+
+  const map = new Map<string, any>();
+  data.forEach((row, i) => {
+    const d = normalize(parsed[i]!);
+    const key = format(d, mode === "month" ? "yyyy-MM" : mode === "week" ? "yyyy-ww" : "yyyy-MM-dd");
+    if (!map.has(key)) {
+      const base: any = { [xKey]: key };
+      for (const y of yKeys) base[y] = 0;
+      base.__count = 0;
+      map.set(key, base);
+    }
+    const acc = map.get(key)!;
+    for (const y of yKeys) acc[y] += Number((row as any)[y] ?? 0);
+    acc.__count += 1;
+  });
+  // average values within bucket
+  const out = Array.from(map.values()).map((row: any) => {
+    for (const y of yKeys) row[y] = row.__count ? row[y] / row.__count : row[y];
+    delete row.__count;
+    return row as T;
+  });
+  return out;
+}
+
+export function movingAverage<T extends Record<string, any>>(data: T[], yKeys: string[], windowSize?: number): T[] {
+  if (!data?.length || !windowSize || windowSize <= 1) return data;
+  const half = Math.floor(windowSize / 2);
+  const out = data.map((row) => ({ ...row }));
+  for (const key of yKeys) {
+    for (let i = 0; i < data.length; i++) {
+      let sum = 0, count = 0;
+      for (let j = i - half; j <= i + half; j++) {
+        if (j >= 0 && j < data.length) { sum += Number((data[j] as any)[key] ?? 0); count++; }
+      }
+      (out[i] as any)[key] = count ? sum / count : (data[i] as any)[key];
+    }
+  }
+  return out as T[];
+}
+

@@ -12,7 +12,7 @@ export type Annotation = { x: string | number; label: string };
 
 export interface ChartBuilderConfig {
   chartType: ChartType;
-  palette: "default" | "cool" | "warm" | "mono" | "custom";
+  palette: "default" | "cool" | "warm" | "mono" | "colorblind" | "custom";
   customColors: string[];
   height: number;
   title: string;
@@ -33,6 +33,8 @@ export interface ChartBuilderConfig {
   playbackEnabled?: boolean;
   refreshInterval?: number;
   dataset: "performance" | "engagement" | "content";
+  timeBucket?: "none" | "day" | "week" | "month";
+  movingAverageWindow?: number;
 }
 
 interface ChartConfigPanelProps {
@@ -70,6 +72,13 @@ const PRESET_PALETTES: Record<ChartBuilderConfig["palette"], string[]> = {
     "hsl(var(--primary) / 0.7)",
     "hsl(var(--primary) / 0.55)",
     "hsl(var(--primary) / 0.4)",
+  ],
+  colorblind: [
+    "hsl(205 100% 40%)", // blue
+    "hsl(35 90% 55%)",   // orange
+    "hsl(54 80% 62%)",   // yellow
+    "hsl(156 59% 34%)",  // green
+    "hsl(199 68% 63%)",  // sky
   ],
   custom: [],
 };
@@ -156,6 +165,7 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onCh
                 <SelectItem value="cool">Cool</SelectItem>
                 <SelectItem value="warm">Warm</SelectItem>
                 <SelectItem value="mono">Monochrome</SelectItem>
+                <SelectItem value="colorblind">Colorblind-safe</SelectItem>
                 <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>

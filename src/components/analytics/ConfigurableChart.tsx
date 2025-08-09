@@ -21,8 +21,13 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ChartBuilderConfig } from "./ChartConfigPanel";
-import { applyNormalization, computeFormula } from "./dataTransforms";
+import { applyNormalization, computeFormula, bucketByTime, movingAverage } from "./dataTransforms";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { useRef } from "react";
+import { exportChartPNG, exportChartCSV, exportChartJSON } from "@/utils/chartExport";
 
 function linearRegression(points: Array<{ x: number; y: number }>) {
   const n = points.length;
@@ -70,10 +75,14 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
       return [1,0.85,0.7,0.55,0.4].map(a => `hsl(${p} / ${a})`);
     }
     if (config.palette === "custom") return config.customColors.filter(Boolean);
-    // cool / warm defined explicitly
-    return config.palette === "cool"
-      ? ["hsl(217 91% 60%)","hsl(197 63% 55%)","hsl(180 70% 45%)","hsl(200 80% 50%)","hsl(220 70% 50%)"]
-      : ["hsl(12 76% 61%)","hsl(27 87% 55%)","hsl(43 74% 50%)","hsl(0 84% 60%)","hsl(15 75% 55%)"];  
+    if (config.palette === "cool") {
+      return ["hsl(217 91% 60%)","hsl(197 63% 55%)","hsl(180 70% 45%)","hsl(200 80% 50%)","hsl(220 70% 50%)"];
+    }
+    if (config.palette === "warm") {
+      return ["hsl(12 76% 61%)","hsl(27 87% 55%)","hsl(43 74% 50%)","hsl(0 84% 60%)","hsl(15 75% 55%)"];
+    }
+    // colorblind-safe
+    return ["hsl(205 100% 40%)","hsl(35 90% 55%)","hsl(54 80% 62%)","hsl(156 59% 34%)","hsl(199 68% 63%)"];  
   }, [config.palette, config.customColors]);
 
   const colorsByKey = useMemo(() => keyColors(config.yKeys.length ? config.yKeys : ["value"], palette), [config.yKeys, palette]);
