@@ -27,7 +27,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { useRef } from "react";
-import { exportChartPNG, exportChartCSV, exportChartJSON } from "@/utils/chartExport";
+import { exportChartPNG, exportChartCSV, exportChartJSON, exportChartJPEG, exportChartSVG, exportChartPDF, exportChartHTML, exportChartPrint, exportChartXLSX, exportChartSQL } from "@/utils/chartExport";
 
 function linearRegression(points: Array<{ x: number; y: number }>) {
   const n = points.length;
@@ -309,8 +309,15 @@ const transformed = useMemo(() => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => chartRef.current && exportChartPNG(chartRef.current, `${filenameBase}.png`)}>PNG</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => chartRef.current && exportChartJPEG(chartRef.current, `${filenameBase}.jpg`)}>JPEG</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => chartRef.current && exportChartSVG(chartRef.current, `${filenameBase}.svg`)}>SVG</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => chartRef.current && exportChartPDF(chartRef.current, `${filenameBase}.pdf`, { orientation: (config.height || 300) > 400 ? 'p' : 'l' })}>PDF</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => chartRef.current && exportChartHTML(chartRef.current, `${filenameBase}.html`)}>HTML (snapshot)</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => chartRef.current && exportChartPrint(chartRef.current)}>Print…</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportChartXLSX(vizData, config.xKey, config.yKeys, `${filenameBase}.xlsx`)}>Excel (.xlsx)</DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportChartCSV(vizData, config.xKey, config.yKeys, `${filenameBase}.csv`)}>CSV</DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportChartJSON(vizData, config.xKey, config.yKeys, `${filenameBase}.json`)}>JSON</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportChartSQL(vizData, config.xKey, config.yKeys, `${filenameBase}`, `${filenameBase}.sql`)}>SQL</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
