@@ -51,6 +51,9 @@ import {
 import ChartConfigPanel, { ChartBuilderConfig } from "@/components/analytics/ChartConfigPanel";
 import ConfigurableChart from "@/components/analytics/ConfigurableChart";
 import { toast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { loadPresets, upsertPreset, deletePreset, generatePresetId, type ChartPreset } from "@/utils/chartConfigStorage";
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState("30");
@@ -80,7 +83,9 @@ const Analytics = () => {
     refreshInterval: 1000,
     dataset: "performance",
   };
-  const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartConfig);
+const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartConfig);
+  const [presets, setPresets] = useState<ChartPreset[]>([]);
+  const [presetName, setPresetName] = useState("");
 
   useEffect(() => {
     try {
@@ -98,10 +103,38 @@ const Analytics = () => {
     } catch {}
   }, [chartConfig]);
 
+  // Load saved presets on mount
+  useEffect(() => {
+    setPresets(loadPresets());
+  }, []);
+
   const handleReset = () => {
     setChartConfig(defaultChartConfig);
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
     toast({ title: "Chart reset", description: "Your custom chart has been reset." });
+  };
+
+  const applyPreset = (presetId: string) => {
+    const p = presets.find((x) => x.id === presetId);
+    if (p) {
+      setChartConfig((prev) => ({ ...prev, ...p.config }));
+      toast({ title: "Preset applied", description: `Applied preset: ${p.name}` });
+    }
+  };
+
+  const savePreset = () => {
+    const name = (presetName || chartConfig.title || "Preset").trim();
+    const id = generatePresetId();
+    upsertPreset({ id, name, config: chartConfig });
+    setPresets(loadPresets());
+    setPresetName("");
+    toast({ title: "Preset saved", description: `Saved as: ${name}` });
+  };
+
+  const removePreset = (id: string) => {
+    deletePreset(id);
+    setPresets(loadPresets());
+    toast({ title: "Preset deleted" });
   };
   
   // Use real data if available, provide default structure if no data
@@ -181,6 +214,21 @@ const Analytics = () => {
     return arr.length ? arr : ["value"];
   }, [selectedData, chartConfig.xKey]);
 
+  // Reconcile config when dataset changes to ensure keys exist
+  const arraysEqual = (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i]);
+  useEffect(() => {
+    if (!selectedData?.length) return;
+    let nextX = chartConfig.xKey;
+    if (!availableXKeys.includes(nextX)) nextX = availableXKeys[0] || nextX;
+
+    const filteredY = chartConfig.yKeys.filter((k) => availableYKeys.includes(k));
+    const nextY = filteredY.length ? filteredY : (availableYKeys.length ? [availableYKeys[0]] : chartConfig.yKeys);
+
+    if (nextX !== chartConfig.xKey || !arraysEqual(nextY, chartConfig.yKeys)) {
+      setChartConfig((prev) => ({ ...prev, xKey: nextX, yKeys: Array.from(new Set(nextY)) }));
+    }
+  }, [chartConfig.dataset, selectedData, availableXKeys, availableYKeys]);
+
 
   const formatChange = (value: number, type: string) => {
     const isPositive = type === "increase";
@@ -235,7 +283,33 @@ const Analytics = () => {
             />
           </div>
           <div className="lg:col-span-2">
-            <div className="flex justify-end mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Preset name"
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  className="w-[180px]"
+                />
+                <Button variant="outline" onClick={savePreset}>Save preset</Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">Presets</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {presets.length ? (
+                      presets.map((p) => (
+                        <div key={p.id}>
+                          <DropdownMenuItem onClick={() => applyPreset(p.id)}>Apply: {p.name}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => removePreset(p.id)}>Delete: {p.name}</DropdownMenuItem>
+                        </div>
+                      ))
+                    ) : (
+                      <DropdownMenuItem disabled>No presets</DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <Button variant="outline" onClick={handleReset}>Reset</Button>
             </div>
             <ConfigurableChart

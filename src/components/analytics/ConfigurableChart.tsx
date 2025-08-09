@@ -64,6 +64,16 @@ export interface ConfigurableChartProps {
 
 const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, description, data, config, onSelectNames }) => {
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const safeFilename = (name: string) =>
+    (name || "chart")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "chart";
+
+  const filenameBase = useMemo(() => safeFilename(config.title || title || "chart"), [config.title, title]);
 
   const palette = useMemo(() => {
     const fromCss = (i: number) => getComputedStyle(document.documentElement).getPropertyValue(`--chart-${i+1}`);
@@ -103,24 +113,36 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
     return Object.fromEntries(entries);
   }, [config.yKeys, colorsByKey]);
 
-  const transformed = useMemo(() => {
-    let out = data;
-    const f = computeFormula(out, config.formula);
-    out = f.data;
-    const addedKey = f.addedKey;
-    const normKeys = config.normalization && config.normalization !== "none" ? [...config.yKeys, ...(addedKey ? [addedKey] : [])] : [];
-    if (normKeys.length) {
-      out = applyNormalization(out, normKeys, config.normalization!);
-    }
-    if (config.ciLowerKey && config.ciUpperKey) {
-      out = out.map((row: any) => {
-        const lower = Number(row[config.ciLowerKey!]) || 0;
-        const upper = Number(row[config.ciUpperKey!]) || 0;
-        return { ...row, __ciWidth: Math.max(0, upper - lower) };
-      });
-    }
-    return out;
-  }, [data, config.formula, config.normalization, config.yKeys, config.ciLowerKey, config.ciUpperKey]);
+const transformed = useMemo(() => {
+  let out = data;
+  const f = computeFormula(out, config.formula);
+  out = f.data;
+  const addedKey = f.addedKey;
+
+  // Optional time bucketing before other series transforms
+  if (config.timeBucket && config.timeBucket !== "none") {
+    const keysForBucket = [...config.yKeys, ...(addedKey ? [addedKey] : [])];
+    out = bucketByTime(out, config.xKey, keysForBucket, config.timeBucket);
+  }
+
+  const normKeys = config.normalization && config.normalization !== "none" ? [...config.yKeys, ...(addedKey ? [addedKey] : [])] : [];
+  if (normKeys.length) {
+    out = applyNormalization(out, normKeys, config.normalization!);
+  }
+  if (config.ciLowerKey && config.ciUpperKey) {
+    out = out.map((row: any) => {
+      const lower = Number(row[config.ciLowerKey!]) || 0;
+      const upper = Number(row[config.ciUpperKey!]) || 0;
+      return { ...row, __ciWidth: Math.max(0, upper - lower) };
+    });
+  }
+
+  if (config.movingAverageWindow && config.movingAverageWindow > 1) {
+    out = movingAverage(out, config.yKeys, config.movingAverageWindow);
+  }
+
+  return out;
+}, [data, config.formula, config.normalization, config.yKeys, config.ciLowerKey, config.ciUpperKey, config.timeBucket, config.movingAverageWindow, config.xKey]);
 
   const [frame, setFrame] = useState<number>(-1);
   useEffect(() => {
@@ -281,14 +303,31 @@ const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, descriptio
 
   return (
     <Card className="interactive-lift">
-      <CardHeader>
-        <CardTitle>{config.title || title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle>{config.title || title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" aria-label="Export chart" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => chartRef.current && exportChartPNG(chartRef.current, `${filenameBase}.png`)}>PNG</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportChartCSV(vizData, config.xKey, config.yKeys, `${filenameBase}.csv`)}>CSV</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportChartJSON(vizData, config.xKey, config.yKeys, `${filenameBase}.json`)}>JSON</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="w-full" style={heightStyle}>
-          {renderByType()}
-        </ChartContainer>
+        <div ref={chartRef}>
+          <ChartContainer config={chartConfig} className="w-full" style={heightStyle}>
+            {renderByType()}
+          </ChartContainer>
+        </div>
       </CardContent>
     </Card>
   );

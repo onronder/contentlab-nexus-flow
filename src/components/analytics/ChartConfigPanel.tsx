@@ -338,6 +338,29 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({ config, onCh
           </div>
         </div>
 
+        {/* Time bucketing and smoothing */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Group by time</Label>
+            <Select value={config.timeBucket || "none"} onValueChange={(v) => update({ timeBucket: v as any })}>
+              <SelectTrigger>
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="day">Day</SelectItem>
+                <SelectItem value="week">Week</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Moving average window</Label>
+            <Input type="number" min={1} value={Number(config.movingAverageWindow || 1)} onChange={(e) => update({ movingAverageWindow: Math.max(1, Number(e.target.value || 1)) })} />
+            <p className="text-xs text-muted-foreground">Smooths series by averaging over N points</p>
+          </div>
+        </div>
+
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
