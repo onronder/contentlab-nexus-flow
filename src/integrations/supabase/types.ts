@@ -809,6 +809,63 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_reports: {
+        Row: {
+          created_at: string
+          created_by: string
+          download_count: number
+          error: string | null
+          file_format: string | null
+          file_url: string | null
+          generated_at: string
+          id: string
+          scheduled_report_id: string | null
+          status: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          download_count?: number
+          error?: string | null
+          file_format?: string | null
+          file_url?: string | null
+          generated_at?: string
+          id?: string
+          scheduled_report_id?: string | null
+          status?: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          download_count?: number
+          error?: string | null
+          file_format?: string | null
+          file_url?: string | null
+          generated_at?: string
+          id?: string
+          scheduled_report_id?: string | null
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_reports_scheduled_report_id_fkey"
+            columns: ["scheduled_report_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_reports_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monitoring_alerts: {
         Row: {
           alert_data: Json | null
@@ -1518,6 +1575,42 @@ export type Database = {
           },
         ]
       }
+      report_templates: {
+        Row: {
+          branding: Json | null
+          config: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          format: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          branding?: Json | null
+          config?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          format?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          branding?: Json | null
+          config?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          format?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           granted_at: string
@@ -1553,6 +1646,59 @@ export type Database = {
             columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "user_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_reports: {
+        Row: {
+          conditions: Json | null
+          created_at: string
+          created_by: string
+          cron: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          next_run_at: string | null
+          recipients: string[]
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string
+          created_by: string
+          cron?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          recipients?: string[]
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string
+          cron?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          recipients?: string[]
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_reports_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -3066,6 +3212,10 @@ export type Database = {
         Returns: {
           team_id: string
         }[]
+      }
+      increment_generated_report_download: {
+        Args: { p_id: string }
+        Returns: undefined
       }
       is_project_admin_or_manager: {
         Args: { project_id: string; user_id: string }
