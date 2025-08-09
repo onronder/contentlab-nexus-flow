@@ -25,9 +25,10 @@ import { applyNormalization, computeFormula, bucketByTime, movingAverage } from 
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Mail } from "lucide-react";
 import { useRef } from "react";
-import { exportChartPNG, exportChartCSV, exportChartJSON, exportChartJPEG, exportChartSVG, exportChartPDF, exportChartHTML, exportChartPrint, exportChartXLSX, exportChartSQL } from "@/utils/chartExport";
+import { exportChartPNG, exportChartCSV, exportChartJSON, exportChartJPEG, exportChartSVG, exportChartPDF, exportChartHTML, exportChartPrint, exportChartXLSX, exportChartSQL, buildCSV } from "@/utils/chartExport";
+import { sendChartEmail } from "@/services/reportingService";
 
 function linearRegression(points: Array<{ x: number; y: number }>) {
   const n = points.length;
@@ -318,6 +319,18 @@ const transformed = useMemo(() => {
             <DropdownMenuItem onClick={() => exportChartCSV(vizData, config.xKey, config.yKeys, `${filenameBase}.csv`)}>CSV</DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportChartJSON(vizData, config.xKey, config.yKeys, `${filenameBase}.json`)}>JSON</DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportChartSQL(vizData, config.xKey, config.yKeys, `${filenameBase}`, `${filenameBase}.sql`)}>SQL</DropdownMenuItem>
+            <DropdownMenuItem onClick={async () => {
+              const email = window.prompt('Send CSV to email:');
+              if (!email) return;
+              const csv = buildCSV(vizData, config.xKey, config.yKeys);
+              const pre = csv.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              await sendChartEmail({
+                recipients: [email],
+                subject: `${config.title || title} – CSV export`,
+                html: `<h2>${config.title || title}</h2><p>CSV export is included below.</p><pre style=\"white-space:pre-wrap;font-family:ui-monospace,Menlo,Monaco,Consolas,\'Liberation Mono\',\'Courier New\',monospace;font-size:12px;line-height:1.4;\">${pre}</pre>`,
+                text: `${config.title || title} - CSV export\n\n${csv}`,
+              });
+            }}>Email CSV…</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
