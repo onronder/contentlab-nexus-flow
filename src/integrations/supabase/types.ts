@@ -3104,6 +3104,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      compute_next_run_at: {
+        Args: {
+          current: string
+          cadence: string
+          hour: number
+          minute: number
+          tz: string
+        }
+        Returns: string
+      }
       create_project_secure: {
         Args: {
           project_name: string
