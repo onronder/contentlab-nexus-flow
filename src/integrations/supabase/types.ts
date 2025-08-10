@@ -821,7 +821,7 @@ export type Database = {
           id: string
           scheduled_report_id: string | null
           status: string
-          template_id: string
+          template_id: string | null
         }
         Insert: {
           created_at?: string
@@ -834,7 +834,7 @@ export type Database = {
           id?: string
           scheduled_report_id?: string | null
           status?: string
-          template_id: string
+          template_id?: string | null
         }
         Update: {
           created_at?: string
@@ -847,7 +847,7 @@ export type Database = {
           id?: string
           scheduled_report_id?: string | null
           status?: string
-          template_id?: string
+          template_id?: string | null
         }
         Relationships: [
           {

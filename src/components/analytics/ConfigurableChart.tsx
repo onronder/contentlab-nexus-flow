@@ -27,8 +27,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button";
 import { Download, Mail } from "lucide-react";
 import { useRef } from "react";
+import { toast } from "sonner";
 import { exportChartPNG, exportChartCSV, exportChartJSON, exportChartJPEG, exportChartSVG, exportChartPDF, exportChartHTML, exportChartPrint, exportChartXLSX, exportChartSQL, buildCSV } from "@/utils/chartExport";
-import { sendChartEmail } from "@/services/reportingService";
+import { sendChartEmail, createShare, createSchedule } from "@/services/reportingService";
 
 function linearRegression(points: Array<{ x: number; y: number }>) {
   const n = points.length;

@@ -75,3 +75,12 @@ verify_jwt = false
 
 [functions.team-performance-report-batch]
 verify_jwt = false
+
+[functions.send-report-email]
+verify_jwt = true
+
+[functions.process-scheduled-reports]
+verify_jwt = false
+
+[functions.get-report-share]
+verify_jwt = false
