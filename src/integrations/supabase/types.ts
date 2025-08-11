@@ -1575,6 +1575,45 @@ export type Database = {
           },
         ]
       }
+      report_shares: {
+        Row: {
+          chart_title: string | null
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          generated_report_id: string | null
+          id: string
+          is_public: boolean
+          payload: Json
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          chart_title?: string | null
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          generated_report_id?: string | null
+          id?: string
+          is_public?: boolean
+          payload?: Json
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          chart_title?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          generated_report_id?: string | null
+          id?: string
+          is_public?: boolean
+          payload?: Json
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       report_templates: {
         Row: {
           branding: Json | null
