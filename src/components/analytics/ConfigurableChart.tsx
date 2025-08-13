@@ -25,11 +25,13 @@ import { applyNormalization, computeFormula, bucketByTime, movingAverage } from 
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Download, Mail } from "lucide-react";
+import { Download, Mail, Share, History } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { exportChartPNG, exportChartCSV, exportChartJSON, exportChartJPEG, exportChartSVG, exportChartPDF, exportChartHTML, exportChartPrint, exportChartXLSX, exportChartSQL, buildCSV } from "@/utils/chartExport";
 import { sendChartEmail, createShare, createSchedule } from "@/services/reportingService";
+import { ChartShareDialog } from "./ChartShareDialog";
+import { ReportHistoryDialog } from "./ReportHistoryDialog";
 
 function linearRegression(points: Array<{ x: number; y: number }>) {
   const n = points.length;
@@ -66,6 +68,8 @@ export interface ConfigurableChartProps {
 
 const ConfigurableChart: React.FC<ConfigurableChartProps> = ({ title, description, data, config, onSelectNames }) => {
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
 
   const safeFilename = (name: string) =>
@@ -302,7 +306,26 @@ const transformed = useMemo(() => {
           <CardTitle>{config.title || title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </div>
-        <DropdownMenu>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShareDialogOpen(true)}
+          >
+            <Share className="h-4 w-4 mr-2" />
+            Share
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHistoryDialogOpen(true)}
+          >
+            <History className="h-4 w-4 mr-2" />
+            History
+          </Button>
+          
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" aria-label="Export chart" className="gap-2">
               <Download className="h-4 w-4" />
@@ -334,6 +357,7 @@ const transformed = useMemo(() => {
             }}>Email CSV…</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </CardHeader>
       <CardContent>
         <div ref={chartRef}>
@@ -342,6 +366,19 @@ const transformed = useMemo(() => {
           </ChartContainer>
         </div>
       </CardContent>
+      
+      <ChartShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        chartTitle={config.title || title}
+        chartData={vizData}
+        chartConfig={config}
+      />
+      
+      <ReportHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+      />
     </Card>
   );
 };

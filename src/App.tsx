@@ -31,6 +31,7 @@ import { isDevelopment } from '@/utils/productionUtils';
 import { TeamProvider } from '@/contexts/TeamContext';
 import { ApiConfigValidator } from '@/components/debug/ApiConfigValidator';
 import { ApiDashboard } from '@/components/admin/ApiDashboard';
+import Share from "./pages/Share";
 
 const App = () => (
   <TooltipProvider>
@@ -45,6 +46,9 @@ const App = () => (
         
         {/* Public invitation route */}
         <Route path="/invite/:token" element={<AcceptInvitationPage />} />
+        
+        {/* Public share route */}
+        <Route path="/share/:token" element={<Share />} />
         
         {/* Public routes with main layout */}
         <Route path="/" element={
