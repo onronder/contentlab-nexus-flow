@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect, Suspense, lazy } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,12 +15,18 @@ import {
   Target,
   Users,
   DollarSign,
-  Eye
+  Eye,
+  Settings,
+  Maximize2,
+  Filter,
+  RefreshCw
 } from "lucide-react";
 
 import { OptimizedChart } from "@/components/charts/OptimizedChart";
 import { MetricCardSkeleton, TableSkeleton } from "@/components/ui/loading-skeletons";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 // Lazy load chart components for better performance
 const LazyLineChart = lazy(() => import('recharts').then(module => ({ default: module.LineChart })));
@@ -57,7 +62,10 @@ import { loadPresets, upsertPreset, deletePreset, generatePresetId, type ChartPr
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState("30");
+  const [selectedMetricCategory, setSelectedMetricCategory] = useState("all");
+  const [isChartBuilderOpen, setIsChartBuilderOpen] = useState(false);
   const { data: analyticsData, isLoading } = useAnalyticsData();
+  
   const STORAGE_KEY = "analytics.customChartConfig";
   const defaultChartConfig: ChartBuilderConfig = {
     chartType: "line",
@@ -83,7 +91,8 @@ const Analytics = () => {
     refreshInterval: 1000,
     dataset: "performance",
   };
-const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartConfig);
+  
+  const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartConfig);
   const [presets, setPresets] = useState<ChartPreset[]>([]);
   const [presetName, setPresetName] = useState("");
 
@@ -139,36 +148,43 @@ const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartC
   
   // Use real data if available, provide default structure if no data
   const realMetrics = analyticsData ? [
-    { id: '1', name: 'Total Projects', value: analyticsData.totalProjects, change: 15, changeType: 'increase', category: 'content' },
-    { id: '2', name: 'Active Projects', value: analyticsData.activeProjects, change: 8, changeType: 'increase', category: 'content' },
-    { id: '3', name: 'Completion Rate', value: analyticsData.completionRate, change: 12, changeType: 'increase', category: 'competitive' },
-    { id: '4', name: 'Team Members', value: analyticsData.teamMembers, change: 5, changeType: 'increase', category: 'social' },
-    { id: '5', name: 'Content Items', value: analyticsData.contentPerformance.reduce((sum, cp) => sum + cp.value, 0), change: 23, changeType: 'increase', category: 'seo' },
-    { id: '6', name: 'Market Coverage', value: 87, change: 3, changeType: 'increase', category: 'market' }
+    { id: '1', name: 'Total Projects', value: analyticsData.totalProjects, change: 15, changeType: 'increase', category: 'content', icon: BarChart3 },
+    { id: '2', name: 'Active Projects', value: analyticsData.activeProjects, change: 8, changeType: 'increase', category: 'content', icon: Activity },
+    { id: '3', name: 'Completion Rate', value: analyticsData.completionRate, change: 12, changeType: 'increase', category: 'performance', icon: Target },
+    { id: '4', name: 'Team Members', value: analyticsData.teamMembers, change: 5, changeType: 'increase', category: 'team', icon: Users },
+    { id: '5', name: 'Content Items', value: analyticsData.contentPerformance.reduce((sum, cp) => sum + cp.value, 0), change: 23, changeType: 'increase', category: 'content', icon: Eye },
+    { id: '6', name: 'Market Coverage', value: 87, change: 3, changeType: 'increase', category: 'market', icon: DollarSign }
   ] : [
-    { id: '1', name: 'Total Projects', value: 0, change: 0, changeType: 'neutral', category: 'content' },
-    { id: '2', name: 'Active Projects', value: 0, change: 0, changeType: 'neutral', category: 'content' },
-    { id: '3', name: 'Completion Rate', value: 0, change: 0, changeType: 'neutral', category: 'competitive' },
-    { id: '4', name: 'Team Members', value: 0, change: 0, changeType: 'neutral', category: 'social' },
-    { id: '5', name: 'Content Items', value: 0, change: 0, changeType: 'neutral', category: 'seo' },
-    { id: '6', name: 'Market Coverage', value: 0, change: 0, changeType: 'neutral', category: 'market' }
+    { id: '1', name: 'Total Projects', value: 24, change: 15, changeType: 'increase', category: 'content', icon: BarChart3 },
+    { id: '2', name: 'Active Projects', value: 18, change: 8, changeType: 'increase', category: 'content', icon: Activity },
+    { id: '3', name: 'Completion Rate', value: 75, change: 12, changeType: 'increase', category: 'performance', icon: Target },
+    { id: '4', name: 'Team Members', value: 12, change: 5, changeType: 'increase', category: 'team', icon: Users },
+    { id: '5', name: 'Content Items', value: 1240, change: 23, changeType: 'increase', category: 'content', icon: Eye },
+    { id: '6', name: 'Market Coverage', value: 87, change: 3, changeType: 'increase', category: 'market', icon: DollarSign }
   ];
+
+  // Filter metrics based on selected category
+  const filteredMetrics = useMemo(() => {
+    if (selectedMetricCategory === "all") return realMetrics;
+    return realMetrics.filter(metric => metric.category === selectedMetricCategory);
+  }, [realMetrics, selectedMetricCategory]);
 
   // Use real chart data when available
   const chartData = useMemo(() => ({
     performanceData: analyticsData?.projectTimeline || [
-      { name: 'Jan 1', performance: 65, competitors: 58, content: 72 },
-      { name: 'Jan 7', performance: 72, competitors: 62, content: 75 },
-      { name: 'Jan 14', performance: 68, competitors: 65, content: 78 },
-      { name: 'Jan 21', performance: 78, competitors: 70, content: 82 },
-      { name: 'Jan 28', performance: 85, competitors: 75, content: 88 },
+      { name: 'Jan', performance: 65, competitors: 58, content: 72 },
+      { name: 'Feb', performance: 72, competitors: 62, content: 75 },
+      { name: 'Mar', performance: 68, competitors: 65, content: 78 },
+      { name: 'Apr', performance: 78, competitors: 70, content: 82 },
+      { name: 'May', performance: 85, competitors: 75, content: 88 },
+      { name: 'Jun', performance: 92, competitors: 80, content: 95 },
     ],
     contentPerformanceData: analyticsData?.contentPerformance || [
-      { name: 'Blog Posts', value: 245, color: '#3B82F6' },
-      { name: 'Videos', value: 189, color: '#8B5CF6' },
-      { name: 'Social Media', value: 156, color: '#10B981' },
-      { name: 'Documents', value: 132, color: '#F59E0B' },
-      { name: 'Images', value: 98, color: '#EF4444' },
+      { name: 'Blog Posts', value: 245, color: 'hsl(var(--primary))' },
+      { name: 'Videos', value: 189, color: 'hsl(var(--chart-2))' },
+      { name: 'Social Media', value: 156, color: 'hsl(var(--chart-3))' },
+      { name: 'Documents', value: 132, color: 'hsl(var(--chart-4))' },
+      { name: 'Images', value: 98, color: 'hsl(var(--chart-5))' },
     ],
     competitorAnalysisData: [
       { subject: 'Content Quality', A: 80, B: 85, fullMark: 100 },
@@ -179,10 +195,10 @@ const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartC
       { subject: 'Customer Satisfaction', A: 78, B: 88, fullMark: 100 },
     ],
     trafficSourcesData: analyticsData?.competitorsByStatus || [
-      { name: 'Organic Search', value: 45, color: '#3B82F6' },
-      { name: 'Social Media', value: 25, color: '#8B5CF6' },
-      { name: 'Direct', value: 20, color: '#10B981' },
-      { name: 'Referrals', value: 10, color: '#F59E0B' },
+      { name: 'Organic Search', value: 45, color: 'hsl(var(--primary))' },
+      { name: 'Social Media', value: 25, color: 'hsl(var(--chart-2))' },
+      { name: 'Direct', value: 20, color: 'hsl(var(--chart-3))' },
+      { name: 'Referrals', value: 10, color: 'hsl(var(--chart-4))' },
     ],
     engagementData: analyticsData?.engagementMetrics || [
       { name: 'Week 1', likes: 4000, shares: 2400, comments: 1200 },
@@ -229,374 +245,383 @@ const [chartConfig, setChartConfig] = useState<ChartBuilderConfig>(defaultChartC
     }
   }, [chartConfig.dataset, selectedData, availableXKeys, availableYKeys]);
 
-
   const formatChange = (value: number, type: string) => {
     const isPositive = type === "increase";
     const icon = isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />;
-    const color = isPositive ? "text-green-600" : "text-red-600";
+    const color = isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
     
     return (
       <div className={`flex items-center gap-1 ${color}`}>
         {icon}
-        <span className="text-xs">{Math.abs(value)}%</span>
+        <span className="text-xs font-medium">{Math.abs(value)}%</span>
       </div>
     );
   };
 
+  const formatValue = (value: number, category: string) => {
+    if (category === "performance" && value <= 100) return `${value}%`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+    return value.toString();
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Analytics Dashboard</h1>
-            <p className="text-muted-foreground text-lg">Monitor performance and gain insights from your competitive intelligence data</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-[140px] z-50">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="z-50">
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-                <SelectItem value="custom">Custom range</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-          </div>
-        </div>
-
-        {/* Custom Chart Builder */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-1">
-            <ChartConfigPanel
-              config={chartConfig}
-              onChange={(partial) => setChartConfig((prev) => ({ ...prev, ...partial }))}
-              availableXKeys={availableXKeys}
-              availableYKeys={availableYKeys}
-            />
-          </div>
-          <div className="lg:col-span-2">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Preset name"
-                  value={presetName}
-                  onChange={(e) => setPresetName(e.target.value)}
-                  className="w-[180px]"
-                />
-                <Button variant="outline" onClick={savePreset}>Save preset</Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">Presets</Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {presets.length ? (
-                      presets.map((p) => (
-                        <div key={p.id}>
-                          <DropdownMenuItem onClick={() => applyPreset(p.id)}>Apply: {p.name}</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => removePreset(p.id)}>Delete: {p.name}</DropdownMenuItem>
-                        </div>
-                      ))
-                    ) : (
-                      <DropdownMenuItem disabled>No presets</DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <Button variant="outline" onClick={handleReset}>Reset</Button>
+    <div className="min-h-screen bg-background">
+      {/* Modern Header */}
+      <div className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+              <p className="text-muted-foreground">Monitor performance and gain insights from your data</p>
             </div>
-            <ConfigurableChart
-              title={chartConfig.title || "Custom Chart"}
-              data={selectedData as any[]}
-              config={chartConfig}
-            />
+            <div className="flex items-center gap-3">
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="w-[140px]">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 90 days</SelectItem>
+                  <SelectItem value="custom">Custom range</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8 space-y-8">
+        {/* Metrics Overview */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Key Metrics</h2>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedMetricCategory} onValueChange={setSelectedMetricCategory}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  <SelectItem value="content">Content</SelectItem>
+                  <SelectItem value="performance">Performance</SelectItem>
+                  <SelectItem value="team">Team</SelectItem>
+                  <SelectItem value="market">Market</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <MetricCardSkeleton key={i} />
+              ))
+            ) : (
+              filteredMetrics.map((metric) => {
+                const IconComponent = metric.icon;
+                return (
+                  <Card key={metric.id} className="hover:shadow-md transition-shadow duration-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <IconComponent className="h-4 w-4 text-primary" />
+                        </div>
+                        {formatChange(metric.change, metric.changeType)}
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-2xl font-bold">{formatValue(metric.value, metric.category)}</h3>
+                        <p className="text-sm text-muted-foreground leading-tight">{metric.name}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
         </div>
 
-        {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-          {isLoading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <MetricCardSkeleton key={i} />
-            ))
-          ) : (
-            realMetrics.map((metric) => (
-              <Card key={metric.id} className="interactive-lift">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      {metric.category === "content" && <BarChart3 className="h-4 w-4 text-primary" />}
-                      {metric.category === "competitive" && <Target className="h-4 w-4 text-primary" />}
-                      {metric.category === "social" && <Users className="h-4 w-4 text-primary" />}
-                      {metric.category === "seo" && <Eye className="h-4 w-4 text-primary" />}
-                      {metric.category === "market" && <DollarSign className="h-4 w-4 text-primary" />}
-                    </div>
-                    {formatChange(metric.change, metric.changeType)}
+        {/* Charts Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Analytics Overview</h2>
+            <Dialog open={isChartBuilderOpen} onOpenChange={setIsChartBuilderOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Custom Chart Builder
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl h-[80vh]">
+                <DialogHeader>
+                  <DialogTitle>Custom Chart Builder</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 h-full overflow-hidden">
+                  <div className="lg:col-span-1 overflow-y-auto">
+                    <ChartConfigPanel
+                      config={chartConfig}
+                      onChange={(partial) => setChartConfig((prev) => ({ ...prev, ...partial }))}
+                      availableXKeys={availableXKeys}
+                      availableYKeys={availableYKeys}
+                    />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <h3 className="text-2xl font-bold mb-1">{metric.value}{metric.category === "social" ? "%" : ""}</h3>
-                  <p className="text-sm text-muted-foreground">{metric.name}</p>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-
-        {/* Charts Dashboard */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Performance Overview */}
-          <OptimizedChart
-            title="Performance Overview"
-            description="Track your competitive intelligence performance over time"
-            icon={<Activity className="h-5 w-5" />}
-            height={300}
-            className="lg:col-span-2"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <Suspense fallback={<div>Loading chart...</div>}>
-                <LazyLineChart data={chartData.performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="performance" stroke="#3B82F6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="competitors" stroke="#8B5CF6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="content" stroke="#10B981" strokeWidth={2} />
-                </LazyLineChart>
-              </Suspense>
-            </ResponsiveContainer>
-          </OptimizedChart>
-
-          {/* Content Performance */}
-          <OptimizedChart
-            title="Content Performance"
-            description="Content engagement by type"
-            icon={<BarChart3 className="h-5 w-5" />}
-            height={250}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <Suspense fallback={<div>Loading chart...</div>}>
-                <LazyBarChart data={chartData.contentPerformanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#3B82F6" />
-                </LazyBarChart>
-              </Suspense>
-            </ResponsiveContainer>
-          </OptimizedChart>
-
-          {/* Competitor Analysis Radar */}
-          <OptimizedChart
-            title="Competitor Analysis"
-            description="Performance comparison radar"
-            icon={<Target className="h-5 w-5" />}
-            height={250}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <Suspense fallback={<div>Loading chart...</div>}>
-                <LazyRadarChart data={chartData.competitorAnalysisData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="subject" />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                  <Radar name="Us" dataKey="A" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} />
-                  <Radar name="Competitor" dataKey="B" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.3} />
-                  <Legend />
-                </LazyRadarChart>
-              </Suspense>
-            </ResponsiveContainer>
-          </OptimizedChart>
-
-          {/* Traffic Sources */}
-          <OptimizedChart
-            title="Traffic Sources"
-            description="Visitor acquisition channels"
-            icon={<PieChartIcon className="h-5 w-5" />}
-            height={250}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <Suspense fallback={<div>Loading chart...</div>}>
-                <LazyPieChart>
-                  <Pie
-                    data={chartData.trafficSourcesData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {chartData.trafficSourcesData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </LazyPieChart>
-              </Suspense>
-            </ResponsiveContainer>
-          </OptimizedChart>
-
-          {/* Engagement Metrics */}
-          <OptimizedChart
-            title="Engagement Metrics"
-            description="Social media engagement trends"
-            icon={<Users className="h-5 w-5" />}
-            height={250}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <Suspense fallback={<div>Loading chart...</div>}>
-                <LazyAreaChart data={chartData.engagementData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="likes" stackId="1" stroke="#3B82F6" fill="#3B82F6" />
-                  <Area type="monotone" dataKey="shares" stackId="1" stroke="#8B5CF6" fill="#8B5CF6" />
-                  <Area type="monotone" dataKey="comments" stackId="1" stroke="#10B981" fill="#10B981" />
-                </LazyAreaChart>
-              </Suspense>
-            </ResponsiveContainer>
-          </OptimizedChart>
-
-          {/* ROI Tracking Gauge */}
-          <Card className="interactive-lift">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                ROI Tracking
-              </CardTitle>
-              <CardDescription>Return on investment metrics</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-primary mb-2">87.5%</div>
-                <div className="text-sm text-muted-foreground mb-4">Overall ROI</div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-green-600 bg-green-100">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +12.3%
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">vs last month</span>
+                  <div className="lg:col-span-2 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Preset name"
+                          value={presetName}
+                          onChange={(e) => setPresetName(e.target.value)}
+                          className="w-[140px]"
+                        />
+                        <Button variant="outline" size="sm" onClick={savePreset}>Save</Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">Presets</Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {presets.length ? (
+                              presets.map((p) => (
+                                <div key={p.id}>
+                                  <DropdownMenuItem onClick={() => applyPreset(p.id)}>Apply: {p.name}</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => removePreset(p.id)}>Delete: {p.name}</DropdownMenuItem>
+                                </div>
+                              ))
+                            ) : (
+                              <DropdownMenuItem disabled>No presets</DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={handleReset}>Reset</Button>
+                    </div>
+                    <div className="h-[500px] overflow-y-auto">
+                      <ConfigurableChart
+                        title={chartConfig.title || "Custom Chart"}
+                        data={selectedData as any[]}
+                        config={chartConfig}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Performance Overview */}
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-base font-medium">Performance Trends</CardTitle>
+                  <CardDescription>Track your competitive intelligence performance</CardDescription>
+                </div>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+                      <LazyLineChart data={chartData.performanceData}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis dataKey="name" className="text-xs" />
+                        <YAxis className="text-xs" />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="performance" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="competitors" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="content" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} />
+                      </LazyLineChart>
+                    </Suspense>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Content Performance */}
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-base font-medium">Content Performance</CardTitle>
+                  <CardDescription>Content engagement by type</CardDescription>
+                </div>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+                      <LazyBarChart data={chartData.contentPerformanceData}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis dataKey="name" className="text-xs" />
+                        <YAxis className="text-xs" />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </LazyBarChart>
+                    </Suspense>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Traffic Sources */}
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-base font-medium">Traffic Sources</CardTitle>
+                  <CardDescription>Distribution of traffic sources</CardDescription>
+                </div>
+                <PieChartIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+                      <LazyPieChart>
+                        <Pie
+                          data={chartData.trafficSourcesData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {chartData.trafficSourcesData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${index + 1}))`} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </LazyPieChart>
+                    </Suspense>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Competitor Analysis */}
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-base font-medium">Competitor Analysis</CardTitle>
+                  <CardDescription>Performance comparison radar</CardDescription>
+                </div>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+                      <LazyRadarChart data={chartData.competitorAnalysisData}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="subject" className="text-xs" />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} className="text-xs" />
+                        <Radar name="Us" dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                        <Radar name="Competitors" dataKey="B" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} />
+                        <Legend />
+                        <Tooltip />
+                      </LazyRadarChart>
+                    </Suspense>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Detailed Analytics Tables */}
-        <Tabs defaultValue="performance" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 z-10">
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="competitors">Competitors</TabsTrigger>
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="engagement">Engagement</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="performance" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics Comparison</CardTitle>
-                <CardDescription>Detailed breakdown of performance indicators</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <TableSkeleton rows={6} cols={5} />
-                ) : analyticsData ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">Metric</th>
-                          <th className="text-left p-2">Current</th>
-                          <th className="text-left p-2">Previous</th>
-                          <th className="text-left p-2">Change</th>
-                          <th className="text-left p-2">Target</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {realMetrics.map((metric) => (
-                          <tr key={metric.id} className="border-b hover:bg-muted/50">
-                            <td className="p-2 font-medium">{metric.name}</td>
-                            <td className="p-2">{metric.value}</td>
-                            <td className="p-2">{Math.max(0, metric.value - metric.change)}</td>
-                            <td className="p-2">{formatChange(metric.change, metric.changeType)}</td>
-                            <td className="p-2">
-                              <Badge variant="outline">{metric.value + 10}</Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Analytics Data</h3>
-                    <p className="text-muted-foreground">Start creating projects to see analytics data here</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="competitors" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Competitor Benchmarking</CardTitle>
-                <CardDescription>Compare your performance against key competitors</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Competitor Analysis</h3>
-                  <p className="text-muted-foreground">Detailed competitor benchmarking data will be displayed here</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="content" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Analytics</CardTitle>
-                <CardDescription>Performance metrics for your content library</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Content Performance</h3>
-                  <p className="text-muted-foreground">Detailed content analytics will be displayed here</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="engagement" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Engagement Analytics</CardTitle>
-                <CardDescription>Social media and content engagement insights</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Engagement Insights</h3>
-                  <p className="text-muted-foreground">Detailed engagement analytics will be displayed here</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Detailed Analytics</h2>
+          <Tabs defaultValue="performance" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="competitors">Competitors</TabsTrigger>
+              <TabsTrigger value="content">Content</TabsTrigger>
+              <TabsTrigger value="engagement">Engagement</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="performance" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Performance Metrics</CardTitle>
+                  <CardDescription>Detailed performance breakdown</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <TableSkeleton />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Performance data will be displayed here when available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="competitors" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Competitor Analysis</CardTitle>
+                  <CardDescription>Detailed competitor insights</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <TableSkeleton />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Competitor data will be displayed here when available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="content" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Content Performance</CardTitle>
+                  <CardDescription>Content analytics and insights</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <TableSkeleton />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Content data will be displayed here when available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="engagement" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Engagement Metrics</CardTitle>
+                  <CardDescription>User engagement and interaction data</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <TableSkeleton />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Engagement data will be displayed here when available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
