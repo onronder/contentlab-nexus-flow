@@ -17,7 +17,9 @@ import {
   Globe,
   ArrowRight,
   Plus,
-  TestTube
+  TestTube,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthDatabaseTester } from '@/components/testing/AuthDatabaseTester';
@@ -28,8 +30,10 @@ import { usePerformanceMetrics, type PerformanceMetrics } from '@/hooks/usePerfo
 import { QueryErrorBoundary } from '@/components/ui/query-error-boundary';
 import { ContentErrorBoundary } from '@/components/ui/content-error-boundary';
 import { HealthMonitor } from '@/components/debug/HealthMonitor';
+import { useTeamContext } from '@/contexts/TeamContext';
 
 const Dashboard = () => {
+  const { currentTeam, availableTeams, isLoading: teamLoading, refreshTeams } = useTeamContext();
   const { data: dashboardStats, isLoading: isStatsLoading } = useDashboardStats();
   const { data: recentActivity, isLoading: isActivityLoading } = useRecentActivity();
   const { data: alerts, isLoading: isAlertsLoading } = useMonitoringAlerts();
@@ -90,10 +94,50 @@ const Dashboard = () => {
     }
   ];
 
-  if (isStatsLoading && isActivityLoading && isAlertsLoading && isPerformanceLoading) {
+  if (teamLoading || (isStatsLoading && isActivityLoading && isAlertsLoading && isPerformanceLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // Show team setup required if no teams
+  if (!teamLoading && availableTeams.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="w-20 h-20 mx-auto gradient-primary rounded-2xl flex items-center justify-center shadow-elegant">
+            <Building2 className="h-10 w-10 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Welcome to ContentLab Nexus</h1>
+            <p className="text-muted-foreground mt-2">
+              Let's set up your workspace to get started with collaborative content management
+            </p>
+          </div>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              asChild
+              className="gradient-primary text-primary-foreground"
+              size="lg"
+            >
+              <Link to="/team">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your Team
+              </Link>
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={refreshTeams}
+              disabled={teamLoading}
+              size="lg"
+            >
+              {teamLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Refresh
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -149,7 +193,11 @@ const Dashboard = () => {
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-description">
-            Welcome back! Here's an overview of your competitive intelligence platform.
+            {currentTeam ? (
+              <>Welcome back to <span className="font-medium">{currentTeam.name}</span>! Here's your team's overview.</>
+            ) : (
+              "Welcome back! Here's an overview of your competitive intelligence platform."
+            )}
           </p>
         </div>
         <Button asChild>

@@ -152,113 +152,56 @@ export class TeamService {
   }
 
   /**
-   * Gets all teams for a specific user using separate queries to avoid RLS recursion
+   * Gets all teams for a specific user using simplified approach with proper error handling
    */
   static async getTeamsByUser(userId: string, options?: TeamQueryOptions): Promise<Team[]> {
     try {
-      const allTeams: Team[] = [];
-      const teamIds = new Set<string>();
-
-      // Step 1: Get teams where user is owner (no RLS issues)
-      let ownedTeamsQuery = supabase
+      // Simplified query - get teams where user is owner or member
+      const { data: teams, error } = await supabase
         .from('teams')
-        .select('*')
-        .eq('owner_id', userId)
+        .select(`
+          *,
+          team_members!inner(
+            id,
+            user_id,
+            role_id,
+            status,
+            is_active,
+            joined_at,
+            role:user_roles(id, name, slug, hierarchy_level)
+          )
+        `)
+        .eq('team_members.user_id', userId)
+        .eq('team_members.is_active', true)
+        .eq('team_members.status', 'active')
         .eq('is_active', true);
 
-      // Step 2: Get team IDs where user is a member (avoid inner join to prevent RLS recursion)
-      const { data: membershipData } = await supabase
-        .from('team_members')
-        .select('team_id')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .eq('status', 'active');
-
-      const memberTeamIds = membershipData?.map(m => m.team_id) || [];
-
-      // Step 3: Get member teams data separately
-      let memberTeamsQuery = supabase
-        .from('teams')
-        .select('*')
-        .in('id', memberTeamIds)
-        .eq('is_active', true);
-
-      // Apply filters to both queries
-      if (options?.filters) {
-        if (options.filters.team_type) {
-          ownedTeamsQuery = ownedTeamsQuery.eq('team_type', options.filters.team_type);
-          memberTeamsQuery = memberTeamsQuery.eq('team_type', options.filters.team_type);
-        }
-        if (options.filters.owner_id) {
-          ownedTeamsQuery = ownedTeamsQuery.eq('owner_id', options.filters.owner_id);
-          memberTeamsQuery = memberTeamsQuery.eq('owner_id', options.filters.owner_id);
-        }
-        if (options.filters.search) {
-          const searchFilter = `name.ilike.%${options.filters.search}%,description.ilike.%${options.filters.search}%`;
-          ownedTeamsQuery = ownedTeamsQuery.or(searchFilter);
-          memberTeamsQuery = memberTeamsQuery.or(searchFilter);
-        }
-      }
-
-      // Execute both queries in parallel
-      const [ownedResult, memberResult] = await Promise.all([
-        ownedTeamsQuery,
-        memberTeamIds.length > 0 ? memberTeamsQuery : Promise.resolve({ data: [], error: null })
-      ]);
-
-      if (ownedResult.error) {
-        console.error('Error fetching owned teams:', ownedResult.error);
-        throw new Error(`Failed to fetch owned teams: ${ownedResult.error.message}`);
-      }
-
-      if (memberResult.error) {
-        console.error('Error fetching member teams:', memberResult.error);
-        throw new Error(`Failed to fetch member teams: ${memberResult.error.message}`);
-      }
-
-      // Combine and deduplicate results
-      const ownedTeams = ownedResult.data || [];
-      const memberTeams = memberResult.data || [];
-
-      // Add owned teams first
-      ownedTeams.forEach(team => {
-        if (!teamIds.has(team.id)) {
-          teamIds.add(team.id);
-          allTeams.push(team as Team);
-        }
-      });
-
-      // Add member teams (skip if already added as owned)
-      memberTeams.forEach(team => {
-        if (!teamIds.has(team.id)) {
-          teamIds.add(team.id);
-          allTeams.push(team as Team);
-        }
-      });
-
-      // Apply sorting
-      if (options?.sort) {
-        allTeams.sort((a, b) => {
-          const aValue = a[options.sort!.field as keyof Team];
-          const bValue = b[options.sort!.field as keyof Team];
-          const modifier = options.sort!.direction === 'asc' ? 1 : -1;
+      if (error) {
+        console.error('Error fetching teams:', error);
+        
+        // Fallback to simpler query if the complex one fails
+        const { data: fallbackTeams, error: fallbackError } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('owner_id', userId)
+          .eq('is_active', true);
           
-          if (aValue < bValue) return -1 * modifier;
-          if (aValue > bValue) return 1 * modifier;
-          return 0;
-        });
-      } else {
-        allTeams.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        if (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+          return [];
+        }
+        
+        return (fallbackTeams || []).map(team => ({
+          ...team,
+          settings: team.settings as Record<string, any>
+        })) as Team[];
       }
 
-      // Apply pagination
-      if (options?.page && options?.limit) {
-        const from = (options.page - 1) * options.limit;
-        const to = from + options.limit;
-        return allTeams.slice(from, to);
-      }
+      return (teams || []).map(team => ({
+        ...team,
+        settings: team.settings as Record<string, any>
+      })) as Team[];
 
-      return allTeams;
     } catch (error) {
       console.error('TeamService.getTeamsByUser error:', error);
       throw error;

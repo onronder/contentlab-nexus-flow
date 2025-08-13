@@ -55,13 +55,24 @@ export function TeamProvider({ children }: TeamProviderProps) {
     try {
       setIsLoading(true);
       const teams = await TeamService.getTeamsByUser(user.id);
+      console.log('Fetched teams:', teams); // Debug log
       setAvailableTeams(teams);
       
-      // Set first team as current if none selected
-      if (teams.length > 0 && !currentTeam) {
-        const firstTeam = teams[0];
-        setCurrentTeamState(firstTeam);
-        localStorage.setItem('currentTeamId', firstTeam.id);
+      // Set first team as current if none selected and we have teams
+      if (teams.length > 0) {
+        const savedTeamId = localStorage.getItem('currentTeamId');
+        const savedTeam = savedTeamId ? teams.find(t => t.id === savedTeamId) : null;
+        const teamToSet = savedTeam || teams[0];
+        
+        if (!currentTeam || currentTeam.id !== teamToSet.id) {
+          setCurrentTeamState(teamToSet);
+          localStorage.setItem('currentTeamId', teamToSet.id);
+        }
+      } else {
+        // No teams found - user needs to create one
+        console.log('No teams found for user:', user.id);
+        setCurrentTeamState(null);
+        localStorage.removeItem('currentTeamId');
       }
     } catch (error) {
       console.error('Error fetching teams:', error);
@@ -70,6 +81,9 @@ export function TeamProvider({ children }: TeamProviderProps) {
         description: 'Failed to load your teams. Please try again.',
         variant: 'destructive',
       });
+      // Set empty state on error
+      setAvailableTeams([]);
+      setCurrentTeamState(null);
     } finally {
       setIsLoading(false);
     }
