@@ -390,51 +390,26 @@ const Settings = () => {
                       <div className="p-4 border rounded-lg">
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h4 className="font-medium">{teamSettings.team_name}</h4>
-                            <p className="text-sm text-muted-foreground">{teamSettings.team_description}</p>
+                            <h4 className="font-medium">{teamSettings.name}</h4>
+                            <p className="text-sm text-muted-foreground">{teamSettings.description}</p>
                           </div>
-                          <Badge variant="outline">{teamSettings.user_role}</Badge>
+                          <Badge variant="outline">Member</Badge>
                         </div>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Members:</span>
-                            <span className="ml-2 font-medium">{teamSettings.member_count}</span>
+                            <span className="ml-2 font-medium">{teamSettings.memberCount}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Active:</span>
-                            <span className="ml-2 font-medium">{teamSettings.active_users}</span>
+                            <span className="ml-2 font-medium">{teamSettings.activeUsers}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Pending:</span>
-                            <span className="ml-2 font-medium">{teamSettings.pending_invitations}</span>
+                            <span className="ml-2 font-medium">{teamSettings.pendingInvitations}</span>
                           </div>
                         </div>
                       </div>
-                    </div>
-                        <div key={team.team_id} className="p-4 border rounded-lg">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <h4 className="font-medium">{team.team_name}</h4>
-                              <p className="text-sm text-muted-foreground">{team.team_description}</p>
-                            </div>
-                            <Badge variant="outline">{team.user_role}</Badge>
-                          </div>
-                          <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Members:</span>
-                              <span className="ml-2 font-medium">{team.member_count}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Active:</span>
-                              <span className="ml-2 font-medium">{team.active_users}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Pending:</span>
-                              <span className="ml-2 font-medium">{team.pending_invitations}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-8">

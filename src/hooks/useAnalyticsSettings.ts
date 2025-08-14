@@ -99,12 +99,12 @@ export function useAnalyticsSettings() {
         id: data.id,
         userId: data.user_id,
         teamId: data.team_id,
-        dashboardSettings: data.dashboard_settings,
-        chartSettings: data.chart_settings,
-        reportSettings: data.report_settings,
-        dataSettings: data.data_settings,
-        alertSettings: data.alert_settings,
-        privacySettings: data.privacy_settings,
+        dashboardSettings: typeof data.dashboard_settings === 'object' ? data.dashboard_settings as AnalyticsSettings['dashboardSettings'] : defaultAnalyticsSettings.dashboardSettings,
+        chartSettings: typeof data.chart_settings === 'object' ? data.chart_settings as AnalyticsSettings['chartSettings'] : defaultAnalyticsSettings.chartSettings,
+        reportSettings: typeof data.report_settings === 'object' ? data.report_settings as AnalyticsSettings['reportSettings'] : defaultAnalyticsSettings.reportSettings,
+        dataSettings: typeof data.data_settings === 'object' ? data.data_settings as AnalyticsSettings['dataSettings'] : defaultAnalyticsSettings.dataSettings,
+        alertSettings: typeof data.alert_settings === 'object' ? data.alert_settings as AnalyticsSettings['alertSettings'] : defaultAnalyticsSettings.alertSettings,
+        privacySettings: typeof data.privacy_settings === 'object' ? data.privacy_settings as AnalyticsSettings['privacySettings'] : defaultAnalyticsSettings.privacySettings,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };

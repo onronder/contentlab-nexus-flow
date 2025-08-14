@@ -89,11 +89,11 @@ export function useContentSettings() {
         id: data.id,
         userId: data.user_id,
         teamId: data.team_id,
-        managementSettings: data.management_settings,
-        workflowSettings: data.workflow_settings,
-        uploadSettings: data.upload_settings,
-        organizationSettings: data.organization_settings,
-        searchSettings: data.search_settings,
+        managementSettings: typeof data.management_settings === 'object' ? data.management_settings as ContentSettings['managementSettings'] : defaultContentSettings.managementSettings,
+        workflowSettings: typeof data.workflow_settings === 'object' ? data.workflow_settings as ContentSettings['workflowSettings'] : defaultContentSettings.workflowSettings,
+        uploadSettings: typeof data.upload_settings === 'object' ? data.upload_settings as ContentSettings['uploadSettings'] : defaultContentSettings.uploadSettings,
+        organizationSettings: typeof data.organization_settings === 'object' ? data.organization_settings as ContentSettings['organizationSettings'] : defaultContentSettings.organizationSettings,
+        searchSettings: typeof data.search_settings === 'object' ? data.search_settings as ContentSettings['searchSettings'] : defaultContentSettings.searchSettings,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };

@@ -89,11 +89,11 @@ export function useCompetitiveSettings() {
         id: data.id,
         userId: data.user_id,
         teamId: data.team_id,
-        monitoringSettings: data.monitoring_settings,
-        analysisSettings: data.analysis_settings,
-        reportingSettings: data.reporting_settings,
-        alertingSettings: data.alerting_settings,
-        dataRetention: data.data_retention,
+        monitoringSettings: typeof data.monitoring_settings === 'object' ? data.monitoring_settings as CompetitiveSettings['monitoringSettings'] : defaultCompetitiveSettings.monitoringSettings,
+        analysisSettings: typeof data.analysis_settings === 'object' ? data.analysis_settings as CompetitiveSettings['analysisSettings'] : defaultCompetitiveSettings.analysisSettings,
+        reportingSettings: typeof data.reporting_settings === 'object' ? data.reporting_settings as CompetitiveSettings['reportingSettings'] : defaultCompetitiveSettings.reportingSettings,
+        alertingSettings: typeof data.alerting_settings === 'object' ? data.alerting_settings as CompetitiveSettings['alertingSettings'] : defaultCompetitiveSettings.alertingSettings,
+        dataRetention: typeof data.data_retention === 'object' ? data.data_retention as CompetitiveSettings['dataRetention'] : defaultCompetitiveSettings.dataRetention,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
