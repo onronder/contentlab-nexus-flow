@@ -108,3 +108,18 @@ verify_jwt = false
 
 [functions.metrics]
 verify_jwt = false
+
+[functions.error-tracker]
+verify_jwt = false
+
+[functions.performance-collector]
+verify_jwt = false
+
+[functions.log-processor]
+verify_jwt = false
+
+[functions.system-health-monitor]
+verify_jwt = false
+
+[functions.cache-manager]
+verify_jwt = false

@@ -328,6 +328,8 @@ class PerformanceMonitoringService {
 export const performanceMonitoringService = new PerformanceMonitoringService();
 
 // Integration functions for production monitoring
+import { supabase } from '@/integrations/supabase/client';
+
 export const collectPerformanceMetrics = async (metrics: Array<{
   metric_type: string;
   metric_name: string;
@@ -337,19 +339,19 @@ export const collectPerformanceMetrics = async (metrics: Array<{
   tags?: Record<string, any>;
 }>) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const response = await supabase.functions.invoke('performance-collector', {
+    const { data, error } = await supabase.functions.invoke('performance-collector', {
       body: metrics
     });
 
-    if (response.error) {
-      console.error('Failed to collect performance metrics:', response.error);
+    if (error) {
+      console.error('Failed to collect performance metrics:', error);
+      throw error;
     }
 
-    return response;
+    return { data, error: null };
   } catch (err) {
     console.error('Performance metrics collection failed:', err);
+    return { data: null, error: err };
   }
 };
 
@@ -361,21 +363,23 @@ export const getPerformanceMetricsFromDatabase = async (filters: {
   limit?: number;
 } = {}) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const params = new URLSearchParams();
-    if (filters.metricType) params.append('metric_type', filters.metricType);
-    if (filters.userId) params.append('user_id', filters.userId);
-    if (filters.teamId) params.append('team_id', filters.teamId);
-    if (filters.hours) params.append('hours', filters.hours.toString());
-    if (filters.limit) params.append('limit', filters.limit.toString());
+    const queryParams: Record<string, string> = {};
+    if (filters.metricType) queryParams.metric_type = filters.metricType;
+    if (filters.userId) queryParams.user_id = filters.userId;
+    if (filters.teamId) queryParams.team_id = filters.teamId;
+    if (filters.hours) queryParams.hours = filters.hours.toString();
+    if (filters.limit) queryParams.limit = filters.limit.toString();
 
-    const response = await supabase.functions.invoke('performance-collector', {
-      method: 'GET',
-      body: undefined
+    const { data, error } = await supabase.functions.invoke('performance-collector', {
+      body: queryParams
     });
 
-    return response;
+    if (error) {
+      console.error('Failed to get performance metrics from database:', error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
   } catch (err) {
     console.error('Failed to get performance metrics from database:', err);
     return { data: null, error: err };

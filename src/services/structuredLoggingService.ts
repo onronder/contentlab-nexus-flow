@@ -297,6 +297,8 @@ class StructuredLoggingService {
 export const structuredLogger = new StructuredLoggingService();
 
 // Integration functions for production monitoring
+import { supabase } from '@/integrations/supabase/client';
+
 export const sendLogsToDatabase = async (logs: Array<{
   level: 'debug' | 'info' | 'warn' | 'error' | 'fatal';
   message: string;
@@ -306,19 +308,19 @@ export const sendLogsToDatabase = async (logs: Array<{
   tags?: string[];
 }>) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const response = await supabase.functions.invoke('log-processor', {
+    const { data, error } = await supabase.functions.invoke('log-processor', {
       body: logs
     });
 
-    if (response.error) {
-      console.error('Failed to send logs to database:', response.error);
+    if (error) {
+      console.error('Failed to send logs to database:', error);
+      throw error;
     }
 
-    return response;
+    return { data, error: null };
   } catch (err) {
     console.error('Log processing failed:', err);
+    return { data: null, error: err };
   }
 };
 
@@ -333,24 +335,26 @@ export const getLogsFromDatabase = async (filters: {
   limit?: number;
 } = {}) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const params = new URLSearchParams();
-    if (filters.level) params.append('level', filters.level);
-    if (filters.component) params.append('component', filters.component);
-    if (filters.userId) params.append('user_id', filters.userId);
-    if (filters.teamId) params.append('team_id', filters.teamId);
-    if (filters.correlationId) params.append('correlation_id', filters.correlationId);
-    if (filters.search) params.append('search', filters.search);
-    if (filters.hours) params.append('hours', filters.hours.toString());
-    if (filters.limit) params.append('limit', filters.limit.toString());
+    const queryParams: Record<string, string> = {};
+    if (filters.level) queryParams.level = filters.level;
+    if (filters.component) queryParams.component = filters.component;
+    if (filters.userId) queryParams.user_id = filters.userId;
+    if (filters.teamId) queryParams.team_id = filters.teamId;
+    if (filters.correlationId) queryParams.correlation_id = filters.correlationId;
+    if (filters.search) queryParams.search = filters.search;
+    if (filters.hours) queryParams.hours = filters.hours.toString();
+    if (filters.limit) queryParams.limit = filters.limit.toString();
 
-    const response = await supabase.functions.invoke('log-processor', {
-      method: 'GET',
-      body: undefined
+    const { data, error } = await supabase.functions.invoke('log-processor', {
+      body: queryParams
     });
 
-    return response;
+    if (error) {
+      console.error('Failed to get logs from database:', error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
   } catch (err) {
     console.error('Failed to get logs from database:', err);
     return { data: null, error: err };

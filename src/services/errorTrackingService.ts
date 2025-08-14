@@ -426,35 +426,37 @@ class ErrorTrackingService {
 export const errorTrackingService = new ErrorTrackingService();
 
 // Integration functions for production monitoring
+import { supabase } from '@/integrations/supabase/client';
+
 export const trackErrorToDatabase = async (error: Error | string, context: ErrorContext = {}) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
     const errorData = {
       error_type: error instanceof Error ? error.name || 'Error' : 'CustomError',
       error_message: error instanceof Error ? error.message : error,
       error_stack: error instanceof Error ? error.stack : undefined,
       severity: context.severity || 'medium',
       context: context,
-      user_agent: navigator?.userAgent,
-      url: window?.location?.href,
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
       fingerprint: context.fingerprint,
       user_id: context.userId,
       team_id: context.teamId,
       project_id: context.projectId
     };
 
-    const response = await supabase.functions.invoke('error-tracker', {
+    const { data, error: functionError } = await supabase.functions.invoke('error-tracker', {
       body: errorData
     });
 
-    if (response.error) {
-      console.error('Failed to track error to database:', response.error);
+    if (functionError) {
+      productionLogger.error('Failed to track error to database:', functionError);
+      throw functionError;
     }
 
-    return response;
+    return { data, error: null };
   } catch (err) {
-    console.error('Error tracking to database failed:', err);
+    productionLogger.error('Error tracking to database failed:', err);
+    return { data: null, error: err };
   }
 };
 
@@ -465,22 +467,24 @@ export const getErrorsFromDatabase = async (filters: {
   limit?: number;
 } = {}) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const params = new URLSearchParams();
-    if (filters.userId) params.append('user_id', filters.userId);
-    if (filters.teamId) params.append('team_id', filters.teamId);
-    if (filters.severity) params.append('severity', filters.severity);
-    if (filters.limit) params.append('limit', filters.limit.toString());
+    const queryParams: Record<string, string> = {};
+    if (filters.userId) queryParams.user_id = filters.userId;
+    if (filters.teamId) queryParams.team_id = filters.teamId;
+    if (filters.severity) queryParams.severity = filters.severity;
+    if (filters.limit) queryParams.limit = filters.limit.toString();
 
-    const response = await supabase.functions.invoke('error-tracker', {
-      method: 'GET',
-      body: undefined
+    const { data, error } = await supabase.functions.invoke('error-tracker', {
+      body: queryParams
     });
 
-    return response;
+    if (error) {
+      productionLogger.error('Failed to get errors from database:', error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
   } catch (err) {
-    console.error('Failed to get errors from database:', err);
+    productionLogger.error('Failed to get errors from database:', err);
     return { data: null, error: err };
   }
 };

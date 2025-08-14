@@ -408,6 +408,8 @@ export const userDataCache = new CachingService({
 export { CachingService };
 
 // Integration functions for production monitoring
+import { supabase } from '@/integrations/supabase/client';
+
 export const sendCacheStatisticsToDatabase = async (stats: Array<{
   cache_name: string;
   cache_type: string;
@@ -421,19 +423,19 @@ export const sendCacheStatisticsToDatabase = async (stats: Array<{
   key_count?: number;
 }>) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const response = await supabase.functions.invoke('cache-manager', {
+    const { data, error } = await supabase.functions.invoke('cache-manager', {
       body: stats
     });
 
-    if (response.error) {
-      console.error('Failed to send cache statistics to database:', response.error);
+    if (error) {
+      console.error('Failed to send cache statistics to database:', error);
+      throw error;
     }
 
-    return response;
+    return { data, error: null };
   } catch (err) {
     console.error('Cache statistics collection failed:', err);
+    return { data: null, error: err };
   }
 };
 
@@ -445,21 +447,23 @@ export const getCacheStatisticsFromDatabase = async (filters: {
   aggregate?: boolean;
 } = {}) => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    
-    const params = new URLSearchParams();
-    if (filters.cacheName) params.append('cache_name', filters.cacheName);
-    if (filters.cacheType) params.append('cache_type', filters.cacheType);
-    if (filters.hours) params.append('hours', filters.hours.toString());
-    if (filters.limit) params.append('limit', filters.limit.toString());
-    if (filters.aggregate) params.append('aggregate', 'true');
+    const queryParams: Record<string, string> = {};
+    if (filters.cacheName) queryParams.cache_name = filters.cacheName;
+    if (filters.cacheType) queryParams.cache_type = filters.cacheType;
+    if (filters.hours) queryParams.hours = filters.hours.toString();
+    if (filters.limit) queryParams.limit = filters.limit.toString();
+    if (filters.aggregate) queryParams.aggregate = 'true';
 
-    const response = await supabase.functions.invoke('cache-manager', {
-      method: 'GET',
-      body: undefined
+    const { data, error } = await supabase.functions.invoke('cache-manager', {
+      body: queryParams
     });
 
-    return response;
+    if (error) {
+      console.error('Failed to get cache statistics from database:', error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
   } catch (err) {
     console.error('Failed to get cache statistics from database:', err);
     return { data: null, error: err };
