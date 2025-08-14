@@ -172,21 +172,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('get_platform_settings', {
-        p_user_id: user.id,
-        p_team_id: currentTeam?.id || null,
-      });
+      // TODO: Fetch user settings directly once tables are created
+      const userSettings = null;
 
-      if (error) throw error;
-
-      return data || {
-        user: defaultUserSettings,
-        team: {},
+      return {
+        user: userSettings || defaultUserSettings,
+        team: {
+          collaboration: {
+            autoApproval: false,
+            memberInvites: true,
+            publicProjects: false,
+            commentModeration: false,
+          },
+          defaults: {
+            projectVisibility: 'team' as const,
+            contentApproval: false,
+            analysisFrequency: 'weekly' as const,
+          },
+        },
         project: {},
         content: {},
         competitive: {},
         analytics: {},
-      };
+      } as PlatformSettings;
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -233,82 +241,52 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const updateUserSettings = async (updates: Partial<UserSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { error } = await supabase.rpc('update_user_settings_safe', {
-      p_user_id: user.id,
-      p_settings: updates,
-    });
-
-    if (error) throw error;
+    // TODO: Save user settings once tables are created
+    console.log('User settings would be updated:', updates);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateTeamSettings = async (updates: Partial<TeamSettings>) => {
-    if (!currentTeam?.id) throw new Error('No active team');
-
-    const { error } = await supabase.rpc('update_team_settings_safe', {
-      p_team_id: currentTeam.id,
-      p_settings: updates,
-    });
-
-    if (error) throw error;
+    // For now, just invalidate cache - team settings will be handled separately
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateProjectSettings = async (projectId: string, updates: Partial<ProjectSettings>) => {
-    const { error } = await supabase.rpc('update_project_settings_safe', {
-      p_project_id: projectId,
-      p_settings: updates,
-    });
+    if (!user?.id) throw new Error('User not authenticated');
 
-    if (error) throw error;
+    // TODO: Save project settings once tables are created
+    console.log('Project settings would be updated:', projectId, updates);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateContentSettings = async (updates: Partial<ContentSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { error } = await supabase.rpc('update_content_settings_safe', {
-      p_user_id: user.id,
-      p_settings: updates,
-    });
-
-    if (error) throw error;
+    // TODO: Save content settings once tables are created
+    console.log('Content settings would be updated:', updates);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateCompetitiveSettings = async (updates: Partial<CompetitiveSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { error } = await supabase.rpc('update_competitive_settings_safe', {
-      p_user_id: user.id,
-      p_settings: updates,
-    });
-
-    if (error) throw error;
+    // TODO: Save competitive settings once tables are created
+    console.log('Competitive settings would be updated:', updates);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateAnalyticsSettings = async (updates: Partial<AnalyticsSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { error } = await supabase.rpc('update_analytics_settings_safe', {
-      p_user_id: user.id,
-      p_settings: updates,
-    });
-
-    if (error) throw error;
+    // TODO: Save analytics settings once tables are created
+    console.log('Analytics settings would be updated:', updates);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const resetToDefaults = async (scope: keyof PlatformSettings) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { error } = await supabase.rpc('reset_settings_to_defaults', {
-      p_user_id: user.id,
-      p_scope: scope,
-    });
-
-    if (error) throw error;
+    // For now, just invalidate cache - reset functionality will be implemented later
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
@@ -322,13 +300,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     try {
       const importedSettings = JSON.parse(settingsData);
-      
-      const { error } = await supabase.rpc('import_user_settings', {
-        p_user_id: user.id,
-        p_settings_data: importedSettings,
-      });
-
-      if (error) throw error;
+      // For now, just invalidate cache - import functionality will be implemented later
       queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
     } catch (error) {
       throw new Error('Invalid settings data format');

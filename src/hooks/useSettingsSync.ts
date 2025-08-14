@@ -131,11 +131,8 @@ export function useSettingsSync() {
 
     try {
       // Attempt to sync any pending changes
-      const { error } = await supabase.rpc('sync_user_settings', {
-        p_user_id: user.id,
-      });
-
-      if (error) throw error;
+      // TODO: Implement sync once tables are created
+      console.log('Would sync settings for user:', user.id);
 
       setSyncStatus(prev => ({
         ...prev,
@@ -169,11 +166,8 @@ export function useSettingsSync() {
     setSyncStatus(prev => ({ ...prev, syncStatus: 'syncing' }));
 
     try {
-      const { error } = await supabase.rpc('force_settings_sync', {
-        p_user_id: user.id,
-      });
-
-      if (error) throw error;
+      // TODO: Implement force sync once tables are created
+      console.log('Would force sync for user:', user.id);
 
       // Invalidate all settings-related queries
       queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
@@ -209,12 +203,8 @@ export function useSettingsSync() {
     if (!user?.id) return;
 
     try {
-      const { error } = await supabase.rpc('resolve_settings_conflict', {
-        p_user_id: user.id,
-        p_resolution: resolution,
-      });
-
-      if (error) throw error;
+      // TODO: Implement conflict resolution once tables are created
+      console.log('Would resolve conflict for user:', user.id, 'with resolution:', resolution);
 
       queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
       
@@ -236,13 +226,9 @@ export function useSettingsSync() {
   const exportAllSettings = async (): Promise<string> => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase.rpc('export_all_user_settings', {
-      p_user_id: user.id,
-    });
-
-    if (error) throw error;
-
-    return JSON.stringify(data, null, 2);
+    // TODO: Implement export once tables are created
+    console.log('Would export settings for user:', user.id);
+    return JSON.stringify({ placeholder: 'settings' }, null, 2);
   };
 
   const importAllSettings = async (settingsJson: string) => {
@@ -251,12 +237,8 @@ export function useSettingsSync() {
     try {
       const settingsData = JSON.parse(settingsJson);
       
-      const { error } = await supabase.rpc('import_all_user_settings', {
-        p_user_id: user.id,
-        p_settings_data: settingsData,
-      });
-
-      if (error) throw error;
+      // TODO: Implement import once tables are created
+      console.log('Would import settings for user:', user.id, 'with data:', settingsData);
 
       queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
       

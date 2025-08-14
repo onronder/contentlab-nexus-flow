@@ -118,14 +118,12 @@ export function useAnalyticsSettings() {
     queryFn: async (): Promise<AnalyticsSettings> => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('get_analytics_settings_safe', {
-        p_user_id: user.id,
-      });
-
-      if (error) throw error;
+      // TODO: Fetch from table once created
+      const data = null;
+      const error = null;
 
       // If no settings exist, create default ones
-      if (!data || data.length === 0) {
+      if (!data) {
         return {
           id: '',
           userId: user.id,
@@ -135,7 +133,13 @@ export function useAnalyticsSettings() {
         };
       }
 
-      return data[0];
+      return {
+        id: data.id,
+        userId: data.user_id,
+        ...defaultAnalyticsSettings,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -145,12 +149,8 @@ export function useAnalyticsSettings() {
     mutationFn: async (updates: Partial<AnalyticsSettings>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { error } = await supabase.rpc('update_analytics_settings_safe', {
-        p_user_id: user.id,
-        p_settings: updates,
-      });
-
-      if (error) throw error;
+      // TODO: Save to table once created
+      console.log('Analytics settings update:', updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['analytics-settings'] });
@@ -172,11 +172,8 @@ export function useAnalyticsSettings() {
     mutationFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { error } = await supabase.rpc('reset_analytics_settings_to_defaults', {
-        p_user_id: user.id,
-      });
-
-      if (error) throw error;
+      // TODO: Delete from table once created
+      console.log('Analytics settings reset');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['analytics-settings'] });

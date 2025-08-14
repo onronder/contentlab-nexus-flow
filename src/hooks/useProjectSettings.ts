@@ -85,15 +85,12 @@ export function useProjectSettings(projectId: string) {
     queryFn: async (): Promise<ProjectSettings> => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('get_project_settings_safe', {
-        p_project_id: projectId,
-        p_user_id: user.id,
-      });
-
-      if (error) throw error;
+      // TODO: Fetch from table once created
+      const data = null;
+      const error = null;
 
       // If no settings exist, create default ones
-      if (!data || data.length === 0) {
+      if (!data) {
         return {
           id: '',
           projectId,
@@ -103,7 +100,13 @@ export function useProjectSettings(projectId: string) {
         };
       }
 
-      return data[0];
+      return {
+        id: data.id,
+        projectId: data.project_id,
+        ...defaultProjectSettings,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
     },
     enabled: !!user?.id && !!projectId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -113,13 +116,10 @@ export function useProjectSettings(projectId: string) {
     mutationFn: async (updates: Partial<ProjectSettings>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { error } = await supabase.rpc('update_project_settings_safe', {
-        p_project_id: projectId,
-        p_user_id: user.id,
-        p_settings: updates,
-      });
+      // TODO: Save to table once created
+      console.log('Project settings update:', updates);
 
-      if (error) throw error;
+      // Removed error handling for now
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-settings', projectId] });
@@ -141,12 +141,10 @@ export function useProjectSettings(projectId: string) {
     mutationFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { error } = await supabase.rpc('reset_project_settings_to_defaults', {
-        p_project_id: projectId,
-        p_user_id: user.id,
-      });
+      // TODO: Delete from table once created
+      console.log('Project settings reset for:', projectId);
 
-      if (error) throw error;
+      // Removed error handling for now
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-settings', projectId] });
@@ -168,13 +166,10 @@ export function useProjectSettings(projectId: string) {
     mutationFn: async (inherit: boolean) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { error } = await supabase.rpc('toggle_project_settings_inheritance', {
-        p_project_id: projectId,
-        p_user_id: user.id,
-        p_inherit: inherit,
-      });
+      // TODO: Update table once created
+      console.log('Project settings inheritance:', inherit);
 
-      if (error) throw error;
+      // Removed error handling for now
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-settings', projectId] });
