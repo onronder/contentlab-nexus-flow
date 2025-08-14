@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
-import { TeamService } from '@/services/teamService';
 import { useAuth } from '@/hooks/useAuth';
+import { useCreateTeam } from '@/hooks/useTeamMutations';
 import { 
   Card, 
   CardContent, 
@@ -36,9 +36,9 @@ interface TeamCreationWizardProps {
 
 export function TeamCreationWizard({ onComplete }: TeamCreationWizardProps) {
   const { user } = useAuth();
-  const { refreshTeams, setCurrentTeam } = useTeamContext();
+  const { setCurrentTeam } = useTeamContext();
+  const createTeamMutation = useCreateTeam();
   const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<TeamCreateInput>>({
     name: '',
     description: '',
@@ -72,29 +72,22 @@ export function TeamCreationWizard({ onComplete }: TeamCreationWizardProps) {
       return;
     }
 
-    setIsLoading(true);
     try {
-      // Create the team with full backend integration
-      const newTeam = await TeamService.createTeamWithIntegration({
+      const newTeam = await createTeamMutation.mutateAsync({
         name: formData.name,
         description: formData.description || '',
         team_type: formData.team_type as TeamType || 'organization',
         member_limit: formData.member_limit || 50,
-        auto_setup: true, // Enable automatic setup
+        settings: {
+          auto_invite: true,
+          public_join: false,
+        }
       });
-
-      // Refresh teams to get the updated list
-      await refreshTeams();
       
       // Set the new team as current team
       setCurrentTeam(newTeam);
       
       setStep(3); // Success step
-      
-      toast({
-        title: 'Team created successfully!',
-        description: `Welcome to ${formData.name}. Your workspace is ready!`,
-      });
 
       // Complete after a short delay to show success message
       setTimeout(() => {
@@ -107,8 +100,6 @@ export function TeamCreationWizard({ onComplete }: TeamCreationWizardProps) {
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -234,10 +225,10 @@ export function TeamCreationWizard({ onComplete }: TeamCreationWizardProps) {
         </Button>
         <Button
           onClick={handleCreateTeam}
-          disabled={isLoading}
+          disabled={createTeamMutation.isPending}
           className="flex-1 gradient-primary text-primary-foreground"
         >
-          {isLoading ? (
+          {createTeamMutation.isPending ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Creating...

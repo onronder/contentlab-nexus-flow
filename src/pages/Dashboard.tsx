@@ -31,14 +31,16 @@ import { QueryErrorBoundary } from '@/components/ui/query-error-boundary';
 import { ContentErrorBoundary } from '@/components/ui/content-error-boundary';
 import { HealthMonitor } from '@/components/debug/HealthMonitor';
 import { useTeamContext } from '@/contexts/TeamContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Dashboard = () => {
-  const { currentTeam, availableTeams, isLoading: teamLoading, refreshTeams } = useTeamContext();
+  const { currentTeam, availableTeams, isLoading: teamLoading } = useTeamContext();
   const { data: teamStats, isLoading: isStatsLoading } = useTeamDashboardStats();
   const { data: permissions } = useTeamPermissions();
   const { data: recentActivity, isLoading: isActivityLoading } = useRecentActivity();
   const { data: alerts, isLoading: isAlertsLoading } = useMonitoringAlerts();
   const { data: performanceMetrics, isLoading: isPerformanceLoading } = usePerformanceMetrics();
+  const queryClient = useQueryClient();
 
   // Type-safe access to data with team context
   const stats = teamStats;
@@ -130,7 +132,7 @@ const Dashboard = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={refreshTeams}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['teams'] })}
               disabled={teamLoading}
               size="lg"
             >

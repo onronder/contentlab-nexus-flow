@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Team } from '@/types/team';
-import { TeamService } from '@/services/teamService';
 import { useAuth } from '@/hooks/useAuth';
+import { useTeams } from '@/hooks/useTeamQueries';
 import { toast } from '@/hooks/use-toast';
 
 interface TeamContextType {
@@ -9,8 +9,7 @@ interface TeamContextType {
   setCurrentTeam: (team: Team | null) => void;
   availableTeams: Team[];
   isLoading: boolean;
-  switchTeam: (teamId: string) => Promise<void>;
-  refreshTeams: () => Promise<void>;
+  switchTeam: (teamId: string) => void;
   hasTeamAccess: (permission: string) => boolean;
   isTeamMember: (userId: string) => boolean;
 }
@@ -24,70 +23,48 @@ interface TeamProviderProps {
 export function TeamProvider({ children }: TeamProviderProps) {
   const { user } = useAuth();
   const [currentTeam, setCurrentTeamState] = useState<Team | null>(null);
-  const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use React Query to fetch teams
+  const { data: availableTeams = [], isLoading, error } = useTeams();
 
-  // Load team context from localStorage
+  // Handle error state
   useEffect(() => {
-    const savedTeamId = localStorage.getItem('currentTeamId');
-    if (savedTeamId && availableTeams.length > 0) {
-      const savedTeam = availableTeams.find(team => team.id === savedTeamId);
-      if (savedTeam) {
-        setCurrentTeamState(savedTeam);
-      }
-    }
-  }, [availableTeams]);
-
-  // Fetch available teams when user changes
-  useEffect(() => {
-    if (user?.id) {
-      fetchTeams();
-    } else {
-      setAvailableTeams([]);
-      setCurrentTeamState(null);
-      setIsLoading(false);
-    }
-  }, [user?.id]);
-
-  const fetchTeams = async () => {
-    if (!user?.id) return;
-    
-    try {
-      setIsLoading(true);
-      const teams = await TeamService.getTeamsByUser(user.id);
-      console.log('Fetched teams:', teams); // Debug log
-      setAvailableTeams(teams);
-      
-      // Set first team as current if none selected and we have teams
-      if (teams.length > 0) {
-        const savedTeamId = localStorage.getItem('currentTeamId');
-        const savedTeam = savedTeamId ? teams.find(t => t.id === savedTeamId) : null;
-        const teamToSet = savedTeam || teams[0];
-        
-        if (!currentTeam || currentTeam.id !== teamToSet.id) {
-          setCurrentTeamState(teamToSet);
-          localStorage.setItem('currentTeamId', teamToSet.id);
-        }
-      } else {
-        // No teams found - user needs to create one
-        console.log('No teams found for user:', user.id);
-        setCurrentTeamState(null);
-        localStorage.removeItem('currentTeamId');
-      }
-    } catch (error) {
+    if (error) {
       console.error('Error fetching teams:', error);
       toast({
         title: 'Error loading teams',
         description: 'Failed to load your teams. Please try again.',
         variant: 'destructive',
       });
-      // Set empty state on error
-      setAvailableTeams([]);
-      setCurrentTeamState(null);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [error]);
+
+  // Set initial current team from localStorage or first available team
+  useEffect(() => {
+    if (!isLoading && availableTeams.length > 0) {
+      const savedTeamId = localStorage.getItem('currentTeamId');
+      const savedTeam = savedTeamId ? availableTeams.find(team => team.id === savedTeamId) : null;
+      const teamToSet = savedTeam || availableTeams[0];
+      
+      if (!currentTeam || currentTeam.id !== teamToSet.id) {
+        setCurrentTeamState(teamToSet);
+        localStorage.setItem('currentTeamId', teamToSet.id);
+      }
+    } else if (!isLoading && availableTeams.length === 0) {
+      // No teams found - user needs to create one
+      console.log('No teams found for user:', user?.id);
+      setCurrentTeamState(null);
+      localStorage.removeItem('currentTeamId');
+    }
+  }, [availableTeams, isLoading, currentTeam, user?.id]);
+
+  // Clear team state when user logs out
+  useEffect(() => {
+    if (!user?.id) {
+      setCurrentTeamState(null);
+      localStorage.removeItem('currentTeamId');
+    }
+  }, [user?.id]);
 
   const setCurrentTeam = (team: Team | null) => {
     setCurrentTeamState(team);
@@ -98,7 +75,7 @@ export function TeamProvider({ children }: TeamProviderProps) {
     }
   };
 
-  const switchTeam = async (teamId: string) => {
+  const switchTeam = (teamId: string) => {
     const team = availableTeams.find(t => t.id === teamId);
     if (team) {
       setCurrentTeam(team);
@@ -107,10 +84,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
         description: `Switched to ${team.name}`,
       });
     }
-  };
-
-  const refreshTeams = async () => {
-    await fetchTeams();
   };
 
   const hasTeamAccess = (permission: string): boolean => {
@@ -149,7 +122,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
     availableTeams,
     isLoading,
     switchTeam,
-    refreshTeams,
     hasTeamAccess,
     isTeamMember,
   };

@@ -7,11 +7,9 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function CreateTeam() {
   const navigate = useNavigate();
-  const { refreshTeams } = useTeamContext();
 
-  const handleTeamCreated = async () => {
-    // Refresh teams to ensure the new team is available
-    await refreshTeams();
+  const handleTeamCreated = () => {
+    // Teams will be automatically refreshed via React Query
     
     // Navigate to team page to show the new team
     navigate('/team');

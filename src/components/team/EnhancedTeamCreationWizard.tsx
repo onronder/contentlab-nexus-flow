@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
-import { TeamService } from '@/services/teamService';
 import { useAuth } from '@/hooks/useAuth';
+import { useCreateTeam } from '@/hooks/useTeamMutations';
 import { 
   Card, 
   CardContent, 
@@ -43,9 +43,9 @@ interface EnhancedTeamCreationWizardProps {
 
 export function EnhancedTeamCreationWizard({ onComplete, onCancel }: EnhancedTeamCreationWizardProps) {
   const { user } = useAuth();
-  const { refreshTeams, setCurrentTeam } = useTeamContext();
+  const { setCurrentTeam } = useTeamContext();
+  const createTeamMutation = useCreateTeam();
   const [step, setStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [createdTeam, setCreatedTeam] = useState<any>(null);
   
   const [formData, setFormData] = useState<Partial<TeamCreateInput & {
@@ -99,15 +99,12 @@ export function EnhancedTeamCreationWizard({ onComplete, onCancel }: EnhancedTea
       return;
     }
 
-    setIsLoading(true);
     try {
-      // Create the team with full integration
-      const newTeam = await TeamService.createTeamWithIntegration({
+      const newTeam = await createTeamMutation.mutateAsync({
         name: formData.name,
         description: formData.description || '',
         team_type: formData.team_type as TeamType || 'organization',
         member_limit: formData.member_limit || 50,
-        auto_setup: formData.auto_setup || true,
         settings: {
           auto_invite: true,
           public_join: false,
@@ -118,17 +115,9 @@ export function EnhancedTeamCreationWizard({ onComplete, onCancel }: EnhancedTea
       });
 
       setCreatedTeam(newTeam);
-
-      // Refresh teams and set as current
-      await refreshTeams();
       setCurrentTeam(newTeam);
       
       setStep(4); // Success step
-      
-      toast({
-        title: 'Team created successfully!',
-        description: `Welcome to ${formData.name}. Your workspace is ready!`,
-      });
 
       // Complete after showing success
       setTimeout(() => {
@@ -141,8 +130,6 @@ export function EnhancedTeamCreationWizard({ onComplete, onCancel }: EnhancedTea
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -507,23 +494,23 @@ export function EnhancedTeamCreationWizard({ onComplete, onCancel }: EnhancedTea
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button
-                onClick={handleCreateTeam}
-                disabled={isLoading || !validateCurrentStep()}
-                className="flex-1 gradient-primary text-primary-foreground"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating Team...
-                  </>
-                ) : (
-                  <>
-                    Create Team
-                    <CheckCircle className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
+            <Button
+              onClick={handleCreateTeam}
+              disabled={createTeamMutation.isPending || !validateCurrentStep()}
+              className="flex-1 gradient-primary text-primary-foreground"
+            >
+              {createTeamMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Team...
+                </>
+              ) : (
+                <>
+                  Create Team
+                  <CheckCircle className="h-4 w-4 ml-2" />
+                </>
+              )}
+            </Button>
             )}
           </div>
         )}
