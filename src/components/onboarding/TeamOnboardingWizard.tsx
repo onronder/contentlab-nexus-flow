@@ -81,21 +81,37 @@ export function TeamOnboardingWizard() {
     if (savedProgress) {
       try {
         const progress = JSON.parse(savedProgress);
-        setSteps(progress.steps || ONBOARDING_STEPS);
+        // Merge saved progress with fresh step definitions to preserve icon components
+        const mergedSteps = ONBOARDING_STEPS.map((step, index) => ({
+          ...step,
+          completed: progress.steps?.[index]?.completed || false
+        }));
+        setSteps(mergedSteps);
         setCurrentStep(progress.currentStep || 0);
       } catch (error) {
         console.error('Error loading onboarding progress:', error);
+        // Fallback to fresh steps if localStorage is corrupted
+        setSteps(ONBOARDING_STEPS);
+        setCurrentStep(0);
       }
     }
   }, [user?.id]);
 
   const saveProgress = (newSteps: OnboardingStepData[], newCurrentStep: number) => {
-    const progress = {
-      steps: newSteps,
-      currentStep: newCurrentStep,
-      lastUpdated: new Date().toISOString()
-    };
-    localStorage.setItem(`onboarding_progress_${user?.id}`, JSON.stringify(progress));
+    try {
+      // Only save completion status and step index, not the icon components
+      const progress = {
+        steps: newSteps.map(step => ({
+          id: step.id,
+          completed: step.completed
+        })),
+        currentStep: newCurrentStep,
+        lastUpdated: new Date().toISOString()
+      };
+      localStorage.setItem(`onboarding_progress_${user?.id}`, JSON.stringify(progress));
+    } catch (error) {
+      console.error('Error saving onboarding progress:', error);
+    }
   };
 
   const markStepCompleted = (stepIndex: number) => {
@@ -252,10 +268,7 @@ export function TeamOnboardingWizard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
-                {(() => {
-                  const Icon = currentStepData.icon;
-                  return <Icon className="h-6 w-6 text-primary" />;
-                })()}
+                {React.createElement(currentStepData.icon, { className: "h-6 w-6 text-primary" })}
                 {currentStepData.title}
               </CardTitle>
               <p className="text-muted-foreground">
