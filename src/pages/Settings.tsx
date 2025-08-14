@@ -25,11 +25,20 @@ import {
   X,
   ExternalLink,
   Trash2,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  FileText,
+  TrendingUp,
+  Zap,
+  RefreshCw as Sync
 } from "lucide-react";
 import { useUserProfile, useUpdateUserProfile } from "@/hooks/useUserProfile";
 import { useUserSettings, useUpdateUserSettings } from "@/hooks/useUserSettings";
 import { useTeamSettings } from "@/hooks/useTeamSettings";
+import { useContentSettings } from "@/hooks/useContentSettings";
+import { useCompetitiveSettings } from "@/hooks/useCompetitiveSettings";
+import { useAnalyticsSettings } from "@/hooks/useAnalyticsSettings";
+import { SettingsSync } from "@/components/settings/SettingsSync";
+import { SettingsAutomation } from "@/components/settings/SettingsAutomation";
 import { SettingsErrorBoundary } from "@/components/ui/settings-error-boundary";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +50,9 @@ const Settings = () => {
   const { data: userProfile, isLoading: isProfileLoading, error: profileError, refetch: refetchProfile } = useUserProfile();
   const { data: userSettings, isLoading: isSettingsLoading, error: settingsError, refetch: refetchSettings } = useUserSettings();
   const { data: teamSettings, isLoading: isTeamLoading, error: teamError, refetch: refetchTeam } = useTeamSettings();
+  const { settings: contentSettings, isLoading: contentLoading, updateSettings: updateContentSettings } = useContentSettings();
+  const { settings: competitiveSettings, isLoading: competitiveLoading, updateSettings: updateCompetitiveSettings } = useCompetitiveSettings();
+  const { settings: analyticsSettings, isLoading: analyticsLoading, updateSettings: updateAnalyticsSettings } = useAnalyticsSettings();
   
   const updateProfile = useUpdateUserProfile();
   const updateSettings = useUpdateUserSettings();
@@ -127,580 +139,761 @@ const Settings = () => {
   return (
     <SettingsErrorBoundary onRetry={handleRetryAll}>
       <div className="min-h-screen bg-gradient-subtle p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Settings</h1>
-            <p className="text-muted-foreground text-lg">Manage your account, team, and application preferences</p>
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Settings</h1>
+              <p className="text-muted-foreground text-lg">Manage your account, team, and application preferences</p>
+            </div>
           </div>
-        </div>
 
-        {/* Settings Tabs */}
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger value="team" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Team
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Billing
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="flex items-center gap-2">
-              <Plug className="h-4 w-4" />
-              Integrations
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Security
-            </TabsTrigger>
-          </TabsList>
+          {/* Settings Tabs */}
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="team" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Team
+              </TabsTrigger>
+              <TabsTrigger value="content" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Content
+              </TabsTrigger>
+              <TabsTrigger value="competitive" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Competitive
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <SettingsIcon className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="automation" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Automation
+              </TabsTrigger>
+              <TabsTrigger value="sync" className="flex items-center gap-2">
+                <Sync className="h-4 w-4" />
+                Sync
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your personal information and preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center gap-6">
-                  <div className="relative">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={userProfile?.avatar_url} alt={userProfile?.full_name} />
-                      <AvatarFallback className="text-lg">
-                        {userProfile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Profile Information
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your personal profile information and preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={userProfile?.avatar_url || ''} />
+                      <AvatarFallback>
+                        {userProfile?.full_name?.charAt(0) || userProfile?.email?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <Button size="sm" className="absolute -bottom-2 -right-2" variant="outline">
-                      <Upload className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{userProfile?.full_name || 'Unknown User'}</h3>
-                    <p className="text-muted-foreground">{userProfile?.email}</p>
-                    <Badge className="mt-2 bg-blue-100 text-blue-800">
-                      <Shield className="h-3 w-3 mr-1" />
-                      User
-                    </Badge>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first-name">First Name</Label>
-                    <Input 
-                      id="first-name" 
-                      value={profileForm.full_name.split(' ')[0] || ''}
-                      onChange={(e) => {
-                        const lastName = profileForm.full_name.split(' ').slice(1).join(' ');
-                        setProfileForm(prev => ({ ...prev, full_name: `${e.target.value} ${lastName}`.trim() }));
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last-name">Last Name</Label>
-                    <Input 
-                      id="last-name" 
-                      value={profileForm.full_name.split(' ').slice(1).join(' ') || ''}
-                      onChange={(e) => {
-                        const firstName = profileForm.full_name.split(' ')[0] || '';
-                        setProfileForm(prev => ({ ...prev, full_name: `${firstName} ${e.target.value}`.trim() }));
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" value={userProfile?.email || ''} disabled />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea 
-                    id="bio" 
-                    placeholder="Tell us about yourself..." 
-                    rows={3}
-                    value={profileForm.bio}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="utc">UTC</SelectItem>
-                      <SelectItem value="est">Eastern Time</SelectItem>
-                      <SelectItem value="pst">Pacific Time</SelectItem>
-                      <SelectItem value="gmt">GMT</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button className="gradient-primary" onClick={handleProfileSave} disabled={updateProfile.isPending}>
-                  {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>Configure how you want to receive notifications</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="email-notifications">Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive notifications via email</p>
-                  </div>
-                  <Switch 
-                    id="email-notifications"
-                    checked={notifications.email}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email: checked }))}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="push-notifications">Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive browser push notifications</p>
-                  </div>
-                  <Switch 
-                    id="push-notifications"
-                    checked={notifications.push}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, push: checked }))}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="weekly-reports">Weekly Reports</Label>
-                    <p className="text-sm text-muted-foreground">Receive weekly summary reports</p>
-                  </div>
-                  <Switch 
-                    id="weekly-reports"
-                    checked={notifications.weekly}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, weekly: checked }))}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="mentions">Mentions & Comments</Label>
-                    <p className="text-sm text-muted-foreground">Get notified when mentioned</p>
-                  </div>
-                  <Switch 
-                    id="mentions"
-                    checked={notifications.mentions}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, mentions: checked }))}
-                  />
-                </div>
-                
-                <Button onClick={handleNotificationSave} disabled={updateSettings.isPending}>
-                  {updateSettings.isPending ? 'Saving...' : 'Save Notification Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Team Settings Tab */}
-          <TabsContent value="team" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Team Settings</CardTitle>
-                <CardDescription>Manage your team information and preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isTeamLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <LoadingSpinner />
-                  </div>
-                ) : teamSettings ? (
-                  <>
                     <div className="space-y-2">
-                      <Label htmlFor="team-name">Team Name</Label>
-                      <Input id="team-name" value={teamSettings.name} disabled />
+                      <Button variant="outline" size="sm">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Change Photo
+                      </Button>
+                      <p className="text-sm text-muted-foreground">
+                        JPG, GIF or PNG. 1MB max.
+                      </p>
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="team-description">Team Description</Label>
-                      <Textarea id="team-description" value={teamSettings.description} rows={3} disabled />
+                      <Label htmlFor="full_name">Full Name</Label>
+                      <Input
+                        id="full_name"
+                        value={profileForm.full_name}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, full_name: e.target.value }))}
+                        placeholder="Enter your full name"
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={userProfile?.email || ''}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+                  </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 border rounded-lg">
-                        <h3 className="text-2xl font-bold">{teamSettings.memberCount}</h3>
-                        <p className="text-sm text-muted-foreground">Total Members</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <h3 className="text-2xl font-bold">{teamSettings.activeUsers}</h3>
-                        <p className="text-sm text-muted-foreground">Active Users</p>
-                      </div>
-                      <div className="text-center p-4 border rounded-lg">
-                        <h3 className="text-2xl font-bold">{teamSettings.pendingInvitations}</h3>
-                        <p className="text-sm text-muted-foreground">Pending Invites</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        value={profileForm.phone}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value="••••••••••"
+                          disabled
+                          className="bg-muted pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
                       </div>
                     </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">You're not part of any team yet</p>
                   </div>
-                )}
 
-                <Button className="gradient-primary">Update Team Settings</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Member Permissions</CardTitle>
-                <CardDescription>Configure default permissions for team members</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Allow members to invite others</Label>
-                    <p className="text-sm text-muted-foreground">Team members can send invitations</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Allow members to create projects</Label>
-                    <p className="text-sm text-muted-foreground">Team members can create new projects</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Require approval for content publishing</Label>
-                    <p className="text-sm text-muted-foreground">Admin approval needed before publishing</p>
-                  </div>
-                  <Switch />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Billing Tab */}
-          <TabsContent value="billing" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Subscription Plan</CardTitle>
-                <CardDescription>Manage your subscription and billing information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">Professional Plan</h3>
-                    <p className="text-sm text-muted-foreground">$29/month • Billed monthly</p>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">Active</Badge>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <h3 className="text-2xl font-bold">∞</h3>
-                    <p className="text-sm text-muted-foreground">Competitors</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <h3 className="text-2xl font-bold">500GB</h3>
-                    <p className="text-sm text-muted-foreground">Storage</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <h3 className="text-2xl font-bold">25</h3>
-                    <p className="text-sm text-muted-foreground">Team Members</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-semibold">Usage This Month</h4>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>API Calls</span>
-                      <span>12,450 / 50,000</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: '25%' }}></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Storage Used</span>
-                      <span>145GB / 500GB</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: '29%' }}></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Button variant="outline">Change Plan</Button>
-                  <Button variant="outline">View Invoices</Button>
-                  <Button variant="destructive">Cancel Subscription</Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Method</CardTitle>
-                <CardDescription>Manage your payment information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                      <CreditCard className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">•••• •••• •••• 4532</p>
-                      <p className="text-sm text-muted-foreground">Expires 12/25</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">Update</Button>
-                </div>
-
-                <Button variant="outline" className="w-full">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Add Payment Method
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Integrations Tab */}
-          <TabsContent value="integrations" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Connected Integrations</CardTitle>
-                <CardDescription>Manage your connected services and APIs</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                      <span className="text-red-600 font-bold">G</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Google Analytics</h3>
-                      <p className="text-sm text-muted-foreground">Track website performance</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-800">
-                      <Check className="h-3 w-3 mr-1" />
-                      Connected
-                    </Badge>
-                    <Button variant="outline" size="sm">
-                      <SettingsIcon className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <span className="text-blue-600 font-bold">f</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Facebook Business</h3>
-                      <p className="text-sm text-muted-foreground">Social media analytics</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-800">
-                      <Check className="h-3 w-3 mr-1" />
-                      Connected
-                    </Badge>
-                    <Button variant="outline" size="sm">
-                      <SettingsIcon className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold">X</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">X (Twitter)</h3>
-                      <p className="text-sm text-muted-foreground">Social listening and analytics</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    Connect
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <span className="text-blue-600 font-bold">Li</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">LinkedIn</h3>
-                      <p className="text-sm text-muted-foreground">Professional network analytics</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    Connect
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>API Access</CardTitle>
-                <CardDescription>Manage API keys and webhook endpoints</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">API Key</h3>
-                    <p className="text-sm text-muted-foreground font-mono">cl_live_••••••••••••••••••••</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Regenerate
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="webhook-url">Webhook URL</Label>
-                  <Input id="webhook-url" placeholder="https://your-app.com/webhooks/contentlab" />
-                </div>
-
-                <Button className="gradient-primary">Save Webhook</Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Security Tab */}
-          <TabsContent value="security" className="mt-6 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Password & Authentication</CardTitle>
-                <CardDescription>Manage your password and security settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <div className="relative">
-                    <Input 
-                      id="current-password" 
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter current password"
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={profileForm.bio}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                      placeholder="Tell us about yourself..."
+                      rows={3}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-2 top-1/2 -translate-y-1/2"
-                      onClick={() => setShowPassword(!showPassword)}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium">Notification Preferences</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label htmlFor="email-notifications">Email Notifications</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive notifications via email
+                          </p>
+                        </div>
+                        <Switch
+                          id="email-notifications"
+                          checked={notifications.email}
+                          onCheckedChange={(checked) => 
+                            setNotifications(prev => ({ ...prev, email: checked }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label htmlFor="push-notifications">Push Notifications</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive push notifications in your browser
+                          </p>
+                        </div>
+                        <Switch
+                          id="push-notifications"
+                          checked={notifications.push}
+                          onCheckedChange={(checked) => 
+                            setNotifications(prev => ({ ...prev, push: checked }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label htmlFor="weekly-notifications">Weekly Reports</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive weekly activity summaries
+                          </p>
+                        </div>
+                        <Switch
+                          id="weekly-notifications"
+                          checked={notifications.weekly}
+                          onCheckedChange={(checked) => 
+                            setNotifications(prev => ({ ...prev, weekly: checked }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button onClick={handleProfileSave} disabled={updateProfile.isPending}>
+                      {updateProfile.isPending ? (
+                        <>
+                          <LoadingSpinner size="sm" className="mr-2" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Changes'
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleNotificationSave}
+                      disabled={updateSettings.isPending}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {updateSettings.isPending ? (
+                        <>
+                          <LoadingSpinner size="sm" className="mr-2" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Notifications'
+                      )}
                     </Button>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" placeholder="Enter new password" />
-                </div>
+            {/* Team Tab */}
+            <TabsContent value="team" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Team Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your team configuration and member settings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isTeamLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <LoadingSpinner size="md" />
+                    </div>
+                  ) : teamError ? (
+                    <ErrorAlert
+                      title="Team Settings Error"
+                      message={teamError.message}
+                      onRetry={refetchTeam}
+                      retryLabel="Retry Loading Team Settings"
+                    />
+                  ) : teamSettings ? (
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-medium">{teamSettings.team_name}</h4>
+                            <p className="text-sm text-muted-foreground">{teamSettings.team_description}</p>
+                          </div>
+                          <Badge variant="outline">{teamSettings.user_role}</Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Members:</span>
+                            <span className="ml-2 font-medium">{teamSettings.member_count}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Active:</span>
+                            <span className="ml-2 font-medium">{teamSettings.active_users}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Pending:</span>
+                            <span className="ml-2 font-medium">{teamSettings.pending_invitations}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                        <div key={team.team_id} className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h4 className="font-medium">{team.team_name}</h4>
+                              <p className="text-sm text-muted-foreground">{team.team_description}</p>
+                            </div>
+                            <Badge variant="outline">{team.user_role}</Badge>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Members:</span>
+                              <span className="ml-2 font-medium">{team.member_count}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Active:</span>
+                              <span className="ml-2 font-medium">{team.active_users}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Pending:</span>
+                              <span className="ml-2 font-medium">{team.pending_invitations}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No team settings available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input id="confirm-password" type="password" placeholder="Confirm new password" />
-                </div>
+            {/* Content Tab */}
+            <TabsContent value="content" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Content Management Settings</CardTitle>
+                  <CardDescription>
+                    Configure how your content is managed, organized, and processed
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {contentLoading ? (
+                    <div className="text-sm text-muted-foreground">Loading content settings...</div>
+                  ) : contentSettings ? (
+                    <>
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Management</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-save">Auto-save content</Label>
+                            <Switch 
+                              id="auto-save" 
+                              checked={contentSettings.managementSettings?.autoSave ?? true}
+                              onCheckedChange={(checked) => 
+                                updateContentSettings({
+                                  managementSettings: {
+                                    ...contentSettings.managementSettings,
+                                    autoSave: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="version-control">Enable version control</Label>
+                            <Switch 
+                              id="version-control" 
+                              checked={contentSettings.managementSettings?.versionControl ?? true}
+                              onCheckedChange={(checked) => 
+                                updateContentSettings({
+                                  managementSettings: {
+                                    ...contentSettings.managementSettings,
+                                    versionControl: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
 
-                <Button className="gradient-primary">Update Password</Button>
-              </CardContent>
-            </Card>
+                      <Separator />
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Two-Factor Authentication</CardTitle>
-                <CardDescription>Add an extra layer of security to your account</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">Authenticator App</h3>
-                    <p className="text-sm text-muted-foreground">Use an app like Google Authenticator</p>
-                  </div>
-                  <Badge variant="outline">
-                    <X className="h-3 w-3 mr-1" />
-                    Not Enabled
-                  </Badge>
-                </div>
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Workflow</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="approval-required">Require approval for publishing</Label>
+                            <Switch 
+                              id="approval-required" 
+                              checked={contentSettings.workflowSettings?.approvalRequired ?? false}
+                              onCheckedChange={(checked) => 
+                                updateContentSettings({
+                                  workflowSettings: {
+                                    ...contentSettings.workflowSettings,
+                                    approvalRequired: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-publish">Auto-publish approved content</Label>
+                            <Switch 
+                              id="auto-publish" 
+                              checked={contentSettings.workflowSettings?.autoPublish ?? false}
+                              onCheckedChange={(checked) => 
+                                updateContentSettings({
+                                  workflowSettings: {
+                                    ...contentSettings.workflowSettings,
+                                    autoPublish: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
 
-                <Button variant="outline" className="w-full">
-                  <Shield className="h-4 w-4 mr-2" />
-                  Enable Two-Factor Authentication
-                </Button>
-              </CardContent>
-            </Card>
+                      <Separator />
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Login Sessions</CardTitle>
-                <CardDescription>Manage your active login sessions</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">Current Session</h3>
-                    <p className="text-sm text-muted-foreground">Chrome on macOS • San Francisco, CA</p>
-                    <p className="text-xs text-muted-foreground">Last active: 2 minutes ago</p>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">Active</Badge>
-                </div>
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Upload Settings</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="max-file-size">Maximum file size (MB)</Label>
+                            <Input 
+                              id="max-file-size" 
+                              type="number" 
+                              value={Math.round((contentSettings.uploadSettings?.maxFileSize ?? 10485760) / 1048576)}
+                              className="mt-1"
+                              onChange={(e) => {
+                                const sizeInBytes = parseInt(e.target.value) * 1048576;
+                                updateContentSettings({
+                                  uploadSettings: {
+                                    ...contentSettings.uploadSettings,
+                                    maxFileSize: sizeInBytes
+                                  }
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-optimize">Auto-optimize uploads</Label>
+                            <Switch 
+                              id="auto-optimize" 
+                              checked={contentSettings.uploadSettings?.autoOptimize ?? true}
+                              onCheckedChange={(checked) => 
+                                updateContentSettings({
+                                  uploadSettings: {
+                                    ...contentSettings.uploadSettings,
+                                    autoOptimize: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-destructive">Failed to load content settings</div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">Mobile App</h3>
-                    <p className="text-sm text-muted-foreground">iPhone • San Francisco, CA</p>
-                    <p className="text-xs text-muted-foreground">Last active: 2 hours ago</p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+            {/* Competitive Tab */}
+            <TabsContent value="competitive" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Competitive Intelligence Settings</CardTitle>
+                  <CardDescription>
+                    Configure monitoring, analysis, and reporting for competitive intelligence
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {competitiveLoading ? (
+                    <div className="text-sm text-muted-foreground">Loading competitive settings...</div>
+                  ) : competitiveSettings ? (
+                    <>
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Monitoring</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-monitoring">Enable automatic monitoring</Label>
+                            <Switch 
+                              id="auto-monitoring" 
+                              checked={competitiveSettings.monitoringSettings?.autoMonitoring ?? true}
+                              onCheckedChange={(checked) => 
+                                updateCompetitiveSettings({
+                                  monitoringSettings: {
+                                    ...competitiveSettings.monitoringSettings,
+                                    autoMonitoring: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="monitoring-frequency">Monitoring frequency</Label>
+                            <Select 
+                              value={competitiveSettings.monitoringSettings?.frequency ?? 'daily'}
+                              onValueChange={(value) => 
+                                updateCompetitiveSettings({
+                                  monitoringSettings: {
+                                    ...competitiveSettings.monitoringSettings,
+                                    frequency: value as 'hourly' | 'daily' | 'weekly'
+                                  }
+                                })
+                              }
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="hourly">Hourly</SelectItem>
+                                <SelectItem value="daily">Daily</SelectItem>
+                                <SelectItem value="weekly">Weekly</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
 
-                <Button variant="destructive" className="w-full">
-                  Sign Out All Other Sessions
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Analysis</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="analysis-depth">Analysis depth level</Label>
+                            <Select 
+                              value={competitiveSettings.analysisSettings?.depthLevel ?? 'standard'}
+                              onValueChange={(value) => 
+                                updateCompetitiveSettings({
+                                  analysisSettings: {
+                                    ...competitiveSettings.analysisSettings,
+                                    depthLevel: value as 'basic' | 'standard' | 'deep'
+                                  }
+                                })
+                              }
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="basic">Basic</SelectItem>
+                                <SelectItem value="standard">Standard</SelectItem>
+                                <SelectItem value="deep">Deep</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="track-changes">Track competitor changes</Label>
+                            <Switch 
+                              id="track-changes" 
+                              checked={competitiveSettings.analysisSettings?.trackChanges ?? true}
+                              onCheckedChange={(checked) => 
+                                updateCompetitiveSettings({
+                                  analysisSettings: {
+                                    ...competitiveSettings.analysisSettings,
+                                    trackChanges: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Alerts</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="email-alerts">Email alerts</Label>
+                            <Switch 
+                              id="email-alerts" 
+                              checked={competitiveSettings.alertingSettings?.emailAlerts ?? true}
+                              onCheckedChange={(checked) => 
+                                updateCompetitiveSettings({
+                                  alertingSettings: {
+                                    ...competitiveSettings.alertingSettings,
+                                    emailAlerts: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="in-app-alerts">In-app alerts</Label>
+                            <Switch 
+                              id="in-app-alerts" 
+                              checked={competitiveSettings.alertingSettings?.inAppAlerts ?? true}
+                              onCheckedChange={(checked) => 
+                                updateCompetitiveSettings({
+                                  alertingSettings: {
+                                    ...competitiveSettings.alertingSettings,
+                                    inAppAlerts: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-destructive">Failed to load competitive settings</div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analytics Settings</CardTitle>
+                  <CardDescription>
+                    Configure dashboards, reports, and data management for analytics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {analyticsLoading ? (
+                    <div className="text-sm text-muted-foreground">Loading analytics settings...</div>
+                  ) : analyticsSettings ? (
+                    <>
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Dashboard</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="default-date-range">Default date range</Label>
+                            <Select 
+                              value={analyticsSettings.dashboardSettings?.defaultDateRange ?? '30d'}
+                              onValueChange={(value) => 
+                                updateAnalyticsSettings({
+                                  dashboardSettings: {
+                                    ...analyticsSettings.dashboardSettings,
+                                    defaultDateRange: value as '7d' | '30d' | '90d' | '1y'
+                                  }
+                                })
+                              }
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="7d">Last 7 days</SelectItem>
+                                <SelectItem value="30d">Last 30 days</SelectItem>
+                                <SelectItem value="90d">Last 90 days</SelectItem>
+                                <SelectItem value="1y">Last year</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="show-realtime">Show real-time data</Label>
+                            <Switch 
+                              id="show-realtime" 
+                              checked={analyticsSettings.dashboardSettings?.showRealTime ?? false}
+                              onCheckedChange={(checked) => 
+                                updateAnalyticsSettings({
+                                  dashboardSettings: {
+                                    ...analyticsSettings.dashboardSettings,
+                                    showRealTime: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Charts</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="default-chart-type">Default chart type</Label>
+                            <Select 
+                              value={analyticsSettings.chartSettings?.defaultChartType ?? 'line'}
+                              onValueChange={(value) => 
+                                updateAnalyticsSettings({
+                                  chartSettings: {
+                                    ...analyticsSettings.chartSettings,
+                                    defaultChartType: value as 'line' | 'bar' | 'area' | 'pie'
+                                  }
+                                })
+                              }
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="line">Line Chart</SelectItem>
+                                <SelectItem value="bar">Bar Chart</SelectItem>
+                                <SelectItem value="area">Area Chart</SelectItem>
+                                <SelectItem value="pie">Pie Chart</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="show-data-labels">Show data labels</Label>
+                            <Switch 
+                              id="show-data-labels" 
+                              checked={analyticsSettings.chartSettings?.showDataLabels ?? true}
+                              onCheckedChange={(checked) => 
+                                updateAnalyticsSettings({
+                                  chartSettings: {
+                                    ...analyticsSettings.chartSettings,
+                                    showDataLabels: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium">Privacy</h4>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="anonymize-data">Anonymize personal data</Label>
+                            <Switch 
+                              id="anonymize-data" 
+                              checked={analyticsSettings.privacySettings?.anonymizeData ?? true}
+                              onCheckedChange={(checked) => 
+                                updateAnalyticsSettings({
+                                  privacySettings: {
+                                    ...analyticsSettings.privacySettings,
+                                    anonymizeData: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="allow-data-export">Allow data export</Label>
+                            <Switch 
+                              id="allow-data-export" 
+                              checked={analyticsSettings.privacySettings?.dataExport ?? true}
+                              onCheckedChange={(checked) => 
+                                updateAnalyticsSettings({
+                                  privacySettings: {
+                                    ...analyticsSettings.privacySettings,
+                                    dataExport: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-destructive">Failed to load analytics settings</div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Automation Tab */}
+            <TabsContent value="automation" className="space-y-6">
+              <SettingsAutomation />
+            </TabsContent>
+
+            {/* Sync Tab */}
+            <TabsContent value="sync" className="space-y-6">
+              <SettingsSync />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-    </div>
     </SettingsErrorBoundary>
   );
 };

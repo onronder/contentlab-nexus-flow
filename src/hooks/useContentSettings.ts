@@ -6,86 +6,61 @@ import { useToast } from '@/hooks/use-toast';
 export interface ContentSettings {
   id: string;
   userId: string;
+  teamId: string | null;
   managementSettings: {
-    defaultView: 'grid' | 'list' | 'gallery';
-    itemsPerPage: number;
-    sortBy: 'created_at' | 'updated_at' | 'title' | 'file_size' | 'status';
-    sortOrder: 'asc' | 'desc';
-    showPreview: boolean;
-    autoTags: boolean;
-    autoCategories: boolean;
+    autoSave: boolean;
+    versionControl: boolean;
+    backupFrequency: 'daily' | 'weekly' | 'monthly';
   };
   workflowSettings: {
-    requireApproval: boolean;
+    approvalRequired: boolean;
+    reviewSteps: number;
     autoPublish: boolean;
-    versionControl: boolean;
-    collaborationMode: boolean;
-    defaultStatus: 'draft' | 'review' | 'published';
-    retentionDays: number;
   };
   uploadSettings: {
-    maxFileSize: number; // in MB
+    maxFileSize: number; // in bytes
     allowedTypes: string[];
     autoOptimize: boolean;
-    generateThumbnails: boolean;
-    compressionLevel: 'low' | 'medium' | 'high';
-    watermarkEnabled: boolean;
   };
   organizationSettings: {
-    folderStructure: 'flat' | 'hierarchical' | 'date-based';
-    namingConvention: 'original' | 'standardized' | 'custom';
-    duplicateHandling: 'rename' | 'replace' | 'skip';
-    archiveAfterDays: number;
+    defaultTags: string[];
+    autoTagging: boolean;
+    categoryRequired: boolean;
   };
   searchSettings: {
     indexContent: boolean;
-    fullTextSearch: boolean;
-    metadataSearch: boolean;
-    aiTagging: boolean;
-    customFields: Record<string, any>;
+    enableFullText: boolean;
+    searchHistory: boolean;
   };
   createdAt: string;
   updatedAt: string;
 }
 
-const defaultContentSettings: Omit<ContentSettings, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+const defaultContentSettings: Omit<ContentSettings, 'id' | 'userId' | 'teamId' | 'createdAt' | 'updatedAt'> = {
   managementSettings: {
-    defaultView: 'grid',
-    itemsPerPage: 20,
-    sortBy: 'updated_at',
-    sortOrder: 'desc',
-    showPreview: true,
-    autoTags: true,
-    autoCategories: false,
+    autoSave: true,
+    versionControl: true,
+    backupFrequency: 'daily',
   },
   workflowSettings: {
-    requireApproval: false,
+    approvalRequired: false,
+    reviewSteps: 1,
     autoPublish: false,
-    versionControl: true,
-    collaborationMode: true,
-    defaultStatus: 'draft',
-    retentionDays: 365,
   },
   uploadSettings: {
-    maxFileSize: 100, // 100MB
-    allowedTypes: ['image/*', 'video/*', 'application/pdf', 'text/*'],
+    maxFileSize: 10485760, // 10MB
+    allowedTypes: ['image', 'document', 'video'],
     autoOptimize: true,
-    generateThumbnails: true,
-    compressionLevel: 'medium',
-    watermarkEnabled: false,
   },
   organizationSettings: {
-    folderStructure: 'hierarchical',
-    namingConvention: 'original',
-    duplicateHandling: 'rename',
-    archiveAfterDays: 0, // 0 = never
+    defaultTags: [],
+    autoTagging: false,
+    categoryRequired: false,
   },
   searchSettings: {
     indexContent: true,
-    fullTextSearch: true,
-    metadataSearch: true,
-    aiTagging: false,
-    customFields: {},
+    enableFullText: true,
+    searchHistory: true,
   },
 };
 
@@ -102,28 +77,25 @@ export function useContentSettings() {
     queryKey: ['content-settings', user?.id],
     queryFn: async (): Promise<ContentSettings> => {
       if (!user?.id) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase.rpc('get_or_create_content_settings', {
+        p_user_id: user.id,
+        p_team_id: null // For now, we'll focus on user-level settings
+      });
 
-      // TODO: Fetch from table once created
-      const data = null;
-      const error = null;
-
-      // If no settings exist, create default ones
-      if (!data) {
-        return {
-          id: '',
-          userId: user.id,
-          ...defaultContentSettings,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
+      if (error) throw error;
+      
       return {
         id: data.id,
         userId: data.user_id,
-        ...defaultContentSettings,
+        teamId: data.team_id,
+        managementSettings: data.management_settings,
+        workflowSettings: data.workflow_settings,
+        uploadSettings: data.upload_settings,
+        organizationSettings: data.organization_settings,
+        searchSettings: data.search_settings,
         createdAt: data.created_at,
-        updatedAt: data.updated_at,
+        updatedAt: data.updated_at
       };
     },
     enabled: !!user?.id,
@@ -134,8 +106,22 @@ export function useContentSettings() {
     mutationFn: async (updates: Partial<ContentSettings>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // TODO: Save to table once created
-      console.log('Content settings update:', updates);
+      const { data, error } = await supabase
+        .from('content_settings')
+        .update({
+          management_settings: updates.managementSettings,
+          workflow_settings: updates.workflowSettings,
+          upload_settings: updates.uploadSettings,
+          organization_settings: updates.organizationSettings,
+          search_settings: updates.searchSettings
+        })
+        .eq('user_id', user.id)
+        .is('team_id', null)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content-settings'] });
@@ -157,8 +143,22 @@ export function useContentSettings() {
     mutationFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // TODO: Delete from table once created
-      console.log('Content settings reset');
+      const { data, error } = await supabase
+        .from('content_settings')
+        .update({
+          management_settings: defaultContentSettings.managementSettings,
+          workflow_settings: defaultContentSettings.workflowSettings,
+          upload_settings: defaultContentSettings.uploadSettings,
+          organization_settings: defaultContentSettings.organizationSettings,
+          search_settings: defaultContentSettings.searchSettings
+        })
+        .eq('user_id', user.id)
+        .is('team_id', null)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content-settings'] });

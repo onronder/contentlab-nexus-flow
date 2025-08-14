@@ -86,6 +86,48 @@ export type Database = {
           },
         ]
       }
+      analytics_settings: {
+        Row: {
+          alert_settings: Json | null
+          chart_settings: Json | null
+          created_at: string | null
+          dashboard_settings: Json | null
+          data_settings: Json | null
+          id: string
+          privacy_settings: Json | null
+          report_settings: Json | null
+          team_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_settings?: Json | null
+          chart_settings?: Json | null
+          created_at?: string | null
+          dashboard_settings?: Json | null
+          data_settings?: Json | null
+          id?: string
+          privacy_settings?: Json | null
+          report_settings?: Json | null
+          team_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_settings?: Json | null
+          chart_settings?: Json | null
+          created_at?: string | null
+          dashboard_settings?: Json | null
+          data_settings?: Json | null
+          id?: string
+          privacy_settings?: Json | null
+          report_settings?: Json | null
+          team_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           attachments: Json | null
@@ -160,6 +202,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      competitive_settings: {
+        Row: {
+          alerting_settings: Json | null
+          analysis_settings: Json | null
+          created_at: string | null
+          data_retention: Json | null
+          id: string
+          monitoring_settings: Json | null
+          reporting_settings: Json | null
+          team_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alerting_settings?: Json | null
+          analysis_settings?: Json | null
+          created_at?: string | null
+          data_retention?: Json | null
+          id?: string
+          monitoring_settings?: Json | null
+          reporting_settings?: Json | null
+          team_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alerting_settings?: Json | null
+          analysis_settings?: Json | null
+          created_at?: string | null
+          data_retention?: Json | null
+          id?: string
+          monitoring_settings?: Json | null
+          reporting_settings?: Json | null
+          team_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       competitor_analysis_metadata: {
         Row: {
@@ -623,6 +704,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      content_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          management_settings: Json | null
+          organization_settings: Json | null
+          search_settings: Json | null
+          team_id: string | null
+          updated_at: string | null
+          upload_settings: Json | null
+          user_id: string
+          workflow_settings: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          management_settings?: Json | null
+          organization_settings?: Json | null
+          search_settings?: Json | null
+          team_id?: string | null
+          updated_at?: string | null
+          upload_settings?: Json | null
+          user_id: string
+          workflow_settings?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          management_settings?: Json | null
+          organization_settings?: Json | null
+          search_settings?: Json | null
+          team_id?: string | null
+          updated_at?: string | null
+          upload_settings?: Json | null
+          user_id?: string
+          workflow_settings?: Json | null
+        }
+        Relationships: []
       }
       content_tags: {
         Row: {
@@ -1330,6 +1450,56 @@ export type Database = {
             columns: ["team_member_id"]
             isOneToOne: false
             referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_settings: {
+        Row: {
+          analysis_settings: Json | null
+          collaboration_settings: Json | null
+          created_at: string | null
+          custom_settings: Json | null
+          dashboard_preferences: Json | null
+          id: string
+          inherit_from_team: boolean | null
+          notification_settings: Json | null
+          project_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_settings?: Json | null
+          collaboration_settings?: Json | null
+          created_at?: string | null
+          custom_settings?: Json | null
+          dashboard_preferences?: Json | null
+          id?: string
+          inherit_from_team?: boolean | null
+          notification_settings?: Json | null
+          project_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_settings?: Json | null
+          collaboration_settings?: Json | null
+          created_at?: string | null
+          custom_settings?: Json | null
+          dashboard_preferences?: Json | null
+          id?: string
+          inherit_from_team?: boolean | null
+          notification_settings?: Json | null
+          project_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -3300,6 +3470,68 @@ export type Database = {
       get_invitation_status: {
         Args: { p_token: string }
         Returns: Json
+      }
+      get_or_create_analytics_settings: {
+        Args: { p_team_id?: string; p_user_id: string }
+        Returns: {
+          alert_settings: Json | null
+          chart_settings: Json | null
+          created_at: string | null
+          dashboard_settings: Json | null
+          data_settings: Json | null
+          id: string
+          privacy_settings: Json | null
+          report_settings: Json | null
+          team_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+      }
+      get_or_create_competitive_settings: {
+        Args: { p_team_id?: string; p_user_id: string }
+        Returns: {
+          alerting_settings: Json | null
+          analysis_settings: Json | null
+          created_at: string | null
+          data_retention: Json | null
+          id: string
+          monitoring_settings: Json | null
+          reporting_settings: Json | null
+          team_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+      }
+      get_or_create_content_settings: {
+        Args: { p_team_id?: string; p_user_id: string }
+        Returns: {
+          created_at: string | null
+          id: string
+          management_settings: Json | null
+          organization_settings: Json | null
+          search_settings: Json | null
+          team_id: string | null
+          updated_at: string | null
+          upload_settings: Json | null
+          user_id: string
+          workflow_settings: Json | null
+        }
+      }
+      get_or_create_project_settings: {
+        Args: { p_project_id: string; p_user_id: string }
+        Returns: {
+          analysis_settings: Json | null
+          collaboration_settings: Json | null
+          created_at: string | null
+          custom_settings: Json | null
+          dashboard_preferences: Json | null
+          id: string
+          inherit_from_team: boolean | null
+          notification_settings: Json | null
+          project_id: string
+          updated_at: string | null
+          user_id: string
+        }
       }
       get_or_create_user_settings: {
         Args: { p_user_id: string }

@@ -6,32 +6,29 @@ import { useToast } from '@/hooks/use-toast';
 export interface ProjectSettings {
   id: string;
   projectId: string;
+  userId: string;
   dashboardPreferences: {
-    defaultView: 'overview' | 'competitors' | 'analytics' | 'content';
-    chartLayout: 'grid' | 'stack';
-    refreshInterval: number;
+    defaultView: 'grid' | 'list';
+    showMetrics: boolean;
     autoRefresh: boolean;
-    visibleMetrics: string[];
+    refreshInterval: number;
   };
   analysisSettings: {
-    autoTrigger: boolean;
-    frequency: 'daily' | 'weekly' | 'monthly';
-    includeScreenshots: boolean;
-    alertThreshold: number;
-    reportFormat: 'pdf' | 'html' | 'json';
+    autoAnalysis: boolean;
+    analysisFrequency: 'daily' | 'weekly' | 'monthly';
+    includeCompetitors: boolean;
+    detailLevel: 'basic' | 'standard' | 'comprehensive';
   };
   notificationSettings: {
-    competitorChanges: boolean;
-    analysisComplete: boolean;
-    weeklyReports: boolean;
-    criticalAlerts: boolean;
-    emailNotifications: boolean;
+    email: boolean;
+    inApp: boolean;
+    frequency: 'immediate' | 'daily' | 'weekly';
+    types: string[];
   };
   collaborationSettings: {
     allowComments: boolean;
     requireApproval: boolean;
-    shareByDefault: boolean;
-    memberPermissions: Record<string, string[]>;
+    shareMode: 'private' | 'team' | 'public';
   };
   customSettings: Record<string, any>;
   inheritFromTeam: boolean;
@@ -39,33 +36,29 @@ export interface ProjectSettings {
   updatedAt: string;
 }
 
-const defaultProjectSettings: Omit<ProjectSettings, 'id' | 'projectId' | 'createdAt' | 'updatedAt'> = {
+const defaultProjectSettings: Omit<ProjectSettings, 'id' | 'projectId' | 'userId' | 'createdAt' | 'updatedAt'> = {
   dashboardPreferences: {
-    defaultView: 'overview',
-    chartLayout: 'grid',
-    refreshInterval: 300000, // 5 minutes
-    autoRefresh: true,
-    visibleMetrics: ['competitors', 'analysis', 'alerts', 'activity'],
+    defaultView: 'grid',
+    showMetrics: true,
+    autoRefresh: false,
+    refreshInterval: 300,
   },
   analysisSettings: {
-    autoTrigger: true,
-    frequency: 'weekly',
-    includeScreenshots: true,
-    alertThreshold: 75,
-    reportFormat: 'pdf',
+    autoAnalysis: true,
+    analysisFrequency: 'weekly',
+    includeCompetitors: true,
+    detailLevel: 'standard',
   },
   notificationSettings: {
-    competitorChanges: true,
-    analysisComplete: true,
-    weeklyReports: true,
-    criticalAlerts: true,
-    emailNotifications: false,
+    email: true,
+    inApp: true,
+    frequency: 'daily',
+    types: ['alerts', 'reports', 'updates'],
   },
   collaborationSettings: {
     allowComments: true,
     requireApproval: false,
-    shareByDefault: false,
-    memberPermissions: {},
+    shareMode: 'team',
   },
   customSettings: {},
   inheritFromTeam: true,
@@ -83,29 +76,27 @@ export function useProjectSettings(projectId: string) {
   } = useQuery({
     queryKey: ['project-settings', projectId, user?.id],
     queryFn: async (): Promise<ProjectSettings> => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id || !projectId) throw new Error('User ID and project ID are required');
 
-      // TODO: Fetch from table once created
-      const data = null;
-      const error = null;
+      const { data, error } = await supabase.rpc('get_or_create_project_settings', {
+        p_project_id: projectId,
+        p_user_id: user.id
+      });
 
-      // If no settings exist, create default ones
-      if (!data) {
-        return {
-          id: '',
-          projectId,
-          ...defaultProjectSettings,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
+      if (error) throw error;
+      
       return {
         id: data.id,
         projectId: data.project_id,
-        ...defaultProjectSettings,
+        userId: data.user_id,
+        dashboardPreferences: data.dashboard_preferences as any,
+        analysisSettings: data.analysis_settings as any,
+        notificationSettings: data.notification_settings as any,
+        collaborationSettings: data.collaboration_settings as any,
+        customSettings: data.custom_settings as any,
+        inheritFromTeam: data.inherit_from_team,
         createdAt: data.created_at,
-        updatedAt: data.updated_at,
+        updatedAt: data.updated_at
       };
     },
     enabled: !!user?.id && !!projectId,
@@ -114,12 +105,25 @@ export function useProjectSettings(projectId: string) {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (updates: Partial<ProjectSettings>) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id || !projectId) throw new Error('User ID and project ID are required');
 
-      // TODO: Save to table once created
-      console.log('Project settings update:', updates);
+      const { data, error } = await supabase
+        .from('project_settings')
+        .update({
+          dashboard_preferences: updates.dashboardPreferences,
+          analysis_settings: updates.analysisSettings,
+          notification_settings: updates.notificationSettings,
+          collaboration_settings: updates.collaborationSettings,
+          custom_settings: updates.customSettings,
+          inherit_from_team: updates.inheritFromTeam
+        })
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
 
-      // Removed error handling for now
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-settings', projectId] });
@@ -139,12 +143,24 @@ export function useProjectSettings(projectId: string) {
 
   const resetToDefaultsMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id || !projectId) throw new Error('User ID and project ID are required');
 
-      // TODO: Delete from table once created
-      console.log('Project settings reset for:', projectId);
+      const { data, error } = await supabase
+        .from('project_settings')
+        .update({
+          dashboard_preferences: defaultProjectSettings.dashboardPreferences,
+          analysis_settings: defaultProjectSettings.analysisSettings,
+          notification_settings: defaultProjectSettings.notificationSettings,
+          collaboration_settings: defaultProjectSettings.collaborationSettings,
+          custom_settings: defaultProjectSettings.customSettings
+        })
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
 
-      // Removed error handling for now
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-settings', projectId] });
@@ -164,12 +180,18 @@ export function useProjectSettings(projectId: string) {
 
   const inheritFromTeamMutation = useMutation({
     mutationFn: async (inherit: boolean) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id || !projectId) throw new Error('User ID and project ID are required');
 
-      // TODO: Update table once created
-      console.log('Project settings inheritance:', inherit);
+      const { data, error } = await supabase
+        .from('project_settings')
+        .update({ inherit_from_team: inherit })
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
 
-      // Removed error handling for now
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-settings', projectId] });

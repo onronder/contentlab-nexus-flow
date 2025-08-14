@@ -6,91 +6,61 @@ import { useToast } from '@/hooks/use-toast';
 export interface CompetitiveSettings {
   id: string;
   userId: string;
+  teamId: string | null;
   monitoringSettings: {
-    defaultFrequency: 'daily' | 'weekly' | 'monthly';
-    autoAnalysis: boolean;
-    screenshotCapture: boolean;
+    autoMonitoring: boolean;
+    frequency: 'hourly' | 'daily' | 'weekly';
     alertThreshold: number;
-    maxCompetitors: number;
-    regionalAnalysis: boolean;
   };
   analysisSettings: {
+    depthLevel: 'basic' | 'standard' | 'deep';
     includeSerp: boolean;
-    includePricing: boolean;
-    includeContent: boolean;
-    includeTechnical: boolean;
-    includeKeywords: boolean;
-    includeSocial: boolean;
-    depthLevel: 'basic' | 'standard' | 'comprehensive';
+    trackChanges: boolean;
   };
-  reportSettings: {
-    autoGenerate: boolean;
-    format: 'pdf' | 'html' | 'json';
+  reportingSettings: {
+    autoReports: boolean;
+    reportFrequency: 'daily' | 'weekly' | 'monthly';
     includeCharts: boolean;
-    includeRecommendations: boolean;
-    deliveryMethod: 'email' | 'dashboard' | 'both';
-    schedule: string; // cron expression
   };
-  alertSettings: {
-    competitorChanges: boolean;
-    newCompetitors: boolean;
-    rankingChanges: boolean;
-    pricingUpdates: boolean;
-    contentUpdates: boolean;
+  alertingSettings: {
     emailAlerts: boolean;
-    pushAlerts: boolean;
-    webhookUrl?: string;
+    inAppAlerts: boolean;
+    severityFilter: 'low' | 'medium' | 'high';
   };
   dataRetention: {
-    snapshotRetentionDays: number;
-    analysisRetentionDays: number;
-    reportRetentionDays: number;
+    retentionPeriod: number; // days
     autoCleanup: boolean;
+    exportBeforeCleanup: boolean;
   };
   createdAt: string;
   updatedAt: string;
 }
 
-const defaultCompetitiveSettings: Omit<CompetitiveSettings, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+const defaultCompetitiveSettings: Omit<CompetitiveSettings, 'id' | 'userId' | 'teamId' | 'createdAt' | 'updatedAt'> = {
   monitoringSettings: {
-    defaultFrequency: 'weekly',
-    autoAnalysis: true,
-    screenshotCapture: true,
-    alertThreshold: 75,
-    maxCompetitors: 20,
-    regionalAnalysis: false,
+    autoMonitoring: true,
+    frequency: 'daily',
+    alertThreshold: 0.15,
   },
   analysisSettings: {
-    includeSerp: true,
-    includePricing: true,
-    includeContent: true,
-    includeTechnical: false,
-    includeKeywords: true,
-    includeSocial: false,
     depthLevel: 'standard',
+    includeSerp: true,
+    trackChanges: true,
   },
-  reportSettings: {
-    autoGenerate: false,
-    format: 'pdf',
+  reportingSettings: {
+    autoReports: false,
+    reportFrequency: 'weekly',
     includeCharts: true,
-    includeRecommendations: true,
-    deliveryMethod: 'dashboard',
-    schedule: '0 9 * * 1', // Every Monday at 9 AM
   },
-  alertSettings: {
-    competitorChanges: true,
-    newCompetitors: true,
-    rankingChanges: true,
-    pricingUpdates: true,
-    contentUpdates: false,
-    emailAlerts: false,
-    pushAlerts: true,
+  alertingSettings: {
+    emailAlerts: true,
+    inAppAlerts: true,
+    severityFilter: 'medium',
   },
   dataRetention: {
-    snapshotRetentionDays: 90,
-    analysisRetentionDays: 365,
-    reportRetentionDays: 180,
+    retentionPeriod: 365,
     autoCleanup: true,
+    exportBeforeCleanup: false,
   },
 };
 
@@ -107,28 +77,25 @@ export function useCompetitiveSettings() {
     queryKey: ['competitive-settings', user?.id],
     queryFn: async (): Promise<CompetitiveSettings> => {
       if (!user?.id) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase.rpc('get_or_create_competitive_settings', {
+        p_user_id: user.id,
+        p_team_id: null
+      });
 
-      // TODO: Fetch from table once created
-      const data = null;
-      const error = null;
-
-      // If no settings exist, create default ones
-      if (!data) {
-        return {
-          id: '',
-          userId: user.id,
-          ...defaultCompetitiveSettings,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
+      if (error) throw error;
+      
       return {
         id: data.id,
         userId: data.user_id,
-        ...defaultCompetitiveSettings,
+        teamId: data.team_id,
+        monitoringSettings: data.monitoring_settings,
+        analysisSettings: data.analysis_settings,
+        reportingSettings: data.reporting_settings,
+        alertingSettings: data.alerting_settings,
+        dataRetention: data.data_retention,
         createdAt: data.created_at,
-        updatedAt: data.updated_at,
+        updatedAt: data.updated_at
       };
     },
     enabled: !!user?.id,
@@ -139,8 +106,22 @@ export function useCompetitiveSettings() {
     mutationFn: async (updates: Partial<CompetitiveSettings>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // TODO: Save to table once created
-      console.log('Competitive settings update:', updates);
+      const { data, error } = await supabase
+        .from('competitive_settings')
+        .update({
+          monitoring_settings: updates.monitoringSettings,
+          analysis_settings: updates.analysisSettings,
+          reporting_settings: updates.reportingSettings,
+          alerting_settings: updates.alertingSettings,
+          data_retention: updates.dataRetention
+        })
+        .eq('user_id', user.id)
+        .is('team_id', null)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['competitive-settings'] });
@@ -162,8 +143,22 @@ export function useCompetitiveSettings() {
     mutationFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // TODO: Delete from table once created
-      console.log('Competitive settings reset');
+      const { data, error } = await supabase
+        .from('competitive_settings')
+        .update({
+          monitoring_settings: defaultCompetitiveSettings.monitoringSettings,
+          analysis_settings: defaultCompetitiveSettings.analysisSettings,
+          reporting_settings: defaultCompetitiveSettings.reportingSettings,
+          alerting_settings: defaultCompetitiveSettings.alertingSettings,
+          data_retention: defaultCompetitiveSettings.dataRetention
+        })
+        .eq('user_id', user.id)
+        .is('team_id', null)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['competitive-settings'] });
@@ -204,17 +199,17 @@ export function useCompetitiveSettings() {
     });
   };
 
-  const updateReportSettings = (reportSettings: Partial<CompetitiveSettings['reportSettings']>) => {
+  const updateReportingSettings = (reportingSettings: Partial<CompetitiveSettings['reportingSettings']>) => {
     if (!settings) return;
     updateSettings({
-      reportSettings: { ...settings.reportSettings, ...reportSettings },
+      reportingSettings: { ...settings.reportingSettings, ...reportingSettings },
     });
   };
 
-  const updateAlertSettings = (alertSettings: Partial<CompetitiveSettings['alertSettings']>) => {
+  const updateAlertingSettings = (alertingSettings: Partial<CompetitiveSettings['alertingSettings']>) => {
     if (!settings) return;
     updateSettings({
-      alertSettings: { ...settings.alertSettings, ...alertSettings },
+      alertingSettings: { ...settings.alertingSettings, ...alertingSettings },
     });
   };
 
@@ -233,8 +228,8 @@ export function useCompetitiveSettings() {
     resetToDefaults,
     updateMonitoringSettings,
     updateAnalysisSettings,
-    updateReportSettings,
-    updateAlertSettings,
+    updateReportingSettings,
+    updateAlertingSettings,
     updateDataRetention,
     isUpdating: updateSettingsMutation.isPending,
     isResetting: resetToDefaultsMutation.isPending,

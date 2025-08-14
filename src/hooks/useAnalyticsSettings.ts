@@ -6,101 +6,71 @@ import { useToast } from '@/hooks/use-toast';
 export interface AnalyticsSettings {
   id: string;
   userId: string;
+  teamId: string | null;
   dashboardSettings: {
-    defaultPeriod: '7d' | '30d' | '90d' | '1y';
-    refreshInterval: number; // milliseconds
-    autoRefresh: boolean;
-    chartTypes: string[];
-    layoutGrid: 'compact' | 'standard' | 'expanded';
-    realTimeUpdates: boolean;
+    defaultDateRange: '7d' | '30d' | '90d' | '1y';
+    refreshInterval: number;
+    showRealTime: boolean;
   };
   chartSettings: {
-    colorScheme: 'default' | 'colorblind' | 'high-contrast';
-    animationsEnabled: boolean;
-    exportFormat: 'png' | 'svg' | 'pdf';
-    dataLabels: boolean;
-    gridlines: boolean;
-    tooltips: boolean;
+    defaultChartType: 'line' | 'bar' | 'area' | 'pie';
+    showDataLabels: boolean;
+    enableInteractivity: boolean;
   };
   reportSettings: {
     autoGenerate: boolean;
-    schedule: string; // cron expression
-    format: 'pdf' | 'html' | 'csv' | 'xlsx';
-    includeCharts: boolean;
-    includeRawData: boolean;
-    recipients: string[];
-    customLogo: boolean;
+    frequency: 'daily' | 'weekly' | 'monthly';
+    format: 'pdf' | 'html' | 'csv';
   };
   dataSettings: {
-    aggregationLevel: 'hourly' | 'daily' | 'weekly' | 'monthly';
-    retentionPeriod: number; // days
-    samplingRate: number; // percentage
-    includeAnonymized: boolean;
-    exportLimit: number; // rows
+    dataRetention: number; // days
+    aggregationLevel: 'hourly' | 'daily' | 'weekly';
+    includeRawData: boolean;
   };
   alertSettings: {
     thresholdAlerts: boolean;
     anomalyDetection: boolean;
-    performanceAlerts: boolean;
-    emailAlerts: boolean;
-    slackWebhook?: string;
-    alertFrequency: 'immediate' | 'hourly' | 'daily';
+    alertChannels: string[];
   };
   privacySettings: {
     shareAnalytics: boolean;
-    allowTracking: boolean;
-    dataProcessingRegion: 'us' | 'eu' | 'asia';
-    complianceMode: 'gdpr' | 'ccpa' | 'standard';
+    anonymizeData: boolean;
+    dataExport: boolean;
   };
   createdAt: string;
   updatedAt: string;
 }
 
-const defaultAnalyticsSettings: Omit<AnalyticsSettings, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+const defaultAnalyticsSettings: Omit<AnalyticsSettings, 'id' | 'userId' | 'teamId' | 'createdAt' | 'updatedAt'> = {
   dashboardSettings: {
-    defaultPeriod: '30d',
-    refreshInterval: 300000, // 5 minutes
-    autoRefresh: true,
-    chartTypes: ['line', 'bar', 'pie', 'area'],
-    layoutGrid: 'standard',
-    realTimeUpdates: false,
+    defaultDateRange: '30d',
+    refreshInterval: 300,
+    showRealTime: false,
   },
   chartSettings: {
-    colorScheme: 'default',
-    animationsEnabled: true,
-    exportFormat: 'png',
-    dataLabels: true,
-    gridlines: true,
-    tooltips: true,
+    defaultChartType: 'line',
+    showDataLabels: true,
+    enableInteractivity: true,
   },
   reportSettings: {
     autoGenerate: false,
-    schedule: '0 9 * * 1', // Every Monday at 9 AM
+    frequency: 'weekly',
     format: 'pdf',
-    includeCharts: true,
-    includeRawData: false,
-    recipients: [],
-    customLogo: false,
   },
   dataSettings: {
+    dataRetention: 365,
     aggregationLevel: 'daily',
-    retentionPeriod: 365,
-    samplingRate: 100,
-    includeAnonymized: true,
-    exportLimit: 10000,
+    includeRawData: false,
   },
   alertSettings: {
     thresholdAlerts: true,
     anomalyDetection: false,
-    performanceAlerts: true,
-    emailAlerts: false,
-    alertFrequency: 'daily',
+    alertChannels: ['email', 'inApp'],
   },
   privacySettings: {
     shareAnalytics: false,
-    allowTracking: true,
-    dataProcessingRegion: 'us',
-    complianceMode: 'standard',
+    anonymizeData: true,
+    dataExport: true,
   },
 };
 
@@ -117,28 +87,26 @@ export function useAnalyticsSettings() {
     queryKey: ['analytics-settings', user?.id],
     queryFn: async (): Promise<AnalyticsSettings> => {
       if (!user?.id) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase.rpc('get_or_create_analytics_settings', {
+        p_user_id: user.id,
+        p_team_id: null
+      });
 
-      // TODO: Fetch from table once created
-      const data = null;
-      const error = null;
-
-      // If no settings exist, create default ones
-      if (!data) {
-        return {
-          id: '',
-          userId: user.id,
-          ...defaultAnalyticsSettings,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-
+      if (error) throw error;
+      
       return {
         id: data.id,
         userId: data.user_id,
-        ...defaultAnalyticsSettings,
+        teamId: data.team_id,
+        dashboardSettings: data.dashboard_settings,
+        chartSettings: data.chart_settings,
+        reportSettings: data.report_settings,
+        dataSettings: data.data_settings,
+        alertSettings: data.alert_settings,
+        privacySettings: data.privacy_settings,
         createdAt: data.created_at,
-        updatedAt: data.updated_at,
+        updatedAt: data.updated_at
       };
     },
     enabled: !!user?.id,
@@ -149,8 +117,23 @@ export function useAnalyticsSettings() {
     mutationFn: async (updates: Partial<AnalyticsSettings>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // TODO: Save to table once created
-      console.log('Analytics settings update:', updates);
+      const { data, error } = await supabase
+        .from('analytics_settings')
+        .update({
+          dashboard_settings: updates.dashboardSettings,
+          chart_settings: updates.chartSettings,
+          report_settings: updates.reportSettings,
+          data_settings: updates.dataSettings,
+          alert_settings: updates.alertSettings,
+          privacy_settings: updates.privacySettings
+        })
+        .eq('user_id', user.id)
+        .is('team_id', null)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['analytics-settings'] });
@@ -172,8 +155,23 @@ export function useAnalyticsSettings() {
     mutationFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // TODO: Delete from table once created
-      console.log('Analytics settings reset');
+      const { data, error } = await supabase
+        .from('analytics_settings')
+        .update({
+          dashboard_settings: defaultAnalyticsSettings.dashboardSettings,
+          chart_settings: defaultAnalyticsSettings.chartSettings,
+          report_settings: defaultAnalyticsSettings.reportSettings,
+          data_settings: defaultAnalyticsSettings.dataSettings,
+          alert_settings: defaultAnalyticsSettings.alertSettings,
+          privacy_settings: defaultAnalyticsSettings.privacySettings
+        })
+        .eq('user_id', user.id)
+        .is('team_id', null)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['analytics-settings'] });
