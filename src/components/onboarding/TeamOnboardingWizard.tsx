@@ -252,7 +252,10 @@ export function TeamOnboardingWizard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
-                <currentStepData.icon className="h-6 w-6 text-primary" />
+                {(() => {
+                  const Icon = currentStepData.icon;
+                  return <Icon className="h-6 w-6 text-primary" />;
+                })()}
                 {currentStepData.title}
               </CardTitle>
               <p className="text-muted-foreground">
