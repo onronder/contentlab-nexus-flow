@@ -310,3 +310,24 @@ export const useGenerateRecommendations = () => {
     },
   });
 };
+
+export const useSettingsAnalytics = () => {
+  const userId = useCurrentUserId();
+
+  return useQuery({
+    queryKey: ['settings-analytics', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settings_analytics')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+};

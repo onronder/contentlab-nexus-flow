@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSettingsRealTimeSync } from '@/hooks/useSettingsRealTimeSync';
 import { useSettingsIntegrations, useSettingsRecommendations } from '@/hooks/useSettingsIntegration';
+import { SettingsRecommendationsCard } from '@/components/settings/SettingsRecommendationsCard';
+import { SettingsAnalyticsCard } from '@/components/settings/SettingsAnalyticsCard';
 import { Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export const SettingsIntegrationDashboard: React.FC = () => {
@@ -102,45 +104,9 @@ export const SettingsIntegrationDashboard: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Recommendations */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Optimization Recommendations</CardTitle>
-          <CardDescription>
-            AI-powered suggestions to improve your settings configuration
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {recommendations.length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle className="h-4 w-4 text-success" />
-                No recommendations available - your settings are optimized!
-              </div>
-            ) : (
-              recommendations.map((rec) => (
-                <div key={rec.id} className="p-3 border rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h4 className="font-medium">{rec.title}</h4>
-                      <p className="text-sm text-muted-foreground">{rec.description}</p>
-                      <div className="flex gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {rec.recommendation_type}
-                        </Badge>
-                        <Badge variant={rec.impact_level === 'high' ? 'destructive' : rec.impact_level === 'medium' ? 'default' : 'secondary'} className="text-xs">
-                          {rec.impact_level} impact
-                        </Badge>
-                      </div>
-                    </div>
-                    <AlertTriangle className="h-4 w-4 text-warning" />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Additional Components */}
+      <SettingsRecommendationsCard />
+      <SettingsAnalyticsCard />
     </div>
   );
 };

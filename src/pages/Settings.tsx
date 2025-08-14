@@ -39,6 +39,7 @@ import { useCompetitiveSettings } from "@/hooks/useCompetitiveSettings";
 import { useAnalyticsSettings } from "@/hooks/useAnalyticsSettings";
 import { SettingsSync } from "@/components/settings/SettingsSync";
 import { SettingsAutomation } from "@/components/settings/SettingsAutomation";
+import { SettingsIntegrationDashboard } from "@/components/settings/SettingsIntegrationDashboard";
 import { SettingsErrorBoundary } from "@/components/ui/settings-error-boundary";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { useToast } from "@/hooks/use-toast";
@@ -150,7 +151,7 @@ const Settings = () => {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Profile
@@ -170,6 +171,10 @@ const Settings = () => {
               <TabsTrigger value="analytics" className="flex items-center gap-2">
                 <SettingsIcon className="h-4 w-4" />
                 Analytics
+              </TabsTrigger>
+              <TabsTrigger value="integration" className="flex items-center gap-2">
+                <Plug className="h-4 w-4" />
+                Integration
               </TabsTrigger>
               <TabsTrigger value="automation" className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
@@ -855,6 +860,11 @@ const Settings = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Integration Tab */}
+            <TabsContent value="integration" className="space-y-6">
+              <SettingsIntegrationDashboard />
             </TabsContent>
 
             {/* Automation Tab */}
