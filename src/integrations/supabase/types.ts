@@ -86,6 +86,81 @@ export type Database = {
           },
         ]
       }
+      analytics_insights: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          data_sources: string[] | null
+          description: string
+          dismissed_at: string | null
+          dismissed_by: string | null
+          expires_at: string | null
+          id: string
+          impact_level: string | null
+          insight_category: string
+          insight_data: Json | null
+          insight_type: string
+          is_actionable: boolean | null
+          is_dismissed: boolean | null
+          metrics_involved: Json | null
+          project_id: string | null
+          recommended_actions: Json | null
+          team_id: string | null
+          time_period_end: string | null
+          time_period_start: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          data_sources?: string[] | null
+          description: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          expires_at?: string | null
+          id?: string
+          impact_level?: string | null
+          insight_category: string
+          insight_data?: Json | null
+          insight_type: string
+          is_actionable?: boolean | null
+          is_dismissed?: boolean | null
+          metrics_involved?: Json | null
+          project_id?: string | null
+          recommended_actions?: Json | null
+          team_id?: string | null
+          time_period_end?: string | null
+          time_period_start?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          data_sources?: string[] | null
+          description?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          expires_at?: string | null
+          id?: string
+          impact_level?: string | null
+          insight_category?: string
+          insight_data?: Json | null
+          insight_type?: string
+          is_actionable?: boolean | null
+          is_dismissed?: boolean | null
+          metrics_involved?: Json | null
+          project_id?: string | null
+          recommended_actions?: Json | null
+          team_id?: string | null
+          time_period_end?: string | null
+          time_period_start?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       analytics_settings: {
         Row: {
           alert_settings: Json | null
@@ -242,6 +317,72 @@ export type Database = {
           total_files?: number
           upload_settings?: Json | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      business_metrics: {
+        Row: {
+          calculated_fields: Json | null
+          change_percentage: number | null
+          confidence_interval: Json | null
+          created_at: string
+          currency: string | null
+          data_quality_score: number | null
+          id: string
+          is_forecast: boolean | null
+          metric_category: string
+          metric_date: string
+          metric_name: string
+          metric_value: number
+          previous_period_value: number | null
+          project_id: string | null
+          segment_filters: Json | null
+          target_value: number | null
+          team_id: string | null
+          time_period: string
+          updated_at: string
+        }
+        Insert: {
+          calculated_fields?: Json | null
+          change_percentage?: number | null
+          confidence_interval?: Json | null
+          created_at?: string
+          currency?: string | null
+          data_quality_score?: number | null
+          id?: string
+          is_forecast?: boolean | null
+          metric_category: string
+          metric_date: string
+          metric_name: string
+          metric_value: number
+          previous_period_value?: number | null
+          project_id?: string | null
+          segment_filters?: Json | null
+          target_value?: number | null
+          team_id?: string | null
+          time_period: string
+          updated_at?: string
+        }
+        Update: {
+          calculated_fields?: Json | null
+          change_percentage?: number | null
+          confidence_interval?: Json | null
+          created_at?: string
+          currency?: string | null
+          data_quality_score?: number | null
+          id?: string
+          is_forecast?: boolean | null
+          metric_category?: string
+          metric_date?: string
+          metric_name?: string
+          metric_value?: number
+          previous_period_value?: number | null
+          project_id?: string | null
+          segment_filters?: Json | null
+          target_value?: number | null
+          team_id?: string | null
+          time_period?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1148,6 +1289,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      custom_events: {
+        Row: {
+          correlation_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_category: string | null
+          event_name: string
+          event_properties: Json | null
+          event_value: number | null
+          id: string
+          metadata: Json | null
+          processed: boolean | null
+          processing_error: string | null
+          project_id: string | null
+          session_id: string | null
+          source_component: string | null
+          team_id: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_category?: string | null
+          event_name: string
+          event_properties?: Json | null
+          event_value?: number | null
+          id?: string
+          metadata?: Json | null
+          processed?: boolean | null
+          processing_error?: string | null
+          project_id?: string | null
+          session_id?: string | null
+          source_component?: string | null
+          team_id?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          correlation_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_category?: string | null
+          event_name?: string
+          event_properties?: Json | null
+          event_value?: number | null
+          id?: string
+          metadata?: Json | null
+          processed?: boolean | null
+          processing_error?: string | null
+          project_id?: string | null
+          session_id?: string | null
+          source_component?: string | null
+          team_id?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       enhanced_notifications: {
         Row: {
@@ -3256,6 +3457,45 @@ export type Database = {
         }
         Relationships: []
       }
+      system_analytics: {
+        Row: {
+          aggregation_period: string
+          created_at: string
+          dimensions: Json | null
+          id: string
+          metadata: Json | null
+          metric_name: string
+          metric_unit: string | null
+          metric_value: number
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          aggregation_period?: string
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          metadata?: Json | null
+          metric_name: string
+          metric_unit?: string | null
+          metric_value: number
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          aggregation_period?: string
+          created_at?: string
+          dimensions?: Json | null
+          id?: string
+          metadata?: Json | null
+          metric_name?: string
+          metric_unit?: string | null
+          metric_value?: number
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: []
+      }
       system_health_status: {
         Row: {
           active_connections: number | null
@@ -4557,6 +4797,72 @@ export type Database = {
           },
         ]
       }
+      user_analytics: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          device_type: string | null
+          event_name: string
+          event_properties: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          page_path: string | null
+          processed_at: string | null
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_name: string
+          event_properties?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          page_path?: string | null
+          processed_at?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_name?: string
+          event_properties?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          page_path?: string | null
+          processed_at?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -4701,9 +5007,22 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
+      aggregate_business_metrics: {
+        Args: {
+          p_end_date?: string
+          p_project_id?: string
+          p_start_date?: string
+          p_team_id?: string
+        }
+        Returns: Json
+      }
       assign_role_permissions: {
         Args: { permission_slugs: string[]; role_slug: string }
         Returns: undefined
+      }
+      calculate_user_engagement_score: {
+        Args: { p_days?: number; p_user_id: string }
+        Returns: number
       }
       can_manage_project_team: {
         Args: { project_id: string; user_id: string }

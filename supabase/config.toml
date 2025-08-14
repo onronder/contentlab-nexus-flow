@@ -129,3 +129,12 @@ verify_jwt = false
 
 [functions.audit-logger]
 verify_jwt = false
+
+[functions.analytics-processor]
+verify_jwt = false
+
+[functions.metrics-aggregator]
+verify_jwt = false
+
+[functions.insights-generator]
+verify_jwt = false
