@@ -123,3 +123,9 @@ verify_jwt = false
 
 [functions.cache-manager]
 verify_jwt = false
+
+[functions.security-monitor]
+verify_jwt = false
+
+[functions.audit-logger]
+verify_jwt = false
