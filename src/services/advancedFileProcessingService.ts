@@ -514,8 +514,41 @@ export class AdvancedFileProcessingService {
   }
 
   private async performAIAnalysis(file: File, result: ProcessingResult): Promise<void> {
-    // Placeholder for AI analysis - would integrate with ML services
-    console.log('Performing AI analysis for:', file.name);
+    try {
+      const supabaseClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+
+      // Extract content for analysis
+      let content = '';
+      if (result.metadata.extractedText) {
+        content = result.metadata.extractedText;
+      } else if (file.type.startsWith('text/')) {
+        content = await file.text();
+      }
+
+      const { data, error } = await supabaseClient.functions.invoke('content-analyzer', {
+        body: {
+          contentId: result.metadata.contentId || crypto.randomUUID(),
+          analysisTypes: ['sentiment', 'topics', 'entities', 'quality', 'seo', 'readability'],
+          content,
+          title: file.name,
+          description: `Analysis of ${file.name}`
+        }
+      });
+
+      if (error) {
+        console.error('AI analysis failed:', error);
+        return;
+      }
+
+      // Update the result with AI analysis
+      result.metadata.aiAnalysis = data.analysisResults;
+      console.log('AI analysis completed for:', file.name);
+    } catch (error) {
+      console.error('Error in AI analysis:', error);
+    }
   }
 
   private async generateFileVariants(

@@ -84,3 +84,15 @@ verify_jwt = false
 
 [functions.get-report-share]
 verify_jwt = false
+
+[functions.advanced-media-processor]
+verify_jwt = true
+
+[functions.document-processor]
+verify_jwt = true
+
+[functions.content-analyzer]
+verify_jwt = true
+
+[functions.storage-lifecycle]
+verify_jwt = true
