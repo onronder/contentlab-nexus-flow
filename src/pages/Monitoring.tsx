@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { ErrorTrackingDashboard } from '@/components/monitoring/ErrorTrackingDashboard';
+import { PerformanceDashboard } from '@/components/monitoring/PerformanceDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -115,26 +116,8 @@ export default function Monitoring() {
           <ErrorTrackingDashboard />
         </TabsContent>
 
-        <TabsContent value="performance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Monitoring</CardTitle>
-              <CardDescription>
-                Coming soon - Real-time performance metrics and monitoring
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Performance Dashboard</h3>
-                <p className="text-muted-foreground mb-4">
-                  Comprehensive performance monitoring including Core Web Vitals, 
-                  API response times, and user experience metrics.
-                </p>
-                <Badge variant="outline">Phase 2.2 - Coming Next</Badge>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="performance" className="space-y-6">
+          <PerformanceDashboard />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
