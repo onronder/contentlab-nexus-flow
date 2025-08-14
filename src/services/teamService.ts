@@ -422,7 +422,7 @@ export class TeamService {
 
       return {
         members: transformedMembers,
-        totalCount: count || 0,
+        total: count || 0,
         page: options?.page || 1,
         limit: options?.limit || 20
       };
