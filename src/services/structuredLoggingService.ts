@@ -295,3 +295,64 @@ class StructuredLoggingService {
 }
 
 export const structuredLogger = new StructuredLoggingService();
+
+// Integration functions for production monitoring
+export const sendLogsToDatabase = async (logs: Array<{
+  level: 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+  message: string;
+  component?: string;
+  module?: string;
+  context?: Record<string, any>;
+  tags?: string[];
+}>) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const response = await supabase.functions.invoke('log-processor', {
+      body: logs
+    });
+
+    if (response.error) {
+      console.error('Failed to send logs to database:', response.error);
+    }
+
+    return response;
+  } catch (err) {
+    console.error('Log processing failed:', err);
+  }
+};
+
+export const getLogsFromDatabase = async (filters: {
+  level?: string;
+  component?: string;
+  userId?: string;
+  teamId?: string;
+  correlationId?: string;
+  search?: string;
+  hours?: number;
+  limit?: number;
+} = {}) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const params = new URLSearchParams();
+    if (filters.level) params.append('level', filters.level);
+    if (filters.component) params.append('component', filters.component);
+    if (filters.userId) params.append('user_id', filters.userId);
+    if (filters.teamId) params.append('team_id', filters.teamId);
+    if (filters.correlationId) params.append('correlation_id', filters.correlationId);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.hours) params.append('hours', filters.hours.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+
+    const response = await supabase.functions.invoke('log-processor', {
+      method: 'GET',
+      body: undefined
+    });
+
+    return response;
+  } catch (err) {
+    console.error('Failed to get logs from database:', err);
+    return { data: null, error: err };
+  }
+};

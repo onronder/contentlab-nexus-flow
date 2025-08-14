@@ -7,6 +7,9 @@ export interface ErrorContext {
   component?: string;
   action?: string;
   userId?: string;
+  teamId?: string;
+  projectId?: string;
+  fingerprint?: string;
   metadata?: Record<string, any>;
   severity?: 'low' | 'medium' | 'high' | 'critical';
 }

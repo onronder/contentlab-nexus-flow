@@ -406,3 +406,62 @@ export const userDataCache = new CachingService({
 });
 
 export { CachingService };
+
+// Integration functions for production monitoring
+export const sendCacheStatisticsToDatabase = async (stats: Array<{
+  cache_name: string;
+  cache_type: string;
+  hit_count?: number;
+  miss_count?: number;
+  eviction_count?: number;
+  total_requests?: number;
+  average_response_time_ms?: number;
+  cache_size_bytes?: number;
+  max_size_bytes?: number;
+  key_count?: number;
+}>) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const response = await supabase.functions.invoke('cache-manager', {
+      body: stats
+    });
+
+    if (response.error) {
+      console.error('Failed to send cache statistics to database:', response.error);
+    }
+
+    return response;
+  } catch (err) {
+    console.error('Cache statistics collection failed:', err);
+  }
+};
+
+export const getCacheStatisticsFromDatabase = async (filters: {
+  cacheName?: string;
+  cacheType?: string;
+  hours?: number;
+  limit?: number;
+  aggregate?: boolean;
+} = {}) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const params = new URLSearchParams();
+    if (filters.cacheName) params.append('cache_name', filters.cacheName);
+    if (filters.cacheType) params.append('cache_type', filters.cacheType);
+    if (filters.hours) params.append('hours', filters.hours.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.aggregate) params.append('aggregate', 'true');
+
+    const response = await supabase.functions.invoke('cache-manager', {
+      method: 'GET',
+      body: undefined
+    });
+
+    return response;
+  } catch (err) {
+    console.error('Failed to get cache statistics from database:', err);
+    return { data: null, error: err };
+  }
+};

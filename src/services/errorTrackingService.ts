@@ -425,6 +425,66 @@ class ErrorTrackingService {
 // Export singleton instance
 export const errorTrackingService = new ErrorTrackingService();
 
+// Integration functions for production monitoring
+export const trackErrorToDatabase = async (error: Error | string, context: ErrorContext = {}) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const errorData = {
+      error_type: error instanceof Error ? error.name || 'Error' : 'CustomError',
+      error_message: error instanceof Error ? error.message : error,
+      error_stack: error instanceof Error ? error.stack : undefined,
+      severity: context.severity || 'medium',
+      context: context,
+      user_agent: navigator?.userAgent,
+      url: window?.location?.href,
+      fingerprint: context.fingerprint,
+      user_id: context.userId,
+      team_id: context.teamId,
+      project_id: context.projectId
+    };
+
+    const response = await supabase.functions.invoke('error-tracker', {
+      body: errorData
+    });
+
+    if (response.error) {
+      console.error('Failed to track error to database:', response.error);
+    }
+
+    return response;
+  } catch (err) {
+    console.error('Error tracking to database failed:', err);
+  }
+};
+
+export const getErrorsFromDatabase = async (filters: {
+  userId?: string;
+  teamId?: string;
+  severity?: string;
+  limit?: number;
+} = {}) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const params = new URLSearchParams();
+    if (filters.userId) params.append('user_id', filters.userId);
+    if (filters.teamId) params.append('team_id', filters.teamId);
+    if (filters.severity) params.append('severity', filters.severity);
+    if (filters.limit) params.append('limit', filters.limit.toString());
+
+    const response = await supabase.functions.invoke('error-tracker', {
+      method: 'GET',
+      body: undefined
+    });
+
+    return response;
+  } catch (err) {
+    console.error('Failed to get errors from database:', err);
+    return { data: null, error: err };
+  }
+};
+
 // Helper functions for common error tracking scenarios
 export const trackDatabaseError = (error: Error | string, operation: string, metadata?: any) => {
   return errorTrackingService.trackError(error, {

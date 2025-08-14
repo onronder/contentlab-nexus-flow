@@ -326,4 +326,59 @@ class PerformanceMonitoringService {
 }
 
 export const performanceMonitoringService = new PerformanceMonitoringService();
+
+// Integration functions for production monitoring
+export const collectPerformanceMetrics = async (metrics: Array<{
+  metric_type: string;
+  metric_name: string;
+  metric_value: number;
+  metric_unit?: string;
+  context?: Record<string, any>;
+  tags?: Record<string, any>;
+}>) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const response = await supabase.functions.invoke('performance-collector', {
+      body: metrics
+    });
+
+    if (response.error) {
+      console.error('Failed to collect performance metrics:', response.error);
+    }
+
+    return response;
+  } catch (err) {
+    console.error('Performance metrics collection failed:', err);
+  }
+};
+
+export const getPerformanceMetricsFromDatabase = async (filters: {
+  metricType?: string;
+  userId?: string;
+  teamId?: string;
+  hours?: number;
+  limit?: number;
+} = {}) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const params = new URLSearchParams();
+    if (filters.metricType) params.append('metric_type', filters.metricType);
+    if (filters.userId) params.append('user_id', filters.userId);
+    if (filters.teamId) params.append('team_id', filters.teamId);
+    if (filters.hours) params.append('hours', filters.hours.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+
+    const response = await supabase.functions.invoke('performance-collector', {
+      method: 'GET',
+      body: undefined
+    });
+
+    return response;
+  } catch (err) {
+    console.error('Failed to get performance metrics from database:', err);
+    return { data: null, error: err };
+  }
+};
 export type { PerformanceMetric, CoreWebVitals, DatabaseMetrics, SystemMetrics, PerformanceAlert };
