@@ -3320,6 +3320,10 @@ export type Database = {
         Args: { project_id: string; user_id: string }
         Returns: boolean
       }
+      is_slug_unique_safe: {
+        Args: { p_exclude_team_id?: string; p_slug: string }
+        Returns: boolean
+      }
       is_team_member_safe: {
         Args: { team_id_param: string; user_id_param: string }
         Returns: boolean
