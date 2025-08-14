@@ -1,6 +1,12 @@
 import { useUser } from '@/contexts';
 
-export function useCurrentUserId() {
+export function useCurrentUserId(): string | null {
   const user = useUser();
-  return user?.id || null;
+  
+  // Ensure we return null if user is undefined or if id is missing
+  if (!user || !user.id) {
+    return null;
+  }
+  
+  return user.id;
 }

@@ -17,65 +17,47 @@ export interface TeamSettingsData {
 }
 
 const fetchTeamSettings = async (userId: string): Promise<TeamSettingsData | null> => {
-  // Get user's teams (they might be a member of multiple teams)
-  const { data: teamMembers, error: membersError } = await supabase
-    .from('team_members')
-    .select(`
-      team_id,
-      role_id,
-      teams!inner(
-        id,
-        name,
-        description,
-        current_member_count
-      )
-    `)
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .eq('status', 'active');
-
-  if (membersError) throw membersError;
-
-  // For now, get the first team (this could be extended to handle multiple teams)
-  const primaryTeam = teamMembers?.[0]?.teams;
-  
-  if (!primaryTeam) {
-    return null; // User is not part of any team
+  if (!userId) {
+    throw new Error('User ID is required to fetch team settings');
   }
 
-  // Get active users count
-  const { data: activeMembers, error: activeMembersError } = await supabase
-    .from('team_members')
-    .select('user_id')
-    .eq('team_id', primaryTeam.id)
-    .eq('is_active', true)
-    .eq('status', 'active');
+  try {
+    // Use the secure function to get team settings
+    const { data, error } = await supabase.rpc('get_user_team_settings_safe', {
+      p_user_id: userId
+    });
 
-  if (activeMembersError) throw activeMembersError;
-
-  // Get pending invitations count
-  const { data: pendingInvites, error: invitesError } = await supabase
-    .from('team_invitations')
-    .select('id')
-    .eq('team_id', primaryTeam.id)
-    .eq('status', 'pending');
-
-  if (invitesError) throw invitesError;
-
-  return {
-    id: primaryTeam.id,
-    name: primaryTeam.name,
-    description: primaryTeam.description,
-    memberCount: primaryTeam.current_member_count || 0,
-    activeUsers: activeMembers?.length || 0,
-    pendingInvitations: pendingInvites?.length || 0,
-    permissions: {
-      // Default permissions - this could be stored in a team_settings table
-      allowMemberInvites: true,
-      allowMemberCreateProjects: true,
-      requireContentApproval: false
+    if (error) {
+      console.error('Error fetching team settings:', error);
+      throw new Error(`Failed to fetch team settings: ${error.message}`);
     }
-  };
+
+    // If no team data, user is not part of any team
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const teamData = data[0];
+    
+    return {
+      id: teamData.team_id,
+      name: teamData.team_name,
+      description: teamData.team_description,
+      memberCount: teamData.member_count || 0,
+      activeUsers: teamData.active_users || 0,
+      pendingInvitations: teamData.pending_invitations || 0,
+      permissions: (typeof teamData.permissions === 'object' && teamData.permissions !== null) 
+        ? teamData.permissions as any
+        : {
+          allowMemberInvites: true,
+          allowMemberCreateProjects: true,
+          requireContentApproval: false
+        }
+    };
+  } catch (error) {
+    console.error('Network error fetching team settings:', error);
+    throw error;
+  }
 };
 
 export const useTeamSettings = () => {
@@ -83,9 +65,18 @@ export const useTeamSettings = () => {
 
   return useQuery({
     queryKey: ['team-settings', userId],
-    queryFn: () => fetchTeamSettings(userId),
+    queryFn: () => fetchTeamSettings(userId!),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
+    retry: (failureCount, error) => {
+      // Don't retry if it's an auth error
+      if (error?.message?.includes('User ID is required')) {
+        return false;
+      }
+      // Retry up to 3 times for other errors
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 };

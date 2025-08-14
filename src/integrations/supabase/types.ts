@@ -3123,6 +3123,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string | null
+          feature_flags: Json | null
+          id: string
+          notification_preferences: Json | null
+          privacy_settings: Json | null
+          theme_preferences: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string
+          notification_preferences?: Json | null
+          privacy_settings?: Json | null
+          theme_preferences?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string
+          notification_preferences?: Json | null
+          privacy_settings?: Json | null
+          theme_preferences?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -3268,6 +3301,19 @@ export type Database = {
         Args: { p_token: string }
         Returns: Json
       }
+      get_or_create_user_settings: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string | null
+          feature_flags: Json | null
+          id: string
+          notification_preferences: Json | null
+          privacy_settings: Json | null
+          theme_preferences: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+      }
       get_pending_invitations: {
         Args: { p_email: string }
         Returns: Json
@@ -3291,6 +3337,19 @@ export type Database = {
       get_user_team_role_level_safe: {
         Args: { p_team_id: string; p_user_id: string }
         Returns: number
+      }
+      get_user_team_settings_safe: {
+        Args: { p_user_id: string }
+        Returns: {
+          active_users: number
+          member_count: number
+          pending_invitations: number
+          permissions: Json
+          team_description: string
+          team_id: string
+          team_name: string
+          user_role: string
+        }[]
       }
       get_user_teams: {
         Args: { user_id_param: string }

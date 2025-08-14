@@ -27,15 +27,23 @@ import {
   Trash2,
   Settings as SettingsIcon
 } from "lucide-react";
-import { useUserProfile, useUserSettings, useUpdateUserProfile } from "@/hooks/useUserProfile";
+import { useUserProfile, useUpdateUserProfile } from "@/hooks/useUserProfile";
+import { useUserSettings, useUpdateUserSettings } from "@/hooks/useUserSettings";
 import { useTeamSettings } from "@/hooks/useTeamSettings";
+import { SettingsErrorBoundary } from "@/components/ui/settings-error-boundary";
+import { ErrorAlert } from "@/components/ui/error-alert";
+import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
-  const { data: userSettings, isLoading: isSettingsLoading } = useUserSettings();
-  const { data: teamSettings, isLoading: isTeamLoading } = useTeamSettings();
+  const { toast } = useToast();
+  
+  const { data: userProfile, isLoading: isProfileLoading, error: profileError, refetch: refetchProfile } = useUserProfile();
+  const { data: userSettings, isLoading: isSettingsLoading, error: settingsError, refetch: refetchSettings } = useUserSettings();
+  const { data: teamSettings, isLoading: isTeamLoading, error: teamError, refetch: refetchTeam } = useTeamSettings();
+  
   const updateProfile = useUpdateUserProfile();
+  const updateSettings = useUpdateUserSettings();
   
   const [profileForm, setProfileForm] = useState({
     full_name: '',
@@ -59,16 +67,41 @@ const Settings = () => {
         phone: userProfile.phone || ''
       });
     }
+  }, [userProfile]);
+
+  useEffect(() => {
     if (userSettings) {
-      setNotifications(userSettings.notifications);
+      setNotifications({
+        email: userSettings.notification_preferences?.email ?? true,
+        push: userSettings.notification_preferences?.push ?? false,
+        weekly: userSettings.notification_preferences?.in_app ?? true,
+        mentions: true
+      });
     }
-  }, [userProfile, userSettings]);
+  }, [userSettings]);
 
   const handleProfileSave = () => {
     updateProfile.mutate(profileForm);
   };
 
-  if (isProfileLoading || isSettingsLoading) {
+  const handleNotificationSave = () => {
+    updateSettings.mutate({
+      notification_preferences: {
+        email: notifications.email,
+        push: notifications.push,
+        in_app: notifications.weekly
+      }
+    });
+  };
+
+  const handleRetryAll = () => {
+    refetchProfile();
+    refetchSettings();
+    refetchTeam();
+  };
+
+  // Handle loading states
+  if (isProfileLoading || isSettingsLoading || isTeamLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
@@ -76,8 +109,24 @@ const Settings = () => {
     );
   }
 
+  // Handle error states
+  if (profileError || settingsError || teamError) {
+    const errorMessage = profileError?.message || settingsError?.message || teamError?.message || 'Failed to load settings';
+    return (
+      <div className="container mx-auto p-6">
+        <ErrorAlert
+          title="Settings Loading Error"
+          message={errorMessage}
+          onRetry={handleRetryAll}
+          retryLabel="Retry Loading Settings"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
+    <SettingsErrorBoundary onRetry={handleRetryAll}>
+      <div className="min-h-screen bg-gradient-subtle p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -259,6 +308,10 @@ const Settings = () => {
                     onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, mentions: checked }))}
                   />
                 </div>
+                
+                <Button onClick={handleNotificationSave} disabled={updateSettings.isPending}>
+                  {updateSettings.isPending ? 'Saving...' : 'Save Notification Settings'}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -648,6 +701,7 @@ const Settings = () => {
         </Tabs>
       </div>
     </div>
+    </SettingsErrorBoundary>
   );
 };
 
