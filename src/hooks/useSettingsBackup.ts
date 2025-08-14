@@ -97,7 +97,7 @@ const createSettingsBackup = async (
   }
 };
 
-const restoreSettingsBackup = async (backupId: string): Promise<void> => {
+const restoreSettingsBackup = async (backupId: string, userId: string): Promise<void> => {
   // Get backup data
   const { data: backup, error: fetchError } = await supabase
     .from('settings_backups')
@@ -354,7 +354,7 @@ export const useSettingsBackup = (): BackupHookResult => {
   });
 
   const restoreBackupMutation = useMutation({
-    mutationFn: restoreSettingsBackup,
+    mutationFn: (backupId: string) => restoreSettingsBackup(backupId, userId!),
     onSuccess: () => {
       // Invalidate all settings queries
       queryClient.invalidateQueries({ queryKey: ['user-settings'] });
