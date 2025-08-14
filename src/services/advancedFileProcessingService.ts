@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { FileProcessingService, ProcessingResult } from './fileProcessingService';
 
 export interface BatchProcessingOptions {
@@ -516,21 +517,21 @@ export class AdvancedFileProcessingService {
   private async performAIAnalysis(file: File, result: ProcessingResult): Promise<void> {
     try {
       const supabaseClient = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
+        'https://ijvhqqdfthchtittyvnt.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdmhxcWRmdGhjaHRpdHR5dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTE4OTMsImV4cCI6MjA2ODc2Nzg5M30.wxyInat54wVrwFQvbk61Hf7beu84TnhrBg0Bkpmo6fA'
       );
 
       // Extract content for analysis
       let content = '';
-      if (result.metadata.extractedText) {
-        content = result.metadata.extractedText;
+      if ((result.metadata as any).extractedText) {
+        content = (result.metadata as any).extractedText;
       } else if (file.type.startsWith('text/')) {
         content = await file.text();
       }
 
       const { data, error } = await supabaseClient.functions.invoke('content-analyzer', {
         body: {
-          contentId: result.metadata.contentId || crypto.randomUUID(),
+          contentId: (result.metadata as any).contentId || crypto.randomUUID(),
           analysisTypes: ['sentiment', 'topics', 'entities', 'quality', 'seo', 'readability'],
           content,
           title: file.name,
@@ -544,7 +545,7 @@ export class AdvancedFileProcessingService {
       }
 
       // Update the result with AI analysis
-      result.metadata.aiAnalysis = data.analysisResults;
+      (result.metadata as any).aiAnalysis = data.analysisResults;
       console.log('AI analysis completed for:', file.name);
     } catch (error) {
       console.error('Error in AI analysis:', error);
@@ -556,8 +557,49 @@ export class AdvancedFileProcessingService {
     result: ProcessingResult,
     optimizationLevel?: string
   ): Promise<void> {
-    // Placeholder for generating file variants (different sizes, formats, etc.)
-    console.log('Generating variants for:', file.name, 'at level:', optimizationLevel);
+    try {
+      const supabaseClient = createClient(
+        'https://ijvhqqdfthchtittyvnt.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdmhxcWRmdGhjaHRpdHR5dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTE4OTMsImV4cCI6MjA2ODc2Nzg5M30.wxyInat54wVrwFQvbk61Hf7beu84TnhrBg0Bkpmo6fA'
+      );
+
+      // Only generate variants for media files
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        // First upload the original file to get a path
+        const fileName = `${Date.now()}_${file.name}`;
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+          .from('content')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error('Failed to upload file for variant generation:', uploadError);
+          return;
+        }
+
+        // Call media processor to generate optimized variants
+        const { data, error } = await supabaseClient.functions.invoke('advanced-media-processor', {
+          body: {
+            contentId: (result.metadata as any).contentId || crypto.randomUUID(),
+            filePath: uploadData.path,
+            optimizationLevel: optimizationLevel || 'standard',
+            outputFormats: ['webp', 'avif', 'jpeg']
+          }
+        });
+
+        if (error) {
+          console.error('Variant generation failed:', error);
+          return;
+        }
+
+        // Update result with variant information
+        (result.metadata as any).variants = data.optimizationResults;
+        console.log('Variants generated for:', file.name);
+      } else {
+        console.log('Variant generation skipped for non-media file:', file.name);
+      }
+    } catch (error) {
+      console.error('Error in variant generation:', error);
+    }
   }
 }
 

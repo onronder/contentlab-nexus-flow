@@ -96,3 +96,9 @@ verify_jwt = true
 
 [functions.storage-lifecycle]
 verify_jwt = true
+
+[functions.cdn-manager]
+verify_jwt = true
+
+[functions.search-indexer]
+verify_jwt = true
