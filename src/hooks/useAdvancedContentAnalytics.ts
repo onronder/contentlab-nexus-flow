@@ -2,6 +2,63 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentUserId } from './useCurrentUserId';
 
+// Simplified types to avoid type recursion
+interface ContentAnalyticsItem {
+  id: string;
+  views: number;
+  likes: number;
+  shares: number;
+  comments: number;
+  performance_score: number;
+  analytics_date: string;
+  engagement_rate: number;
+}
+
+interface ContentItem {
+  id: string;
+  title: string;
+  content_type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  project_id: string;
+}
+
+interface UserAnalyticsItem {
+  id: string;
+  user_id: string;
+  session_id: string;
+  project_id: string;
+  created_at: string;
+}
+
+interface OptimizationRecommendation {
+  id: string;
+  type: string;
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  impact: string;
+  effort: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  affectedContent: number;
+}
+
+interface PredictiveInsight {
+  performanceForecasts: Array<{
+    date: string;
+    predicted: number;
+    confidence: number;
+  }>;
+  contentDemandPrediction: Array<{
+    category: string;
+    currentDemand: number;
+    predictedDemand: number;
+    growth: number;
+    confidence: number;
+  }>;
+}
+
 export interface ContentAnalyticsData {
   performanceMetrics: {
     totalViews: number;
@@ -24,31 +81,8 @@ export interface ContentAnalyticsData {
     pageViews: number;
     searchQueries: number;
   };
-  optimizationRecommendations: Array<{
-    id: string;
-    type: string;
-    priority: 'high' | 'medium' | 'low';
-    title: string;
-    description: string;
-    impact: string;
-    effort: string;
-    status: 'pending' | 'in-progress' | 'completed';
-    affectedContent: number;
-  }>;
-  predictiveInsights: {
-    performanceForecasts: Array<{
-      date: string;
-      predicted: number;
-      confidence: number;
-    }>;
-    contentDemandPrediction: Array<{
-      category: string;
-      currentDemand: number;
-      predictedDemand: number;
-      growth: number;
-      confidence: number;
-    }>;
-  };
+  optimizationRecommendations: OptimizationRecommendation[];
+  predictiveInsights: PredictiveInsight;
 }
 
 export const useAdvancedContentAnalytics = (projectId: string) => {
@@ -65,75 +99,72 @@ export const useAdvancedContentAnalytics = (projectId: string) => {
     queryFn: async (): Promise<ContentAnalyticsData> => {
       if (!userId) throw new Error('User not authenticated');
 
-      // Fetch content analytics data
+      // Fetch content analytics data with simplified query
       const { data: contentAnalytics, error: analyticsError } = await supabase
         .from('content_analytics')
-        .select(`
-          *,
-          content_items!inner(
-            id,
-            title,
-            content_type,
-            status,
-            created_at,
-            updated_at,
-            project_id
-          )
-        `)
-        .eq('content_items.project_id', projectId)
+        .select('*')
+        .in('content_id', 
+          await supabase
+            .from('content_items')
+            .select('id')
+            .eq('project_id', projectId)
+            .then(({ data }) => data?.map(item => item.id) || [])
+        )
         .gte('analytics_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
       if (analyticsError) throw analyticsError;
 
-      // Fetch user analytics for usage patterns
+      // Fetch user analytics for usage patterns with simplified query
       const { data: userAnalytics, error: userError } = await supabase
         .from('user_analytics')
-        .select('*')
-        .eq('project_id', projectId)
+        .select('user_id, session_id, created_at')
         .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
       if (userError) throw userError;
 
-      // Calculate performance metrics
-      const totalViews = contentAnalytics?.reduce((sum, ca) => sum + (ca.views || 0), 0) || 0;
-      const totalEngagement = contentAnalytics?.reduce((sum, ca) => 
-        sum + (ca.likes || 0) + (ca.shares || 0) + (ca.comments || 0), 0) || 0;
-      const avgPerformanceScore = contentAnalytics?.length > 0 
-        ? contentAnalytics.reduce((sum, ca) => sum + (ca.performance_score || 0), 0) / contentAnalytics.length 
+      // Calculate performance metrics with explicit typing
+      const analytics = contentAnalytics as ContentAnalyticsItem[] || [];
+      const userAnalyticsData = userAnalytics as UserAnalyticsItem[] || [];
+      
+      const totalViews = analytics.reduce((sum, ca) => sum + (ca.views || 0), 0);
+      const totalEngagement = analytics.reduce((sum, ca) => 
+        sum + (ca.likes || 0) + (ca.shares || 0) + (ca.comments || 0), 0);
+      const avgPerformanceScore = analytics.length > 0 
+        ? analytics.reduce((sum, ca) => sum + (ca.performance_score || 0), 0) / analytics.length 
         : 0;
 
-      // Calculate usage patterns
-      const uniqueUsers = new Set(userAnalytics?.map(ua => ua.user_id)).size;
-      const totalSessions = new Set(userAnalytics?.map(ua => ua.session_id)).size;
+      // Calculate usage patterns with explicit typing
+      const uniqueUsers = new Set(userAnalyticsData.map(ua => ua.user_id)).size;
+      const totalSessions = new Set(userAnalyticsData.map(ua => ua.session_id)).size;
 
       // Mock recommendations based on actual data
-      const optimizationRecommendations = [
+      const optimizationRecommendations: OptimizationRecommendation[] = [
         {
           id: '1',
           type: 'performance',
           priority: 'high' as const,
           title: 'Optimize Low-Performing Content',
-          description: `${contentAnalytics?.filter(ca => (ca.performance_score || 0) < 50).length || 0} pieces of content have low performance scores`,
+          description: `${analytics.filter(ca => (ca.performance_score || 0) < 50).length} pieces of content have low performance scores`,
           impact: 'Improve overall content effectiveness by 25%',
           effort: 'Medium',
-          status: 'pending' as const,
-          affectedContent: contentAnalytics?.filter(ca => (ca.performance_score || 0) < 50).length || 0
+          status: 'pending',
+          affectedContent: analytics.filter(ca => (ca.performance_score || 0) < 50).length
         },
         {
           id: '2',
           type: 'engagement',
-          priority: 'medium' as const,
+          priority: 'medium',
           title: 'Increase Engagement Rates',
           description: 'Content with low engagement rates could benefit from better CTAs',
           impact: 'Boost user interaction by 15%',
           effort: 'Low',
-          status: 'pending' as const,
-          affectedContent: Math.floor((contentAnalytics?.length || 0) * 0.3)
+          status: 'pending',
+          affectedContent: Math.floor(analytics.length * 0.3)
         }
       ];
-
-      // Mock predictive insights
-      const predictiveInsights = {
+      
+      // Mock predictive insights with explicit typing
+      const predictiveInsights: PredictiveInsight = {
         performanceForecasts: [
           { date: '2024-02-01', predicted: totalViews * 1.1, confidence: 85 },
           { date: '2024-02-15', predicted: totalViews * 1.15, confidence: 82 },
@@ -183,7 +214,6 @@ export const useAdvancedContentAnalytics = (projectId: string) => {
       // This would be implemented with proper content optimization logic
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
 
-      if (error) throw error;
       return { success: true };
     },
     onSuccess: () => {

@@ -47,6 +47,11 @@ import {
   ContentReviewWorkflow,
   CollaborativeAnalytics
 } from "@/components/collaboration";
+import { ContentPerformanceDashboard } from '@/components/analytics/ContentPerformanceDashboard';
+import { UsagePatternAnalytics } from '@/components/analytics/UsagePatternAnalytics';
+import { PerformanceOptimizationPanel } from '@/components/analytics/PerformanceOptimizationPanel';
+import { PredictiveAnalyticsDashboard } from '@/components/analytics/PredictiveAnalyticsDashboard';
+import { ExecutiveReportingDashboard } from '@/components/analytics/ExecutiveReportingDashboard';
 
 const Content = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -221,14 +226,20 @@ const Content = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="library" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13">
             <TabsTrigger value="library">Library</TabsTrigger>
+            <TabsTrigger value="upload">Upload</TabsTrigger>
+            <TabsTrigger value="analytics">Storage</TabsTrigger>
+            <TabsTrigger value="permissions">Permissions</TabsTrigger>
             <TabsTrigger value="collaboration">Collaboration</TabsTrigger>
-            <TabsTrigger value="versions">Versions</TabsTrigger>
+            <TabsTrigger value="versioning">Versioning</TabsTrigger>
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="usage">Usage</TabsTrigger>
+            <TabsTrigger value="optimization">Optimization</TabsTrigger>
+            <TabsTrigger value="predictive">Predictive</TabsTrigger>
+            <TabsTrigger value="executive">Executive</TabsTrigger>
           </TabsList>
 
           <TabsContent value="library" className="mt-6">
@@ -397,6 +408,26 @@ const Content = () => {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="performance" className="space-y-6">
+            <ContentPerformanceDashboard projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="usage" className="space-y-6">
+            <UsagePatternAnalytics projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="optimization" className="space-y-6">
+            <PerformanceOptimizationPanel projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="predictive" className="space-y-6">
+            <PredictiveAnalyticsDashboard projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="executive" className="space-y-6">
+            <ExecutiveReportingDashboard projectId={projectId} />
           </TabsContent>
         </Tabs>
       </div>
