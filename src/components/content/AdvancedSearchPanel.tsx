@@ -29,11 +29,12 @@ import { SearchFilters } from '@/services/advancedSearchService';
 import { cn } from '@/lib/utils';
 
 interface AdvancedSearchPanelProps {
+  projectId: string;
   className?: string;
   onResultsChange?: (results: any[]) => void;
 }
 
-export const AdvancedSearchPanel = ({ className, onResultsChange }: AdvancedSearchPanelProps) => {
+export const AdvancedSearchPanel = ({ projectId, className, onResultsChange }: AdvancedSearchPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeFilterSections, setActiveFilterSections] = useState<Set<string>>(new Set(['basic']));
   

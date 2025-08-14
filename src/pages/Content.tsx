@@ -30,7 +30,11 @@ import {
 import { cn } from "@/lib/utils";
 import { useContentItems } from "@/hooks/useContentQueries";
 import { useFileUrl } from "@/hooks/useFileUpload";
-import { FileUploadDialog } from "@/components/content/FileUploadDialog";
+import { BatchUploadDialog } from "@/components/content/BatchUploadDialog";
+import { AdvancedSearchPanel } from "@/components/content/AdvancedSearchPanel";
+import { FileVersioningManager } from "@/components/content/FileVersioningManager";
+import { DeduplicationManager } from "@/components/content/DeduplicationManager";
+import { StorageAnalyticsDashboard } from "@/components/content/StorageAnalyticsDashboard";
 import { ContentCard } from "@/components/content/ContentCard";
 import { useProjects } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -141,11 +145,14 @@ const Content = () => {
           </div>
         </div>
 
-        <FileUploadDialog 
+        <BatchUploadDialog 
           open={showUploadModal} 
           onOpenChange={setShowUploadModal}
           projectId={projectId}
         />
+
+        {/* Advanced Search Panel */}
+        <AdvancedSearchPanel projectId={projectId} />
 
         {/* Filters and Controls */}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -205,16 +212,27 @@ const Content = () => {
           </div>
         </div>
 
-        {/* Content Type Tabs */}
-        <Tabs value={typeFilter} onValueChange={setTypeFilter} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="all">All ({transformedContent.length})</TabsTrigger>
-            <TabsTrigger value="blog_post">Posts ({transformedContent.filter(c => c.type === 'blog_post').length})</TabsTrigger>
-            <TabsTrigger value="video">Videos ({transformedContent.filter(c => c.type === 'video').length})</TabsTrigger>
-            <TabsTrigger value="image">Images ({transformedContent.filter(c => c.type === 'image').length})</TabsTrigger>
-            <TabsTrigger value="document">Docs ({transformedContent.filter(c => c.type === 'document').length})</TabsTrigger>
-            <TabsTrigger value="social">Social ({transformedContent.filter(c => c.type === 'social').length})</TabsTrigger>
+        {/* Main Tabs */}
+        <Tabs defaultValue="library" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="library">Library</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="versions">Versions</TabsTrigger>
+            <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="library" className="mt-6">
+            {/* Content Type Sub-Tabs */}
+            <Tabs value={typeFilter} onValueChange={setTypeFilter} className="w-full">
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="all">All ({transformedContent.length})</TabsTrigger>
+                <TabsTrigger value="blog_post">Posts ({transformedContent.filter(c => c.type === 'blog_post').length})</TabsTrigger>
+                <TabsTrigger value="video">Videos ({transformedContent.filter(c => c.type === 'video').length})</TabsTrigger>
+                <TabsTrigger value="image">Images ({transformedContent.filter(c => c.type === 'image').length})</TabsTrigger>
+                <TabsTrigger value="document">Docs ({transformedContent.filter(c => c.type === 'document').length})</TabsTrigger>
+                <TabsTrigger value="social">Social ({transformedContent.filter(c => c.type === 'social').length})</TabsTrigger>
+              </TabsList>
           <TabsContent value={typeFilter} className="mt-6">
             {/* Empty State */}
             {filteredContent.length === 0 && (
@@ -253,6 +271,86 @@ const Content = () => {
                 </div>
               </ContentErrorBoundary>
             )}
+            </TabsContent>
+          </Tabs>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <StorageAnalyticsDashboard projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="versions" className="mt-6">
+            <FileVersioningManager 
+              contentId={transformedContent[0]?.id || ''}
+              currentVersion={{
+                id: '1',
+                versionNumber: 1,
+                filePath: transformedContent[0]?.file_path || '/placeholder.jpg',
+                fileSize: 1024000,
+                createdAt: new Date(),
+                createdBy: 'Current User',
+                changesSummary: 'Initial version'
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="duplicates" className="mt-6">
+            <DeduplicationManager projectId={projectId} />
+          </TabsContent>
+
+          <TabsContent value="advanced" className="mt-6">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Advanced File Management</h3>
+                <p className="text-muted-foreground mb-6">
+                  Access advanced features for file processing, batch operations, and content optimization.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Upload className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <h4 className="font-semibold">Batch Processing</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Process multiple files simultaneously with automated optimization and tagging.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Search className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h4 className="font-semibold">AI Content Analysis</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically analyze content for insights, sentiment, and categorization.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <Filter className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <h4 className="font-semibold">Smart Filters</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Advanced filtering options with AI-powered content recognition.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
