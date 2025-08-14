@@ -3238,6 +3238,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_team_with_member_integration: {
+        Args: {
+          p_member_limit?: number
+          p_settings?: Json
+          p_team_description?: string
+          p_team_name: string
+          p_team_type?: string
+        }
+        Returns: Json
+      }
       decline_team_invitation: {
         Args: { p_token: string }
         Returns: undefined
