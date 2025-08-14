@@ -20,6 +20,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Content from "./pages/Content";
 import Analytics from "./pages/Analytics";
 import TeamPage from "./pages/Team";
+import CreateTeam from "./pages/CreateTeam";
 import Settings from "./pages/Settings";
 import Competitive from "./pages/Competitive";
 import Security from "./pages/Security";
@@ -187,6 +188,14 @@ const App = () => (
               <Layout>
                 <TeamPage />
               </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/create-team" 
+          element={
+            <ProtectedRoute>
+              <CreateTeam />
             </ProtectedRoute>
           } 
         />

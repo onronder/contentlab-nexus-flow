@@ -94,7 +94,7 @@ const Team = () => {
                 Create your team now or ask an admin to invite you.
               </p>
               <div className="flex items-center justify-center gap-3">
-                <Button onClick={() => navigate('/onboarding')} className="gradient-primary text-white shadow-elegant">
+                <Button onClick={() => navigate('/create-team')} className="gradient-primary text-white shadow-elegant">
                   Create your team
                 </Button>
                 <Button variant="outline" onClick={() => navigate('/dashboard')}>

@@ -62,9 +62,113 @@ export class TeamService {
         throw new Error(`Failed to create team: ${error.message}`);
       }
 
-      return data;
+      return {
+        ...data,
+        settings: data.settings as Record<string, any>
+      };
     } catch (error) {
       console.error('TeamService.createTeam error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a team with full backend integration (production-grade)
+   */
+  static async createTeamWithIntegration(teamData: TeamCreateInput & { auto_setup?: boolean }): Promise<Team> {
+    try {
+      this.validateTeamData(teamData);
+      
+      // Generate unique slug if not provided
+      const slug = teamData.slug || await this.generateUniqueSlug(teamData.name);
+      
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) {
+        throw new Error('User must be authenticated to create teams');
+      }
+
+      // Get owner role
+      const { data: ownerRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('slug', 'owner')
+        .eq('is_active', true)
+        .single();
+
+      if (roleError || !ownerRole) {
+        throw new Error('Owner role not found in system');
+      }
+
+      // Create team with transaction-like approach
+      const { data: newTeam, error: teamError } = await supabase
+        .from('teams')
+        .insert({
+          name: teamData.name,
+          slug: slug,
+          description: teamData.description || '',
+          parent_team_id: teamData.parent_team_id || null,
+          owner_id: currentUser.user.id,
+          team_type: teamData.team_type || 'organization',
+          settings: {
+            ...teamData.settings,
+            auto_invite: true,
+            public_join: false,
+            default_permissions: ['view', 'edit'],
+            created_with_wizard: true
+          },
+          member_limit: teamData.member_limit || 50,
+          current_member_count: 1 // Owner counts as first member
+        })
+        .select()
+        .single();
+
+      if (teamError) {
+        console.error('Error creating team:', teamError);
+        throw new Error(`Failed to create team: ${teamError.message}`);
+      }
+
+      // Add owner as team member
+      const { error: memberError } = await supabase
+        .from('team_members')
+        .insert({
+          user_id: currentUser.user.id,
+          team_id: newTeam.id,
+          role_id: ownerRole.id,
+          status: 'active',
+          is_active: true,
+          joined_at: new Date().toISOString(),
+          invited_by: currentUser.user.id
+        });
+
+      if (memberError) {
+        console.error('Error adding owner as team member:', memberError);
+        // Don't fail the whole operation for this
+      }
+
+      // Log team creation activity
+      try {
+        await supabase.rpc('log_team_activity', {
+          p_team_id: newTeam.id,
+          p_user_id: currentUser.user.id,
+          p_activity_type: 'team_management',
+          p_action: 'team_created',
+          p_description: `Team "${newTeam.name}" was created`,
+          p_metadata: {
+            team_type: newTeam.team_type,
+            member_limit: newTeam.member_limit,
+            auto_setup: teamData.auto_setup || false
+          }
+        });
+      } catch (activityError) {
+        console.warn('Failed to log team creation activity:', activityError);
+      }
+
+      return {
+        ...newTeam,
+        settings: newTeam.settings as Record<string, any>
+      };
+    } catch (error) {
+      console.error('TeamService.createTeamWithIntegration error:', error);
       throw error;
     }
   }

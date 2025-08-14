@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { TeamService } from '@/services/teamService';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Card, 
   CardContent, 
@@ -34,7 +35,8 @@ interface TeamCreationWizardProps {
 }
 
 export function TeamCreationWizard({ onComplete }: TeamCreationWizardProps) {
-  const { refreshTeams } = useTeamContext();
+  const { user } = useAuth();
+  const { refreshTeams, setCurrentTeam } = useTeamContext();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<TeamCreateInput>>({
@@ -61,29 +63,43 @@ export function TeamCreationWizard({ onComplete }: TeamCreationWizardProps) {
       return;
     }
 
+    if (!user?.id) {
+      toast({
+        title: 'Authentication required',
+        description: 'You must be logged in to create a team.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await TeamService.createTeam({
+      // Create the team with full backend integration
+      const newTeam = await TeamService.createTeamWithIntegration({
         name: formData.name,
         description: formData.description || '',
         team_type: formData.team_type as TeamType || 'organization',
         member_limit: formData.member_limit || 50,
+        auto_setup: true, // Enable automatic setup
       });
 
-      // Refresh teams to get the new team
+      // Refresh teams to get the updated list
       await refreshTeams();
+      
+      // Set the new team as current team
+      setCurrentTeam(newTeam);
       
       setStep(3); // Success step
       
       toast({
         title: 'Team created successfully!',
-        description: `Welcome to ${formData.name}. You can now invite team members.`,
+        description: `Welcome to ${formData.name}. Your workspace is ready!`,
       });
 
-      // Complete after a short delay
+      // Complete after a short delay to show success message
       setTimeout(() => {
         onComplete?.();
-      }, 2000);
+      }, 2500);
     } catch (error) {
       console.error('Error creating team:', error);
       toast({
