@@ -134,6 +134,60 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_upload_sessions: {
+        Row: {
+          batch_metadata: Json | null
+          completed_at: string | null
+          created_at: string | null
+          error_summary: string | null
+          failed_files: number | null
+          folder_structure: Json | null
+          id: string
+          processed_files: number | null
+          project_id: string
+          session_name: string | null
+          started_at: string | null
+          status: string | null
+          total_files: number
+          upload_settings: Json | null
+          user_id: string
+        }
+        Insert: {
+          batch_metadata?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_summary?: string | null
+          failed_files?: number | null
+          folder_structure?: Json | null
+          id?: string
+          processed_files?: number | null
+          project_id: string
+          session_name?: string | null
+          started_at?: string | null
+          status?: string | null
+          total_files: number
+          upload_settings?: Json | null
+          user_id: string
+        }
+        Update: {
+          batch_metadata?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_summary?: string | null
+          failed_files?: number | null
+          folder_structure?: Json | null
+          id?: string
+          processed_files?: number | null
+          project_id?: string
+          session_name?: string | null
+          started_at?: string | null
+          status?: string | null
+          total_files?: number
+          upload_settings?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           attachments: Json | null
@@ -609,16 +663,24 @@ export type Database = {
       }
       content_items: {
         Row: {
+          access_count: number | null
+          ai_tags: string[] | null
           category_id: string | null
           content_hash: string | null
+          content_quality_score: number | null
           content_type: string
           created_at: string | null
           description: string | null
+          duplicate_of: string | null
           file_path: string | null
           file_size: number | null
+          folder_id: string | null
           id: string
+          last_accessed_at: string | null
           metadata: Json | null
           mime_type: string | null
+          optimization_level: string | null
+          processing_status: string | null
           project_id: string
           published_at: string | null
           review_comments: string | null
@@ -627,6 +689,7 @@ export type Database = {
           scheduled_publish_at: string | null
           search_vector: unknown | null
           status: string
+          storage_tier: string | null
           team_id: string | null
           thumbnail_path: string | null
           title: string
@@ -635,16 +698,24 @@ export type Database = {
           workflow_status: string | null
         }
         Insert: {
+          access_count?: number | null
+          ai_tags?: string[] | null
           category_id?: string | null
           content_hash?: string | null
+          content_quality_score?: number | null
           content_type: string
           created_at?: string | null
           description?: string | null
+          duplicate_of?: string | null
           file_path?: string | null
           file_size?: number | null
+          folder_id?: string | null
           id?: string
+          last_accessed_at?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          optimization_level?: string | null
+          processing_status?: string | null
           project_id: string
           published_at?: string | null
           review_comments?: string | null
@@ -653,6 +724,7 @@ export type Database = {
           scheduled_publish_at?: string | null
           search_vector?: unknown | null
           status?: string
+          storage_tier?: string | null
           team_id?: string | null
           thumbnail_path?: string | null
           title: string
@@ -661,16 +733,24 @@ export type Database = {
           workflow_status?: string | null
         }
         Update: {
+          access_count?: number | null
+          ai_tags?: string[] | null
           category_id?: string | null
           content_hash?: string | null
+          content_quality_score?: number | null
           content_type?: string
           created_at?: string | null
           description?: string | null
+          duplicate_of?: string | null
           file_path?: string | null
           file_size?: number | null
+          folder_id?: string | null
           id?: string
+          last_accessed_at?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          optimization_level?: string | null
+          processing_status?: string | null
           project_id?: string
           published_at?: string | null
           review_comments?: string | null
@@ -679,6 +759,7 @@ export type Database = {
           scheduled_publish_at?: string | null
           search_vector?: unknown | null
           status?: string
+          storage_tier?: string | null
           team_id?: string | null
           thumbnail_path?: string | null
           title?: string
@@ -692,6 +773,20 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "content_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "file_folders"
             referencedColumns: ["id"]
           },
           {
@@ -716,6 +811,102 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      content_lifecycle_policies: {
+        Row: {
+          auto_apply: boolean | null
+          created_at: string | null
+          description: string | null
+          execution_count: number | null
+          id: string
+          is_active: boolean | null
+          last_executed_at: string | null
+          name: string
+          policy_rules: Json
+          project_id: string | null
+          team_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_apply?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name: string
+          policy_rules: Json
+          project_id?: string | null
+          team_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_apply?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name?: string
+          policy_rules?: Json
+          project_id?: string | null
+          team_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      content_search_index: {
+        Row: {
+          ai_keywords: string[] | null
+          combined_vector: unknown | null
+          content_id: string
+          content_quality_score: number | null
+          content_vector: unknown | null
+          description_vector: unknown | null
+          id: string
+          index_version: number | null
+          language: string | null
+          last_indexed_at: string | null
+          tag_vector: unknown | null
+          title_vector: unknown | null
+          visual_features: Json | null
+        }
+        Insert: {
+          ai_keywords?: string[] | null
+          combined_vector?: unknown | null
+          content_id: string
+          content_quality_score?: number | null
+          content_vector?: unknown | null
+          description_vector?: unknown | null
+          id?: string
+          index_version?: number | null
+          language?: string | null
+          last_indexed_at?: string | null
+          tag_vector?: unknown | null
+          title_vector?: unknown | null
+          visual_features?: Json | null
+        }
+        Update: {
+          ai_keywords?: string[] | null
+          combined_vector?: unknown | null
+          content_id?: string
+          content_quality_score?: number | null
+          content_vector?: unknown | null
+          description_vector?: unknown | null
+          id?: string
+          index_version?: number | null
+          language?: string | null
+          last_indexed_at?: string | null
+          tag_vector?: unknown | null
+          title_vector?: unknown | null
+          visual_features?: Json | null
+        }
+        Relationships: []
       }
       content_settings: {
         Row: {
@@ -954,6 +1145,242 @@ export type Database = {
           request_type?: string
           response_data?: Json | null
           response_status?: number | null
+        }
+        Relationships: []
+      }
+      file_deduplication: {
+        Row: {
+          content_hash: string
+          created_at: string | null
+          deduplication_status: string | null
+          duplicate_content_ids: string[] | null
+          file_size: number
+          id: string
+          mime_type: string
+          original_content_id: string
+          similarity_score: number | null
+          space_saved: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string | null
+          deduplication_status?: string | null
+          duplicate_content_ids?: string[] | null
+          file_size: number
+          id?: string
+          mime_type: string
+          original_content_id: string
+          similarity_score?: number | null
+          space_saved?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string | null
+          deduplication_status?: string | null
+          duplicate_content_ids?: string[] | null
+          file_size?: number
+          id?: string
+          mime_type?: string
+          original_content_id?: string
+          similarity_score?: number | null
+          space_saved?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      file_folders: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          folder_path: string
+          id: string
+          is_system: boolean | null
+          metadata: Json | null
+          name: string
+          parent_id: string | null
+          project_id: string
+          team_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          folder_path: string
+          id?: string
+          is_system?: boolean | null
+          metadata?: Json | null
+          name: string
+          parent_id?: string | null
+          project_id: string
+          team_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          folder_path?: string
+          id?: string
+          is_system?: boolean | null
+          metadata?: Json | null
+          name?: string
+          parent_id?: string | null
+          project_id?: string
+          team_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "file_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_processing_jobs: {
+        Row: {
+          completed_at: string | null
+          content_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          input_data: Json | null
+          job_type: string
+          max_retries: number | null
+          output_data: Json | null
+          priority: number | null
+          processing_time_ms: number | null
+          retry_count: number | null
+          scheduled_at: string | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          content_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          job_type: string
+          max_retries?: number | null
+          output_data?: Json | null
+          priority?: number | null
+          processing_time_ms?: number | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          content_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          job_type?: string
+          max_retries?: number | null
+          output_data?: Json | null
+          priority?: number | null
+          processing_time_ms?: number | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      file_storage_analytics: {
+        Row: {
+          analytics_date: string | null
+          created_at: string | null
+          id: string
+          most_accessed_files: Json | null
+          project_id: string | null
+          storage_by_type: Json | null
+          storage_optimization_savings: number | null
+          team_id: string | null
+          total_files: number | null
+          total_storage_bytes: number | null
+          upload_activity: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          analytics_date?: string | null
+          created_at?: string | null
+          id?: string
+          most_accessed_files?: Json | null
+          project_id?: string | null
+          storage_by_type?: Json | null
+          storage_optimization_savings?: number | null
+          team_id?: string | null
+          total_files?: number | null
+          total_storage_bytes?: number | null
+          upload_activity?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          analytics_date?: string | null
+          created_at?: string | null
+          id?: string
+          most_accessed_files?: Json | null
+          project_id?: string | null
+          storage_by_type?: Json | null
+          storage_optimization_savings?: number | null
+          team_id?: string | null
+          total_files?: number | null
+          total_storage_bytes?: number | null
+          upload_activity?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      file_versions: {
+        Row: {
+          change_summary: string | null
+          content_hash: string
+          content_id: string
+          created_at: string | null
+          created_by: string
+          file_path: string
+          file_size: number
+          id: string
+          is_current: boolean | null
+          version_label: string | null
+          version_number: number
+        }
+        Insert: {
+          change_summary?: string | null
+          content_hash: string
+          content_id: string
+          created_at?: string | null
+          created_by: string
+          file_path: string
+          file_size: number
+          id?: string
+          is_current?: boolean | null
+          version_label?: string | null
+          version_number: number
+        }
+        Update: {
+          change_summary?: string | null
+          content_hash?: string
+          content_id?: string
+          created_at?: string | null
+          created_by?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          is_current?: boolean | null
+          version_label?: string | null
+          version_number?: number
         }
         Relationships: []
       }
