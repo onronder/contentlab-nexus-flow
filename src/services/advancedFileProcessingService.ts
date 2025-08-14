@@ -232,7 +232,7 @@ export class AdvancedFileProcessingService {
         originalContentId: dedup.original_content_id,
         duplicateContentIds: dedup.duplicate_content_ids,
         similarityScore: dedup.similarity_score,
-        deduplicationStatus: dedup.deduplication_status,
+        deduplicationStatus: dedup.deduplication_status as 'pending' | 'processed' | 'merged',
         spaceSaved: dedup.space_saved
       };
     }
@@ -419,8 +419,8 @@ export class AdvancedFileProcessingService {
     return (data || []).map(job => ({
       id: job.id,
       contentId: job.content_id,
-      jobType: job.job_type,
-      status: job.status,
+      jobType: job.job_type as ProcessingJob['jobType'],
+      status: job.status as ProcessingJob['status'],
       priority: job.priority,
       inputData: job.input_data,
       outputData: job.output_data,
@@ -494,7 +494,7 @@ export class AdvancedFileProcessingService {
       totalFiles: data.total_files,
       processedFiles: data.processed_files,
       failedFiles: data.failed_files,
-      status: data.status,
+      status: data.status as BatchUploadSession['status'],
       uploadSettings: data.upload_settings,
       folderStructure: data.folder_structure,
       batchMetadata: data.batch_metadata,
