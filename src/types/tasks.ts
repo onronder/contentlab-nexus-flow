@@ -35,6 +35,7 @@ export interface Task {
   time_logs?: TaskTimeLog[];
   labels?: TaskLabel[];
   watchers?: TaskWatcher[];
+  subtasks?: Subtask[];
   assignee?: {
     id: string;
     full_name?: string;
@@ -170,6 +171,14 @@ export interface TaskWatcher {
     full_name?: string;
     email?: string;
   };
+}
+
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+  created_at?: string;
+  order?: number;
 }
 
 export interface TaskTemplate {
