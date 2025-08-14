@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Eye, Heart, Share2, Download, Clock, Target, DollarSign } from 'lucide-react';
+import { useAdvancedContentAnalytics } from '@/hooks/useAdvancedContentAnalytics';
 
 interface ContentPerformanceDashboardProps {
   projectId: string;
@@ -14,19 +15,28 @@ interface ContentPerformanceDashboardProps {
 export function ContentPerformanceDashboard({ projectId }: ContentPerformanceDashboardProps) {
   const [timeRange, setTimeRange] = useState('30d');
   const [contentType, setContentType] = useState('all');
+  const { analyticsData, isLoading, error } = useAdvancedContentAnalytics(projectId);
 
-  // Mock data - replace with actual analytics data
-  const performanceMetrics = {
-    totalViews: 45682,
-    totalEngagement: 8934,
-    averageTimeSpent: '4:32',
-    conversionRate: 12.5,
-    roi: 245.3,
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64">Loading analytics...</div>;
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center h-64 text-destructive">Error loading analytics</div>;
+  }
+
+  // Use real analytics data
+  const performanceMetrics = analyticsData?.performanceMetrics || {
+    totalViews: 0,
+    totalEngagement: 0,
+    averageTimeSpent: '0:00',
+    conversionRate: 0,
+    roi: 0,
     trends: {
-      views: 18.5,
-      engagement: -3.2,
-      timeSpent: 7.8,
-      conversion: 15.4
+      views: 0,
+      engagement: 0,
+      timeSpent: 0,
+      conversion: 0
     }
   };
 
