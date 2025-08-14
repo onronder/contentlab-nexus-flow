@@ -102,3 +102,9 @@ verify_jwt = true
 
 [functions.search-indexer]
 verify_jwt = true
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.metrics]
+verify_jwt = false

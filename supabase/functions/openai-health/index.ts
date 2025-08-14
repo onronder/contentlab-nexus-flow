@@ -1,52 +1,88 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { withSecurity } from '../_shared/security.ts';
+import { CircuitBreaker } from '../_shared/security.ts';
+import { globalPerformanceMonitor } from '../_shared/monitoring.ts';
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const openAICircuitBreaker = new CircuitBreaker(3, 60000, 30000);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const handler = withSecurity(async (req, logger) => {
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+  const endTimer = globalPerformanceMonitor.startTimer('openai_health_check');
+  
   try {
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
     if (!openAIApiKey) {
-      return new Response(JSON.stringify({ ok: false, error: 'Missing OPENAI_API_KEY', primaryKeyPresent: false, secondaryKeyPresent: !!Deno.env.get('OPENAI_API_KEY_SECONDARY') }), {
+      logger.warn('OpenAI API key not configured');
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        error: 'Missing OPENAI_API_KEY', 
+        primaryKeyPresent: false, 
+        secondaryKeyPresent: !!Deno.env.get('OPENAI_API_KEY_SECONDARY') 
+      }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Optional lightweight validation: attempt to call OpenAI models endpoint with short timeout
-    const url = 'https://api.openai.com/v1/models';
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    // Use circuit breaker for OpenAI API calls
     let ok = true;
-
+    
     try {
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${openAIApiKey}` },
-        signal: controller.signal,
+      ok = await openAICircuitBreaker.call(async () => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        
+        try {
+          const res = await fetch('https://api.openai.com/v1/models', {
+            headers: { 'Authorization': `Bearer ${openAIApiKey}` },
+            signal: controller.signal,
+          });
+          return res.ok;
+        } finally {
+          clearTimeout(timeout);
+        }
       });
-      ok = res.ok;
-    } catch (_) {
-      // Network/timeout - still return ok: true because key exists; front-end will perform health checks separately
-      ok = true;
-    } finally {
-      clearTimeout(timeout);
+    } catch (error) {
+      logger.warn('OpenAI health check failed', { 
+        error: (error as Error).message,
+        circuitState: openAICircuitBreaker.getState()
+      });
+      // Still return ok: true for circuit breaker scenarios to avoid false negatives
+      ok = openAICircuitBreaker.getState() !== 'OPEN';
     }
 
-    return new Response(JSON.stringify({ ok, primaryKeyPresent: !!openAIApiKey, secondaryKeyPresent: !!Deno.env.get('OPENAI_API_KEY_SECONDARY') }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const result = { 
+      ok, 
+      primaryKeyPresent: !!openAIApiKey, 
+      secondaryKeyPresent: !!Deno.env.get('OPENAI_API_KEY_SECONDARY'),
+      circuitState: openAICircuitBreaker.getState()
+    };
+    
+    logger.info('OpenAI health check completed', result);
+    
+    return new Response(JSON.stringify(result), {
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ ok: false, error: (error as Error).message }), {
+    logger.error('OpenAI health check error', error as Error);
+    globalPerformanceMonitor.recordError(error as Error, 'openai_health_check');
+    
+    return new Response(JSON.stringify({ 
+      ok: false, 
+      error: 'Health check failed',
+      correlationId: logger.correlationId
+    }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
     });
+  } finally {
+    endTimer();
   }
+}, {
+  requireAuth: false, // Health checks should be accessible without auth
+  rateLimitRequests: 60,
+  rateLimitWindow: 60000
 });
+
+Deno.serve(handler);

@@ -1,11 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { withSecurity, validateInput, CircuitBreaker } from '../_shared/security.ts';
+import { globalPerformanceMonitor } from '../_shared/monitoring.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const openAICircuitBreaker = new CircuitBreaker(5, 120000, 60000); // More lenient for analysis
 
 // Rate limiting and retry utilities
 async function delay(ms: number) {
@@ -47,12 +45,9 @@ async function retryWithExponentialBackoff<T>(
   throw lastError;
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = withSecurity(async (req, logger) => {
+  const endTimer = globalPerformanceMonitor.startTimer('competitor_analysis');
+  
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const OPENAI_API_KEY_SECONDARY = Deno.env.get('OPENAI_API_KEY_SECONDARY');
@@ -66,9 +61,64 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
       global: { headers: { Authorization: req.headers.get('Authorization') || '' } }
     });
-    const { competitor, analysisRequest } = await req.json();
+    
+    const requestBody = await req.json();
+    const { competitor, analysisRequest } = requestBody;
+    
+    // Enhanced input validation
+    if (!competitor || !analysisRequest) {
+      return new Response(JSON.stringify({
+        error: 'Missing required fields: competitor and analysisRequest',
+        status: 'failed'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Validate competitor data
+    const companyNameValidation = validateInput.text(competitor.company_name, 100);
+    if (!companyNameValidation.isValid) {
+      return new Response(JSON.stringify({
+        error: `Invalid company name: ${companyNameValidation.error}`,
+        status: 'failed'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Validate domain if provided
+    if (competitor.domain) {
+      const domainValidation = validateInput.text(competitor.domain, 200);
+      if (!domainValidation.isValid) {
+        return new Response(JSON.stringify({
+          error: `Invalid domain: ${domainValidation.error}`,
+          status: 'failed'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+    
+    // Validate analysis type
+    const validAnalysisTypes = ['positioning', 'content_gap', 'market_share'];
+    if (!validAnalysisTypes.includes(analysisRequest.analysisType)) {
+      return new Response(JSON.stringify({
+        error: `Invalid analysis type. Must be one of: ${validAnalysisTypes.join(', ')}`,
+        status: 'failed'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-    console.log('Starting analysis for competitor:', competitor.company_name);
+    logger.info('Starting competitor analysis', {
+      company: competitor.company_name,
+      domain: competitor.domain,
+      analysis_type: analysisRequest.analysisType
+    });
 
     // Prepare analysis prompt based on type
     let systemPrompt = '';
@@ -195,9 +245,10 @@ Return response in this exact JSON format:
         throw new Error(`Unsupported analysis type: ${analysisRequest.analysisType}`);
     }
 
-    // Call OpenAI API with retry logic and key rotation
+    // Call OpenAI API with circuit breaker and retry logic
     async function callOpenAI(apiKey: string) {
-      return retryWithExponentialBackoff(async () => {
+      return openAICircuitBreaker.call(async () => {
+        return retryWithExponentialBackoff(async () => {
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -230,6 +281,7 @@ Return response in this exact JSON format:
           throw e;
         }
         return res;
+        });
       });
     }
 
@@ -250,7 +302,10 @@ Return response in this exact JSON format:
     const data = await response.json();
     const content = data.choices[0].message.content;
 
-    console.log('OpenAI response received');
+    logger.info('OpenAI response received', {
+      tokens_used: data.usage?.total_tokens || 0,
+      model: data.model
+    });
 
     // Parse JSON response
     let analysisResult;
@@ -286,17 +341,27 @@ Return response in this exact JSON format:
       created_at: new Date().toISOString()
     };
 
-    console.log('Analysis completed successfully');
+    logger.info('Analysis completed successfully', {
+      company: competitor.company_name,
+      analysis_type: analysisRequest.analysisType,
+      confidence_score: result.confidence_score
+    });
 
     return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in analyze-competitor function:', error);
+    logger.error('Error in analyze-competitor function', error as Error, {
+      company: req.url.includes('competitor') ? 'unknown' : undefined,
+      circuit_state: openAICircuitBreaker.getState()
+    });
+    
+    globalPerformanceMonitor.recordError(error as Error, 'competitor_analysis');
+    
     const err: any = error || {};
     const retryAfter = err?.retryAfter || parseInt(err?.headers?.['retry-after'] || '60', 10) || 60;
-    const headers = { ...corsHeaders, 'Content-Type': 'application/json' } as Record<string,string>;
+    const headers = { 'Content-Type': 'application/json' } as Record<string,string>;
 
     // Insufficient quota → 402 Payment Required
     if (err?.code === 'insufficient_quota' || /insufficient_quota/i.test(err?.detail || err?.message || '')) {
@@ -350,10 +415,20 @@ Return response in this exact JSON format:
     return new Response(JSON.stringify({ 
       error: 'Analysis failed due to an unexpected error.',
       errorType: 'internal_error',
-      status: 'failed'
+      status: 'failed',
+      correlationId: logger.correlationId
     }), {
       status: 500,
       headers,
     });
+  } finally {
+    endTimer();
   }
+}, {
+  requireAuth: true,
+  rateLimitRequests: 20, // Stricter rate limiting for AI operations
+  rateLimitWindow: 60000,
+  validateInput: true
 });
+
+Deno.serve(handler);
