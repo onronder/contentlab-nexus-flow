@@ -4,6 +4,8 @@
 import React from 'react';
 import { ErrorTrackingDashboard } from '@/components/monitoring/ErrorTrackingDashboard';
 import { PerformanceDashboard } from '@/components/monitoring/PerformanceDashboard';
+import { LogManagementDashboard } from '@/components/monitoring/LogManagementDashboard';
+import { CacheManagementDashboard } from '@/components/monitoring/CacheManagementDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -93,23 +95,13 @@ export default function Monitoring() {
 
       {/* Main Monitoring Dashboard */}
       <Tabs defaultValue="errors" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="errors" className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Error Tracking
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="flex items-center gap-2">
-            <Activity className="w-4 h-4" />
-            Performance
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Analytics
-          </TabsTrigger>
-          <TabsTrigger value="infrastructure" className="flex items-center gap-2">
-            <Server className="w-4 h-4" />
-            Infrastructure
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="errors">Error Tracking</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="logging">Logging</TabsTrigger>
+          <TabsTrigger value="caching">Caching</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="infrastructure">Infrastructure</TabsTrigger>
         </TabsList>
 
         <TabsContent value="errors">
@@ -118,6 +110,14 @@ export default function Monitoring() {
 
         <TabsContent value="performance" className="space-y-6">
           <PerformanceDashboard />
+        </TabsContent>
+
+        <TabsContent value="logging">
+          <LogManagementDashboard />
+        </TabsContent>
+
+        <TabsContent value="caching">
+          <CacheManagementDashboard />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
