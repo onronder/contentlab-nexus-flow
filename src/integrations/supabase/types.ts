@@ -1977,6 +1977,210 @@ export type Database = {
           },
         ]
       }
+      settings_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          entity_id: string
+          field_path: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          setting_type: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          entity_id: string
+          field_path?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          setting_type: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          entity_id?: string
+          field_path?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          setting_type?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      settings_backups: {
+        Row: {
+          backup_data: Json
+          backup_name: string
+          backup_type: string
+          checksum: string | null
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          backup_data: Json
+          backup_name: string
+          backup_type: string
+          checksum?: string | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          backup_data?: Json
+          backup_name?: string
+          backup_type?: string
+          checksum?: string | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      settings_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_system_template: boolean | null
+          metadata: Json | null
+          name: string
+          tags: string[] | null
+          template_data: Json
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_system_template?: boolean | null
+          metadata?: Json | null
+          name: string
+          tags?: string[] | null
+          template_data: Json
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_system_template?: boolean | null
+          metadata?: Json | null
+          name?: string
+          tags?: string[] | null
+          template_data?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      settings_validation_rules: {
+        Row: {
+          created_at: string | null
+          error_message: string
+          field_path: string
+          id: string
+          is_active: boolean | null
+          rule_config: Json
+          rule_type: string
+          setting_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message: string
+          field_path: string
+          id?: string
+          is_active?: boolean | null
+          rule_config: Json
+          rule_type: string
+          setting_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string
+          field_path?: string
+          id?: string
+          is_active?: boolean | null
+          rule_config?: Json
+          rule_type?: string
+          setting_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      settings_versions: {
+        Row: {
+          change_summary: string | null
+          changed_fields: string[] | null
+          created_at: string | null
+          created_by: string | null
+          entity_id: string
+          id: string
+          metadata: Json | null
+          setting_type: string
+          settings_data: Json
+          version_number: number
+        }
+        Insert: {
+          change_summary?: string | null
+          changed_fields?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id: string
+          id?: string
+          metadata?: Json | null
+          setting_type: string
+          settings_data: Json
+          version_number?: number
+        }
+        Update: {
+          change_summary?: string | null
+          changed_fields?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string
+          id?: string
+          metadata?: Json | null
+          setting_type?: string
+          settings_data?: Json
+          version_number?: number
+        }
+        Relationships: []
+      }
       task_assignments: {
         Row: {
           accepted_at: string | null
@@ -3371,6 +3575,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_expired_settings_backups: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       compute_next_run_at: {
         Args: {
           cadence: string
@@ -3427,6 +3635,16 @@ export type Database = {
           team_id: string | null
           updated_at: string | null
         }
+      }
+      create_settings_version: {
+        Args: {
+          p_change_summary?: string
+          p_changed_fields?: string[]
+          p_entity_id: string
+          p_setting_type: string
+          p_settings_data: Json
+        }
+        Returns: string
       }
       create_team_invitation: {
         Args: {
@@ -3646,9 +3864,17 @@ export type Database = {
         Args: { p_comment_id: string; p_resolved_by: string }
         Returns: undefined
       }
+      restore_settings_from_version: {
+        Args: { p_version_id: string }
+        Returns: Json
+      }
       test_auth_uid: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      validate_settings_data: {
+        Args: { p_setting_type: string; p_settings_data: Json }
+        Returns: Json
       }
     }
     Enums: {
