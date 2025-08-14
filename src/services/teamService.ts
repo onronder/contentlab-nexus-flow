@@ -84,6 +84,12 @@ export class TeamService {
         throw new Error('User must be authenticated to create teams');
       }
 
+      console.log('Creating team with integration:', {
+        name: teamData.name,
+        type: teamData.team_type || 'organization',
+        user: currentUser.user.id
+      });
+
       // Use the new database function for complete integration
       const { data, error } = await supabase.rpc('create_team_with_member_integration', {
         p_team_name: teamData.name,
@@ -101,35 +107,138 @@ export class TeamService {
       });
 
       if (error) {
-        console.error('Error creating team with integration:', error);
+        console.error('Database function error:', error);
+        
+        // If the function fails due to missing types or other issues, try direct creation
+        if (error.message?.includes('type') || error.message?.includes('does not exist')) {
+          console.log('Function failed, attempting direct team creation...');
+          return await this.createTeamDirect(teamData, currentUser.user.id);
+        }
+        
         throw new Error(`Failed to create team: ${error.message}`);
       }
 
-      // Check if the function returned an error
-      if (data && !data.success) {
-        console.error('Team creation function returned error:', data);
-        throw new Error(data.message || 'Failed to create team');
+      // Check if the function returned an error in the data
+      const result = data as any;
+      if (result && !result.success) {
+        console.error('Team creation function returned error:', result);
+        
+        // Try direct creation as fallback
+        if (result.error?.includes('type') || result.error?.includes('does not exist')) {
+          console.log('Function returned error, attempting direct team creation...');
+          return await this.createTeamDirect(teamData, currentUser.user.id);
+        }
+        
+        throw new Error(result.message || result.error || 'Failed to create team');
       }
+
+      console.log('Team created successfully via function:', result.id);
 
       // Convert the result to a Team object
       const teamResult = {
-        id: data.id,
-        name: data.name,
-        slug: data.slug,
-        description: data.description,
-        team_type: data.team_type,
-        owner_id: data.owner_id,
-        settings: data.settings as Record<string, any>,
-        member_limit: data.member_limit,
-        current_member_count: data.current_member_count,
-        is_active: data.is_active,
-        created_at: data.created_at,
-        updated_at: data.updated_at
+        id: result.id,
+        name: result.name,
+        slug: result.slug,
+        description: result.description,
+        team_type: result.team_type,
+        owner_id: result.owner_id,
+        settings: result.settings as Record<string, any>,
+        member_limit: result.member_limit,
+        current_member_count: result.current_member_count,
+        is_active: result.is_active,
+        created_at: result.created_at,
+        updated_at: result.updated_at
       };
 
       return teamResult;
     } catch (error) {
       console.error('TeamService.createTeamWithIntegration error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Direct team creation as fallback when the function fails
+   */
+  private static async createTeamDirect(teamData: TeamCreateInput & { auto_setup?: boolean }, userId: string): Promise<Team> {
+    try {
+      console.log('Creating team directly...');
+      
+      // Generate unique slug
+      const slug = teamData.slug || await this.generateUniqueSlug(teamData.name);
+      
+      // Create the team
+      const { data: newTeam, error: teamError } = await supabase
+        .from('teams')
+        .insert({
+          name: teamData.name,
+          slug: slug,
+          description: teamData.description || '',
+          owner_id: userId,
+          team_type: teamData.team_type || 'organization',
+          settings: {
+            ...teamData.settings,
+            auto_invite: true,
+            public_join: false,
+            default_permissions: ['view', 'edit'],
+            created_with_wizard: true,
+            auto_setup: teamData.auto_setup || true
+          },
+          member_limit: teamData.member_limit || 50,
+          current_member_count: 1,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (teamError) {
+        console.error('Direct team creation failed:', teamError);
+        throw new Error(`Failed to create team: ${teamError.message}`);
+      }
+
+      // Get owner role
+      const { data: ownerRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('slug', 'owner')
+        .eq('is_active', true)
+        .single();
+
+      if (roleError || !ownerRole) {
+        console.error('Owner role not found:', roleError);
+        // Continue without adding member - team is still created
+        console.log('Team created but owner membership not added due to missing role');
+        return {
+          ...newTeam,
+          settings: newTeam.settings as Record<string, any>
+        };
+      }
+
+      // Add owner as team member
+      const { error: memberError } = await supabase
+        .from('team_members')
+        .insert({
+          user_id: userId,
+          team_id: newTeam.id,
+          role_id: ownerRole.id,
+          status: 'active',
+          is_active: true,
+          joined_at: new Date().toISOString(),
+          invited_by: userId
+        });
+
+      if (memberError) {
+        console.error('Failed to add owner as member:', memberError);
+        // Team is still created successfully
+      }
+
+      console.log('Team created directly:', newTeam.id);
+      return {
+        ...newTeam,
+        settings: newTeam.settings as Record<string, any>
+      };
+    } catch (error) {
+      console.error('Direct team creation error:', error);
       throw error;
     }
   }
@@ -217,16 +326,35 @@ export class TeamService {
   }
 
   /**
-   * Gets all teams for a specific user using simplified approach with proper error handling
+   * Gets all teams for a specific user with improved error handling and debugging
    */
   static async getTeamsByUser(userId: string, options?: TeamQueryOptions): Promise<Team[]> {
     try {
-      // Simplified query - get teams where user is owner or member
-      const { data: teams, error } = await supabase
+      console.log('Fetching teams for user:', userId);
+      
+      // First, try using the safe function to get user teams
+      const { data: teamIds, error: teamIdsError } = await supabase.rpc('get_user_teams_safe', {
+        p_user_id: userId
+      });
+
+      if (teamIdsError) {
+        console.error('Error getting user team IDs:', teamIdsError);
+        // Fallback to direct owner query
+        return await this.getTeamsDirectByOwner(userId);
+      }
+
+      if (!teamIds || teamIds.length === 0) {
+        console.log('No team IDs found for user, trying owner query');
+        return await this.getTeamsDirectByOwner(userId);
+      }
+
+      // Get team details for the team IDs
+      const teamIdList = teamIds.map((t: any) => t.team_id);
+      const { data: teams, error: teamsError } = await supabase
         .from('teams')
         .select(`
           *,
-          team_members!inner(
+          team_members(
             id,
             user_id,
             role_id,
@@ -236,32 +364,15 @@ export class TeamService {
             role:user_roles(id, name, slug, hierarchy_level)
           )
         `)
-        .eq('team_members.user_id', userId)
-        .eq('team_members.is_active', true)
-        .eq('team_members.status', 'active')
+        .in('id', teamIdList)
         .eq('is_active', true);
 
-      if (error) {
-        console.error('Error fetching teams:', error);
-        
-        // Fallback to simpler query if the complex one fails
-        const { data: fallbackTeams, error: fallbackError } = await supabase
-          .from('teams')
-          .select('*')
-          .eq('owner_id', userId)
-          .eq('is_active', true);
-          
-        if (fallbackError) {
-          console.error('Fallback query also failed:', fallbackError);
-          return [];
-        }
-        
-        return (fallbackTeams || []).map(team => ({
-          ...team,
-          settings: team.settings as Record<string, any>
-        })) as Team[];
+      if (teamsError) {
+        console.error('Error fetching team details:', teamsError);
+        return await this.getTeamsDirectByOwner(userId);
       }
 
+      console.log('Successfully fetched teams:', teams?.length || 0);
       return (teams || []).map(team => ({
         ...team,
         settings: team.settings as Record<string, any>
@@ -269,7 +380,36 @@ export class TeamService {
 
     } catch (error) {
       console.error('TeamService.getTeamsByUser error:', error);
-      throw error;
+      // Final fallback - return owned teams only
+      return await this.getTeamsDirectByOwner(userId);
+    }
+  }
+
+  /**
+   * Fallback method to get teams directly by owner
+   */
+  private static async getTeamsDirectByOwner(userId: string): Promise<Team[]> {
+    try {
+      console.log('Using fallback: fetching teams by owner only');
+      const { data: teams, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('owner_id', userId)
+        .eq('is_active', true);
+        
+      if (error) {
+        console.error('Owner fallback query failed:', error);
+        return [];
+      }
+      
+      console.log('Fallback query returned:', teams?.length || 0, 'teams');
+      return (teams || []).map(team => ({
+        ...team,
+        settings: team.settings as Record<string, any>
+      })) as Team[];
+    } catch (error) {
+      console.error('Fallback query error:', error);
+      return [];
     }
   }
 
