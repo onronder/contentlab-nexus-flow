@@ -30,6 +30,7 @@ import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationP
 import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
 import { isDevelopment } from '@/utils/productionUtils';
 import { TeamProvider } from '@/contexts/TeamContext';
+import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { ApiConfigValidator } from '@/components/debug/ApiConfigValidator';
 import { ApiDashboard } from '@/components/admin/ApiDashboard';
 import Share from "./pages/Share";
@@ -41,7 +42,8 @@ const App = () => (
     <ApiConfigValidator />
     <BrowserRouter>
       <TeamProvider>
-      <Routes>
+        <AnalyticsProvider>
+        <Routes>
         {/* Authentication testing route (only in development) */}
         {isDevelopment() && <Route path="/auth-test" element={<AuthTestingPanel />} />}
         
@@ -257,6 +259,7 @@ const App = () => (
           </Layout>
         } />
         </Routes>
+        </AnalyticsProvider>
       </TeamProvider>
     </BrowserRouter>
   </TooltipProvider>

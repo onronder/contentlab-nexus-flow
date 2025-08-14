@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import {
 import { ContentItem } from '@/types/content';
 import { useDeleteContent } from '@/hooks/useContentMutations';
 import { useFileUrl } from '@/hooks/useFileUpload';
+import { useContentTracking } from '@/hooks/useContentTracking';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { FileIcon } from './FileIcon';
@@ -33,6 +34,16 @@ export const ContentCard = ({ content, viewMode = 'grid' }: ContentCardProps) =>
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteContent = useDeleteContent();
   const { getThumbnailUrl, getContentFileUrl } = useFileUrl();
+  const { trackView, trackDownload, trackShare, trackContentAction } = useContentTracking();
+
+  // Track content view when component mounts
+  useEffect(() => {
+    trackView(content.id, {
+      content_type: content.content_type,
+      file_size: content.file_size,
+      view_mode: viewMode
+    });
+  }, [content.id, content.content_type, content.file_size, viewMode, trackView]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -47,9 +58,37 @@ export const ContentCard = ({ content, viewMode = 'grid' }: ContentCardProps) =>
 
   const handleDownload = () => {
     if (content.file_path) {
+      trackDownload(content.id, {
+        file_path: content.file_path,
+        file_size: content.file_size,
+        content_type: content.content_type
+      });
       const url = getContentFileUrl(content.file_path);
       window.open(url, '_blank');
     }
+  };
+
+  const handleShare = () => {
+    trackShare(content.id, 'native_share', {
+      content_type: content.content_type,
+      title: content.title
+    });
+    // Add share functionality here
+  };
+
+  const handleEdit = () => {
+    trackContentAction('edit', content.id);
+    // Add edit functionality here
+  };
+
+  const handleDuplicate = () => {
+    trackContentAction('duplicate', content.id);
+    // Add duplicate functionality here
+  };
+
+  const handleArchive = () => {
+    trackContentAction('archive', content.id);
+    // Add archive functionality here
   };
 
   const formatFileSize = (bytes: number) => {
@@ -148,15 +187,15 @@ export const ContentCard = ({ content, viewMode = 'grid' }: ContentCardProps) =>
                     <Download className="h-4 w-4 mr-2" />
                     Download
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEdit}>
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDuplicate}>
                     <Copy className="h-4 w-4 mr-2" />
                     Duplicate
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleArchive}>
                     <Archive className="h-4 w-4 mr-2" />
                     Archive
                   </DropdownMenuItem>
@@ -290,7 +329,7 @@ export const ContentCard = ({ content, viewMode = 'grid' }: ContentCardProps) =>
             <Button variant="ghost" size="sm" onClick={handleDownload}>
               <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
             </Button>
           </div>
@@ -302,15 +341,15 @@ export const ContentCard = ({ content, viewMode = 'grid' }: ContentCardProps) =>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDuplicate}>
                 <Copy className="h-4 w-4 mr-2" />
                 Duplicate
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleArchive}>
                 <Archive className="h-4 w-4 mr-2" />
                 Archive
               </DropdownMenuItem>
