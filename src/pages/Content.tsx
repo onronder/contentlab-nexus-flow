@@ -40,6 +40,13 @@ import { useProjects } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ContentErrorBoundary } from "@/components/ui/content-error-boundary";
 import { ErrorAlert } from "@/components/ui/error-alert";
+import { 
+  WorkspacePermissionManager,
+  RealTimeCollaborativeEditor,
+  AdvancedVersionControl,
+  ContentReviewWorkflow,
+  CollaborativeAnalytics
+} from "@/components/collaboration";
 
 const Content = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -214,10 +221,12 @@ const Content = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="library" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="library">Library</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="collaboration">Collaboration</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
+            <TabsTrigger value="workflow">Workflow</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
@@ -275,23 +284,60 @@ const Content = () => {
           </Tabs>
           </TabsContent>
 
+          <TabsContent value="collaboration" className="mt-6">
+            <div className="space-y-6">
+              <div className="grid gap-6">
+                <WorkspacePermissionManager 
+                  teamId={projectId} 
+                  onPermissionChange={(userId, permissions) => {
+                    console.log('Permission changed:', userId, permissions);
+                  }}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="workflow" className="mt-6">
+            <div className="space-y-6">
+              <ContentReviewWorkflow 
+                contentId={transformedContent[0]?.id || ''}
+                onWorkflowUpdate={(workflow) => {
+                  console.log('Workflow updated:', workflow);
+                }}
+              />
+            </div>
+          </TabsContent>
+
           <TabsContent value="analytics" className="mt-6">
-            <StorageAnalyticsDashboard projectId={projectId} />
+            <div className="space-y-6">
+              <StorageAnalyticsDashboard projectId={projectId} />
+              <CollaborativeAnalytics teamId={projectId} />
+            </div>
           </TabsContent>
 
           <TabsContent value="versions" className="mt-6">
-            <FileVersioningManager 
-              contentId={transformedContent[0]?.id || ''}
-              currentVersion={{
-                id: '1',
-                versionNumber: 1,
-                filePath: transformedContent[0]?.file_path || '/placeholder.jpg',
-                fileSize: 1024000,
-                createdAt: new Date(),
-                createdBy: 'Current User',
-                changesSummary: 'Initial version'
-              }}
-            />
+            <div className="space-y-6">
+              <AdvancedVersionControl 
+                contentId={transformedContent[0]?.id || ''}
+                onVersionRestore={(versionId) => {
+                  console.log('Version restored:', versionId);
+                }}
+                onBranchCreate={(branchData) => {
+                  console.log('Branch created:', branchData);
+                }}
+              />
+              
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Real-time Collaborative Editor</h3>
+                <RealTimeCollaborativeEditor 
+                  contentId={transformedContent[0]?.id || ''}
+                  initialContent={transformedContent[0]?.description || 'Start collaborating...'}
+                  onSave={(content) => {
+                    console.log('Content saved:', content);
+                  }}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="duplicates" className="mt-6">
