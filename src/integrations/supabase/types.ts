@@ -89,8 +89,10 @@ export type Database = {
       analytics_settings: {
         Row: {
           alert_settings: Json | null
+          automation_preferences: Json | null
           chart_settings: Json | null
           created_at: string | null
+          cross_module_analytics: Json | null
           dashboard_settings: Json | null
           data_settings: Json | null
           id: string
@@ -102,8 +104,10 @@ export type Database = {
         }
         Insert: {
           alert_settings?: Json | null
+          automation_preferences?: Json | null
           chart_settings?: Json | null
           created_at?: string | null
+          cross_module_analytics?: Json | null
           dashboard_settings?: Json | null
           data_settings?: Json | null
           id?: string
@@ -115,8 +119,10 @@ export type Database = {
         }
         Update: {
           alert_settings?: Json | null
+          automation_preferences?: Json | null
           chart_settings?: Json | null
           created_at?: string | null
+          cross_module_analytics?: Json | null
           dashboard_settings?: Json | null
           data_settings?: Json | null
           id?: string
@@ -206,10 +212,12 @@ export type Database = {
       competitive_settings: {
         Row: {
           alerting_settings: Json | null
+          analysis_automation: Json | null
           analysis_settings: Json | null
           created_at: string | null
           data_retention: Json | null
           id: string
+          integration_settings: Json | null
           monitoring_settings: Json | null
           reporting_settings: Json | null
           team_id: string | null
@@ -218,10 +226,12 @@ export type Database = {
         }
         Insert: {
           alerting_settings?: Json | null
+          analysis_automation?: Json | null
           analysis_settings?: Json | null
           created_at?: string | null
           data_retention?: Json | null
           id?: string
+          integration_settings?: Json | null
           monitoring_settings?: Json | null
           reporting_settings?: Json | null
           team_id?: string | null
@@ -230,10 +240,12 @@ export type Database = {
         }
         Update: {
           alerting_settings?: Json | null
+          analysis_automation?: Json | null
           analysis_settings?: Json | null
           created_at?: string | null
           data_retention?: Json | null
           id?: string
+          integration_settings?: Json | null
           monitoring_settings?: Json | null
           reporting_settings?: Json | null
           team_id?: string | null
@@ -709,6 +721,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          library_integration: Json | null
           management_settings: Json | null
           organization_settings: Json | null
           search_settings: Json | null
@@ -716,11 +729,13 @@ export type Database = {
           updated_at: string | null
           upload_settings: Json | null
           user_id: string
+          workflow_automation: Json | null
           workflow_settings: Json | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          library_integration?: Json | null
           management_settings?: Json | null
           organization_settings?: Json | null
           search_settings?: Json | null
@@ -728,11 +743,13 @@ export type Database = {
           updated_at?: string | null
           upload_settings?: Json | null
           user_id: string
+          workflow_automation?: Json | null
           workflow_settings?: Json | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          library_integration?: Json | null
           management_settings?: Json | null
           organization_settings?: Json | null
           search_settings?: Json | null
@@ -740,6 +757,7 @@ export type Database = {
           updated_at?: string | null
           upload_settings?: Json | null
           user_id?: string
+          workflow_automation?: Json | null
           workflow_settings?: Json | null
         }
         Relationships: []
@@ -1463,8 +1481,11 @@ export type Database = {
           dashboard_preferences: Json | null
           id: string
           inherit_from_team: boolean | null
+          inheritance_conflicts: Json | null
+          last_inherited_at: string | null
           notification_settings: Json | null
           project_id: string
+          team_settings_override: Json | null
           updated_at: string | null
           user_id: string
         }
@@ -1476,8 +1497,11 @@ export type Database = {
           dashboard_preferences?: Json | null
           id?: string
           inherit_from_team?: boolean | null
+          inheritance_conflicts?: Json | null
+          last_inherited_at?: string | null
           notification_settings?: Json | null
           project_id: string
+          team_settings_override?: Json | null
           updated_at?: string | null
           user_id: string
         }
@@ -1489,8 +1513,11 @@ export type Database = {
           dashboard_preferences?: Json | null
           id?: string
           inherit_from_team?: boolean | null
+          inheritance_conflicts?: Json | null
+          last_inherited_at?: string | null
           notification_settings?: Json | null
           project_id?: string
+          team_settings_override?: Json | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1977,6 +2004,57 @@ export type Database = {
           },
         ]
       }
+      settings_analytics: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          entity_id: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          performance_impact_ms: number | null
+          session_id: string | null
+          setting_path: string | null
+          setting_type: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performance_impact_ms?: number | null
+          session_id?: string | null
+          setting_path?: string | null
+          setting_type: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          entity_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performance_impact_ms?: number | null
+          session_id?: string | null
+          setting_path?: string | null
+          setting_type?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       settings_audit_logs: {
         Row: {
           action: string
@@ -2022,6 +2100,57 @@ export type Database = {
         }
         Relationships: []
       }
+      settings_automation_rules: {
+        Row: {
+          actions: Json
+          created_at: string | null
+          created_by: string
+          execution_count: number | null
+          id: string
+          is_active: boolean | null
+          last_executed_at: string | null
+          priority: number | null
+          rule_name: string
+          setting_type: string
+          team_id: string | null
+          trigger_conditions: Json
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          actions?: Json
+          created_at?: string | null
+          created_by?: string
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          priority?: number | null
+          rule_name: string
+          setting_type: string
+          team_id?: string | null
+          trigger_conditions?: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          actions?: Json
+          created_at?: string | null
+          created_by?: string
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          priority?: number | null
+          rule_name?: string
+          setting_type?: string
+          team_id?: string | null
+          trigger_conditions?: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       settings_backups: {
         Row: {
           backup_data: Json
@@ -2061,6 +2190,147 @@ export type Database = {
           id?: string
           metadata?: Json | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      settings_integrations: {
+        Row: {
+          created_at: string | null
+          id: string
+          integration_type: string
+          is_active: boolean | null
+          metadata: Json | null
+          priority: number | null
+          source_entity_id: string
+          source_setting_type: string
+          target_entity_id: string
+          target_setting_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          integration_type: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          priority?: number | null
+          source_entity_id: string
+          source_setting_type: string
+          target_entity_id: string
+          target_setting_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          integration_type?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          priority?: number | null
+          source_entity_id?: string
+          source_setting_type?: string
+          target_entity_id?: string
+          target_setting_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      settings_recommendations: {
+        Row: {
+          applied_at: string | null
+          confidence_score: number | null
+          created_at: string | null
+          description: string
+          entity_id: string | null
+          expires_at: string | null
+          id: string
+          impact_level: string | null
+          metadata: Json | null
+          recommendation_type: string
+          setting_type: string
+          status: string | null
+          suggested_changes: Json
+          title: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          description: string
+          entity_id?: string | null
+          expires_at?: string | null
+          id?: string
+          impact_level?: string | null
+          metadata?: Json | null
+          recommendation_type: string
+          setting_type: string
+          status?: string | null
+          suggested_changes?: Json
+          title: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          description?: string
+          entity_id?: string | null
+          expires_at?: string | null
+          id?: string
+          impact_level?: string | null
+          metadata?: Json | null
+          recommendation_type?: string
+          setting_type?: string
+          status?: string | null
+          suggested_changes?: Json
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      settings_sync_log: {
+        Row: {
+          conflict_resolution: string | null
+          created_at: string | null
+          entity_id: string
+          error_details: string | null
+          id: string
+          metadata: Json | null
+          processing_time_ms: number | null
+          setting_type: string
+          source_user_id: string | null
+          sync_event: string
+          sync_status: string | null
+          target_entities: Json | null
+        }
+        Insert: {
+          conflict_resolution?: string | null
+          created_at?: string | null
+          entity_id: string
+          error_details?: string | null
+          id?: string
+          metadata?: Json | null
+          processing_time_ms?: number | null
+          setting_type: string
+          source_user_id?: string | null
+          sync_event: string
+          sync_status?: string | null
+          target_entities?: Json | null
+        }
+        Update: {
+          conflict_resolution?: string | null
+          created_at?: string | null
+          entity_id?: string
+          error_details?: string | null
+          id?: string
+          metadata?: Json | null
+          processing_time_ms?: number | null
+          setting_type?: string
+          source_user_id?: string | null
+          sync_event?: string
+          sync_status?: string | null
+          target_entities?: Json | null
         }
         Relationships: []
       }
@@ -3358,6 +3628,7 @@ export type Database = {
         Row: {
           created_at: string | null
           current_member_count: number | null
+          default_member_settings: Json | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -3366,6 +3637,7 @@ export type Database = {
           owner_id: string
           parent_team_id: string | null
           settings: Json | null
+          settings_policy: Json | null
           slug: string
           team_type: Database["public"]["Enums"]["team_type"]
           updated_at: string | null
@@ -3373,6 +3645,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           current_member_count?: number | null
+          default_member_settings?: Json | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -3381,6 +3654,7 @@ export type Database = {
           owner_id: string
           parent_team_id?: string | null
           settings?: Json | null
+          settings_policy?: Json | null
           slug: string
           team_type?: Database["public"]["Enums"]["team_type"]
           updated_at?: string | null
@@ -3388,6 +3662,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           current_member_count?: number | null
+          default_member_settings?: Json | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -3396,6 +3671,7 @@ export type Database = {
           owner_id?: string
           parent_team_id?: string | null
           settings?: Json | null
+          settings_policy?: Json | null
           slug?: string
           team_type?: Database["public"]["Enums"]["team_type"]
           updated_at?: string | null
@@ -3499,31 +3775,46 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          accessibility_settings: Json | null
           created_at: string | null
+          device_preferences: Json | null
           feature_flags: Json | null
           id: string
+          last_sync_at: string | null
           notification_preferences: Json | null
+          platform_sync_enabled: boolean | null
           privacy_settings: Json | null
+          sync_conflicts: Json | null
           theme_preferences: Json | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          accessibility_settings?: Json | null
           created_at?: string | null
+          device_preferences?: Json | null
           feature_flags?: Json | null
           id?: string
+          last_sync_at?: string | null
           notification_preferences?: Json | null
+          platform_sync_enabled?: boolean | null
           privacy_settings?: Json | null
+          sync_conflicts?: Json | null
           theme_preferences?: Json | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          accessibility_settings?: Json | null
           created_at?: string | null
+          device_preferences?: Json | null
           feature_flags?: Json | null
           id?: string
+          last_sync_at?: string | null
           notification_preferences?: Json | null
+          platform_sync_enabled?: boolean | null
           privacy_settings?: Json | null
+          sync_conflicts?: Json | null
           theme_preferences?: Json | null
           updated_at?: string | null
           user_id?: string
@@ -3673,6 +3964,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
+      generate_settings_recommendations: {
+        Args: { p_setting_type?: string; p_user_id: string }
+        Returns: undefined
+      }
       get_avatar_url: {
         Args: { full_name: string; user_id: string }
         Returns: string
@@ -3693,8 +3988,10 @@ export type Database = {
         Args: { p_team_id?: string; p_user_id: string }
         Returns: {
           alert_settings: Json | null
+          automation_preferences: Json | null
           chart_settings: Json | null
           created_at: string | null
+          cross_module_analytics: Json | null
           dashboard_settings: Json | null
           data_settings: Json | null
           id: string
@@ -3709,10 +4006,12 @@ export type Database = {
         Args: { p_team_id?: string; p_user_id: string }
         Returns: {
           alerting_settings: Json | null
+          analysis_automation: Json | null
           analysis_settings: Json | null
           created_at: string | null
           data_retention: Json | null
           id: string
+          integration_settings: Json | null
           monitoring_settings: Json | null
           reporting_settings: Json | null
           team_id: string | null
@@ -3725,6 +4024,7 @@ export type Database = {
         Returns: {
           created_at: string | null
           id: string
+          library_integration: Json | null
           management_settings: Json | null
           organization_settings: Json | null
           search_settings: Json | null
@@ -3732,6 +4032,7 @@ export type Database = {
           updated_at: string | null
           upload_settings: Json | null
           user_id: string
+          workflow_automation: Json | null
           workflow_settings: Json | null
         }
       }
@@ -3745,8 +4046,11 @@ export type Database = {
           dashboard_preferences: Json | null
           id: string
           inherit_from_team: boolean | null
+          inheritance_conflicts: Json | null
+          last_inherited_at: string | null
           notification_settings: Json | null
           project_id: string
+          team_settings_override: Json | null
           updated_at: string | null
           user_id: string
         }
@@ -3754,11 +4058,16 @@ export type Database = {
       get_or_create_user_settings: {
         Args: { p_user_id: string }
         Returns: {
+          accessibility_settings: Json | null
           created_at: string | null
+          device_preferences: Json | null
           feature_flags: Json | null
           id: string
+          last_sync_at: string | null
           notification_preferences: Json | null
+          platform_sync_enabled: boolean | null
           privacy_settings: Json | null
+          sync_conflicts: Json | null
           theme_preferences: Json | null
           updated_at: string | null
           user_id: string
