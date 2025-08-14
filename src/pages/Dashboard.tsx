@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthDatabaseTester } from '@/components/testing/AuthDatabaseTester';
-import { useDashboardStats, type DashboardStats } from '@/hooks/useDashboardStats';
+import { useTeamDashboardStats, useTeamPermissions } from '@/hooks/useTeamAwareQueries';
 import { useRecentActivity, type ActivityItem } from '@/hooks/useRecentActivity';
 import { useMonitoringAlerts, type MonitoringAlert } from '@/hooks/useMonitoringAlerts';
 import { usePerformanceMetrics, type PerformanceMetrics } from '@/hooks/usePerformanceMetrics';
@@ -34,13 +34,14 @@ import { useTeamContext } from '@/contexts/TeamContext';
 
 const Dashboard = () => {
   const { currentTeam, availableTeams, isLoading: teamLoading, refreshTeams } = useTeamContext();
-  const { data: dashboardStats, isLoading: isStatsLoading } = useDashboardStats();
+  const { data: teamStats, isLoading: isStatsLoading } = useTeamDashboardStats();
+  const { data: permissions } = useTeamPermissions();
   const { data: recentActivity, isLoading: isActivityLoading } = useRecentActivity();
   const { data: alerts, isLoading: isAlertsLoading } = useMonitoringAlerts();
   const { data: performanceMetrics, isLoading: isPerformanceLoading } = usePerformanceMetrics();
 
-  // Type-safe access to data
-  const stats = dashboardStats as DashboardStats | undefined;
+  // Type-safe access to data with team context
+  const stats = teamStats;
   const activities = recentActivity as ActivityItem[] | undefined;
   const alertsList = alerts as MonitoringAlert[] | undefined;
   const metrics = performanceMetrics as PerformanceMetrics | undefined;
@@ -61,35 +62,35 @@ const Dashboard = () => {
 
   const quickStats = [
     {
-      title: "Active Projects",
-      value: stats?.activeProjects?.toString() || "0",
-      subtitle: "Active projects",
+      title: "Team Projects",
+      value: stats?.totalProjects?.toString() || "0",
+      subtitle: `${stats?.activeProjects || 0} active`,
       icon: Building2,
-      change: formatChange(stats?.projectsChange || 0),
+      change: formatChange(0),
       color: "text-primary"
     },
     {
       title: "Competitors Tracked", 
-      value: stats?.competitorsTracked?.toString() || "0",
+      value: stats?.totalCompetitors?.toString() || "0",
       subtitle: "Being monitored",
       icon: Target,
-      change: formatChange(stats?.competitorsChange || 0),
+      change: formatChange(0),
       color: "text-primary"
     },
     {
       title: "Team Members",
-      value: stats?.teamMembers?.toString() || "0", 
-      subtitle: "Across all projects",
+      value: currentTeam?.current_member_count?.toString() || "0", 
+      subtitle: `in ${currentTeam?.name || 'team'}`,
       icon: Users,
-      change: formatChange(stats?.teamMembersChange || 0),
+      change: formatChange(0),
       color: "text-primary"
     },
     {
       title: "Content Items",
-      value: stats?.contentItems?.toString() || "0",
-      subtitle: "Total content",
+      value: stats?.totalContent?.toString() || "0",
+      subtitle: `${stats?.publishedContent || 0} published`,
       icon: FileText,
-      change: formatChange(stats?.contentItemsChange || 0),
+      change: formatChange(0),
       color: "text-primary"
     }
   ];

@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -534,6 +534,7 @@ export type Database = {
           scheduled_publish_at: string | null
           search_vector: unknown | null
           status: string
+          team_id: string | null
           thumbnail_path: string | null
           title: string
           updated_at: string | null
@@ -559,6 +560,7 @@ export type Database = {
           scheduled_publish_at?: string | null
           search_vector?: unknown | null
           status?: string
+          team_id?: string | null
           thumbnail_path?: string | null
           title: string
           updated_at?: string | null
@@ -584,6 +586,7 @@ export type Database = {
           scheduled_publish_at?: string | null
           search_vector?: unknown | null
           status?: string
+          team_id?: string | null
           thumbnail_path?: string | null
           title?: string
           updated_at?: string | null
@@ -603,6 +606,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
           {
@@ -1468,6 +1478,7 @@ export type Database = {
           tags: string[] | null
           target_end_date: string | null
           target_market: string | null
+          team_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1493,6 +1504,7 @@ export type Database = {
           tags?: string[] | null
           target_end_date?: string | null
           target_market?: string | null
+          team_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1518,9 +1530,18 @@ export type Database = {
           tags?: string[] | null
           target_end_date?: string | null
           target_market?: string | null
+          team_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recurring_tasks: {
         Row: {
@@ -3112,11 +3133,15 @@ export type Database = {
         Returns: Json
       }
       assign_role_permissions: {
-        Args: { role_slug: string; permission_slugs: string[] }
+        Args: { permission_slugs: string[]; role_slug: string }
         Returns: undefined
       }
       can_manage_project_team: {
         Args: { project_id: string; user_id: string }
+        Returns: boolean
+      }
+      can_manage_team_resources: {
+        Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
       }
       can_view_project_team: {
@@ -3124,11 +3149,11 @@ export type Database = {
         Returns: boolean
       }
       cancel_team_invitation: {
-        Args: { p_invitation_id: string; p_cancelled_by: string }
+        Args: { p_cancelled_by: string; p_invitation_id: string }
         Returns: undefined
       }
       check_team_membership: {
-        Args: { p_team_id: string; p_email: string }
+        Args: { p_email: string; p_team_id: string }
         Returns: boolean
       }
       cleanup_expired_invitations: {
@@ -3145,8 +3170,8 @@ export type Database = {
       }
       compute_next_run_at: {
         Args: {
-          current: string
           cadence: string
+          current: string
           hour: number
           minute: number
           tz: string
@@ -3155,23 +3180,23 @@ export type Database = {
       }
       create_project_secure: {
         Args: {
-          project_name: string
-          project_industry: string
-          project_description?: string
-          project_type_param?: string
-          project_target_market?: string
-          project_primary_objectives?: string[]
-          project_success_metrics?: string[]
-          project_status?: string
-          project_priority?: string
-          project_start_date?: string
-          project_target_end_date?: string
-          project_is_public?: boolean
           project_allow_team_access?: boolean
           project_auto_analysis_enabled?: boolean
-          project_notification_settings?: Json
           project_custom_fields?: Json
+          project_description?: string
+          project_industry: string
+          project_is_public?: boolean
+          project_name: string
+          project_notification_settings?: Json
+          project_primary_objectives?: string[]
+          project_priority?: string
+          project_start_date?: string
+          project_status?: string
+          project_success_metrics?: string[]
           project_tags?: string[]
+          project_target_end_date?: string
+          project_target_market?: string
+          project_type_param?: string
         }
         Returns: {
           actual_end_date: string | null
@@ -3196,19 +3221,20 @@ export type Database = {
           tags: string[] | null
           target_end_date: string | null
           target_market: string | null
+          team_id: string | null
           updated_at: string | null
         }
       }
       create_team_invitation: {
         Args: {
-          p_team_id: string
           p_email: string
-          p_role_id: string
-          p_invited_by: string
-          p_invitation_token: string
           p_expires_at: string
+          p_invitation_token: string
+          p_invited_by: string
           p_message?: string
           p_metadata?: Json
+          p_role_id: string
+          p_team_id: string
         }
         Returns: Json
       }
@@ -3217,11 +3243,11 @@ export type Database = {
         Returns: undefined
       }
       get_avatar_url: {
-        Args: { user_id: string; full_name: string }
+        Args: { full_name: string; user_id: string }
         Returns: string
       }
       get_existing_invitation: {
-        Args: { p_team_id: string; p_email: string }
+        Args: { p_email: string; p_team_id: string }
         Returns: Json
       }
       get_invitation_by_token: {
@@ -3237,8 +3263,14 @@ export type Database = {
         Returns: Json
       }
       get_team_invitations: {
-        Args: { p_team_id: string; p_options?: Json }
+        Args: { p_options?: Json; p_team_id: string }
         Returns: Json
+      }
+      get_user_accessible_teams: {
+        Args: { p_user_id: string }
+        Returns: {
+          team_id: string
+        }[]
       }
       get_user_projects_safe: {
         Args: { p_user_id: string }
@@ -3292,12 +3324,12 @@ export type Database = {
       }
       log_team_activity: {
         Args: {
-          p_team_id: string
-          p_user_id: string
-          p_activity_type: Database["public"]["Enums"]["activity_type"]
           p_action: string
+          p_activity_type: Database["public"]["Enums"]["activity_type"]
           p_description?: string
           p_metadata?: Json
+          p_team_id: string
+          p_user_id: string
         }
         Returns: string
       }
