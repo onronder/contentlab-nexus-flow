@@ -7,7 +7,14 @@ import { GlobalErrorBoundary } from '@/components/errors/GlobalErrorBoundary'
 import App from './App.tsx'
 import './index.css'
 import { queryClient } from '@/lib/queryClient'
-import { isDevelopment } from '@/utils/productionUtils'
+import { isDevelopment, isProduction } from '@/utils/productionUtils'
+import { prepareForDeployment, ProductionErrorHandler } from '@/utils/productionOptimization'
+
+// Initialize production optimizations
+if (isProduction()) {
+  ProductionErrorHandler.initialize();
+  prepareForDeployment();
+}
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
