@@ -5024,6 +5024,10 @@ export type Database = {
         Args: { p_days?: number; p_user_id: string }
         Returns: number
       }
+      can_access_team_billing: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
       can_manage_project_team: {
         Args: { project_id: string; user_id: string }
         Returns: boolean
