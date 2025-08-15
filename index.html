@@ -3,18 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Performance optimizations -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Optimized font loading -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
+    
+    <!-- Critical CSS inline would go here in a real optimization -->
+    <style>
+      /* Critical above-the-fold styles */
+      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      .loading-spinner { display: flex; justify-content: center; align-items: center; height: 100vh; }
+    </style>
+    
     <title>ContentLab Nexus - Competitive Intelligence Platform</title>
     <meta name="description" content="The ultimate competitive intelligence platform for content marketing teams. Monitor, analyze, and outperform competitors with AI-powered insights." />
     <meta name="author" content="ContentLab Nexus" />
+    <meta name="theme-color" content="#3B82F6" />
+    <link rel="canonical" href="https://contentlab-nexus.lovable.app" />
 
+    <!-- Open Graph -->
     <meta property="og:title" content="ContentLab Nexus - Competitive Intelligence Platform" />
     <meta property="og:description" content="The ultimate competitive intelligence platform for content marketing teams. Monitor, analyze, and outperform competitors with AI-powered insights." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://contentlab-nexus.lovable.app" />
+    <meta property="og:site_name" content="ContentLab Nexus" />
 
+    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="ContentLab Nexus - Competitive Intelligence Platform" />
+    <meta name="twitter:description" content="The ultimate competitive intelligence platform for content marketing teams. Monitor, analyze, and outperform competitors with AI-powered insights." />
+    
+    <!-- Performance hints -->
+    <link rel="prefetch" href="/src/pages/Dashboard.tsx" />
+    <link rel="prefetch" href="/src/pages/Analytics.tsx" />
+    <link rel="prefetch" href="/src/pages/Competitive.tsx" />
   </head>
 
   <body>

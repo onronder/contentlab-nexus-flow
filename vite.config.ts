@@ -31,12 +31,67 @@ export default defineConfig(({ mode }) => ({
       "@radix-ui/react-tooltip",
       "@radix-ui/react-slot",
       "@radix-ui/react-toast",
+      "@tanstack/react-query",
+      "recharts",
+      "lucide-react",
     ],
-    force: true, // Force re-optimization to ensure clean state
+    exclude: ["@vite/client", "@vite/env"],
+    force: mode === 'development', // Only force in development
   },
   build: {
+    target: 'es2020',
+    cssCodeSplit: true,
+    sourcemap: mode === 'development',
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: [
+            '@radix-ui/react-toast',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+          ],
+          charts: ['recharts', 'react-simple-maps'],
+          utils: ['date-fns', 'clsx', 'class-variance-authority'],
+          query: ['@tanstack/react-query'],
+          supabase: ['@supabase/supabase-js', '@supabase/auth-helpers-react'],
+        },
+        chunkFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId 
+            ? chunkInfo.facadeModuleId.split('/').pop()?.replace(/\.\w+$/, '') 
+            : 'chunk';
+          return `assets/${facadeModuleId}-[hash].js`;
+        },
+      },
+    },
     commonjsOptions: {
       include: [/node_modules/],
+    },
+    // Performance optimizations
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1000,
+  },
+  esbuild: {
+    // Tree shaking optimizations
+    treeShaking: true,
+    // Remove console logs in production
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
+  // CSS optimizations
+  css: {
+    devSourcemap: mode === 'development',
+    postcss: {
+      plugins: mode === 'production' ? [
+        require('cssnano')({
+          preset: ['default', {
+            discardComments: { removeAll: true },
+            reduceIdents: false,
+          }],
+        }),
+      ] : [],
     },
   },
 }));
