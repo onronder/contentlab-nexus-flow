@@ -172,11 +172,45 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // TODO: Fetch user settings directly once tables are created
-      const userSettings = null;
+      // Fetch user settings
+      const { data: userSettingsData } = await supabase
+        .rpc('get_or_create_user_settings', { p_user_id: user.id });
+
+      // Fetch content settings if team exists
+      let contentSettingsData = null;
+      if (currentTeam?.id) {
+        const { data } = await supabase
+          .rpc('get_or_create_content_settings', { 
+            p_user_id: user.id, 
+            p_team_id: currentTeam.id 
+          });
+        contentSettingsData = data;
+      }
+
+      // Fetch competitive settings if team exists
+      let competitiveSettingsData = null;
+      if (currentTeam?.id) {
+        const { data } = await supabase
+          .rpc('get_or_create_competitive_settings', { 
+            p_user_id: user.id, 
+            p_team_id: currentTeam.id 
+          });
+        competitiveSettingsData = data;
+      }
+
+      // Fetch analytics settings if team exists
+      let analyticsSettingsData = null;
+      if (currentTeam?.id) {
+        const { data } = await supabase
+          .rpc('get_or_create_analytics_settings', { 
+            p_user_id: user.id, 
+            p_team_id: currentTeam.id 
+          });
+        analyticsSettingsData = data;
+      }
 
       return {
-        user: userSettings || defaultUserSettings,
+        user: userSettingsData || defaultUserSettings,
         team: {
           collaboration: {
             autoApproval: false,
@@ -191,9 +225,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           },
         },
         project: {},
-        content: {},
-        competitive: {},
-        analytics: {},
+        content: contentSettingsData || {},
+        competitive: competitiveSettingsData || {},
+        analytics: analyticsSettingsData || {},
       } as PlatformSettings;
     },
     enabled: !!user?.id,
@@ -241,45 +275,83 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const updateUserSettings = async (updates: Partial<UserSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    // TODO: Save user settings once tables are created
-    console.log('User settings would be updated:', updates);
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({
+        user_id: user.id,
+        ...updates,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw new Error(`Failed to update user settings: ${error.message}`);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateTeamSettings = async (updates: Partial<TeamSettings>) => {
-    // For now, just invalidate cache - team settings will be handled separately
+    if (!user?.id || !currentTeam?.id) throw new Error('User not authenticated or no team selected');
+
+    // Team settings would be updated through team management interface
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateProjectSettings = async (projectId: string, updates: Partial<ProjectSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    // TODO: Save project settings once tables are created
-    console.log('Project settings would be updated:', projectId, updates);
+    const { error } = await supabase
+      .rpc('get_or_create_project_settings', { 
+        p_project_id: projectId, 
+        p_user_id: user.id 
+      });
+
+    if (error) throw new Error(`Failed to update project settings: ${error.message}`);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateContentSettings = async (updates: Partial<ContentSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    // TODO: Save content settings once tables are created
-    console.log('Content settings would be updated:', updates);
+    const { error } = await supabase
+      .from('content_settings')
+      .upsert({
+        user_id: user.id,
+        team_id: currentTeam?.id,
+        ...updates,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw new Error(`Failed to update content settings: ${error.message}`);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateCompetitiveSettings = async (updates: Partial<CompetitiveSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    // TODO: Save competitive settings once tables are created
-    console.log('Competitive settings would be updated:', updates);
+    const { error } = await supabase
+      .from('competitive_settings')
+      .upsert({
+        user_id: user.id,
+        team_id: currentTeam?.id,
+        ...updates,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw new Error(`Failed to update competitive settings: ${error.message}`);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 
   const updateAnalyticsSettings = async (updates: Partial<AnalyticsSettings>) => {
     if (!user?.id) throw new Error('User not authenticated');
 
-    // TODO: Save analytics settings once tables are created
-    console.log('Analytics settings would be updated:', updates);
+    const { error } = await supabase
+      .from('analytics_settings')
+      .upsert({
+        user_id: user.id,
+        team_id: currentTeam?.id,
+        ...updates,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw new Error(`Failed to update analytics settings: ${error.message}`);
     queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
   };
 

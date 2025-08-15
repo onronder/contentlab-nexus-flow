@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Brain, Target, AlertTriangle, Calendar, Users } from 'lucide-react';
+import { usePredictiveAnalytics } from '@/hooks/usePredictiveAnalytics';
 
 interface PredictiveAnalyticsDashboardProps {
   projectId: string;
@@ -15,24 +16,14 @@ interface PredictiveAnalyticsDashboardProps {
 export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsDashboardProps) {
   const [forecastPeriod, setForecastPeriod] = useState('90d');
   const [confidenceLevel, setConfidenceLevel] = useState('medium');
+  
+  const { performanceForecasts, contentDemandPrediction, strategicRecommendations, isLoading } = usePredictiveAnalytics(projectId);
 
-  // Mock predictive data - replace with actual ML predictions
-  const performanceForecasts = [
-    { date: '2024-02-01', actual: 1200, predicted: null, confidence: null },
-    { date: '2024-02-15', actual: 1350, predicted: null, confidence: null },
-    { date: '2024-03-01', actual: 1180, predicted: null, confidence: null },
-    { date: '2024-03-15', actual: null, predicted: 1420, confidence: 85 },
-    { date: '2024-04-01', actual: null, predicted: 1580, confidence: 82 },
-    { date: '2024-04-15', actual: null, predicted: 1650, confidence: 78 },
-    { date: '2024-05-01', actual: null, predicted: 1720, confidence: 75 }
-  ];
-
-  const contentDemandPrediction = [
+  // Use real data from hooks, fallback to mock data
+  const demandData = contentDemandPrediction || [
     { category: 'Video Tutorials', currentDemand: 78, predictedDemand: 92, growth: 18, confidence: 87 },
     { category: 'Interactive Templates', currentDemand: 65, predictedDemand: 85, growth: 31, confidence: 83 },
-    { category: 'Case Studies', currentDemand: 82, predictedDemand: 89, growth: 9, confidence: 91 },
-    { category: 'Documentation', currentDemand: 59, predictedDemand: 62, growth: 5, confidence: 94 },
-    { category: 'Mobile Assets', currentDemand: 45, predictedDemand: 67, growth: 49, confidence: 76 }
+    { category: 'Case Studies', currentDemand: 82, predictedDemand: 89, growth: 9, confidence: 91 }
   ];
 
   const lifecyclePredictions = [
@@ -69,7 +60,7 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
     { segment: 'New Users', current: 189, predicted: 245, growth: 30, likelihood: 'medium' }
   ];
 
-  const strategicRecommendations = [
+  const mockStrategicRecommendations = [
     {
       type: 'Content Strategy',
       priority: 'high',
@@ -223,7 +214,7 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {contentDemandPrediction.map((item, index) => (
+                {demandData.map((item, index) => (
                   <div key={index} className="p-4 border rounded-lg">
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="font-medium">{item.category}</h4>
@@ -345,7 +336,7 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {strategicRecommendations.map((rec, index) => (
+                {(strategicRecommendations || mockStrategicRecommendations).map((rec, index) => (
                   <div key={index} className="p-4 border rounded-lg">
                     <div className="flex justify-between items-start mb-3">
                       <div>

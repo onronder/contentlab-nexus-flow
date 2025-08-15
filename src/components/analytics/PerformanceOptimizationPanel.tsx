@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertTriangle, XCircle, Zap, Lightbulb, Target, RefreshCw, Search, Accessibility, Merge } from 'lucide-react';
+import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 
 interface PerformanceOptimizationPanelProps {
   projectId: string;
@@ -13,63 +14,32 @@ interface PerformanceOptimizationPanelProps {
 
 export function PerformanceOptimizationPanel({ projectId }: PerformanceOptimizationPanelProps) {
   const [optimizationInProgress, setOptimizationInProgress] = useState(false);
+  
+  const { recommendations, freshnessAnalysis, seoOptimization, isLoading } = usePerformanceOptimization(projectId);
 
-  // Mock data - replace with actual optimization data
-  const performanceRecommendations = [
+  // Use real data from hooks, fallback to mock data
+  const performanceRecommendations = recommendations || [
     {
       id: 1,
       type: 'performance',
       priority: 'high',
       title: 'Optimize Image Compression',
-      description: 'Large images are slowing down page load times. Compress 23 images to improve performance.',
+      description: 'Large images are slowing down page load times.',
       impact: 'Reduce page load time by 2.3 seconds',
       effort: 'Low',
       status: 'pending',
       affectedContent: 23
-    },
-    {
-      id: 2,
-      type: 'seo',
-      priority: 'high',
-      title: 'Add Missing Meta Descriptions',
-      description: '15 pages lack meta descriptions, affecting search engine visibility.',
-      impact: 'Improve SEO ranking potential by 25%',
-      effort: 'Medium',
-      status: 'pending',
-      affectedContent: 15
-    },
-    {
-      id: 3,
-      type: 'accessibility',
-      priority: 'medium',
-      title: 'Improve Alt Text Coverage',
-      description: '8 images missing descriptive alt text for screen readers.',
-      impact: 'Enhanced accessibility compliance',
-      effort: 'Low',
-      status: 'in-progress',
-      affectedContent: 8
-    },
-    {
-      id: 4,
-      type: 'content',
-      priority: 'medium',
-      title: 'Consolidate Duplicate Content',
-      description: 'Found 5 pieces of similar content that could be merged.',
-      impact: 'Reduce content redundancy by 12%',
-      effort: 'High',
-      status: 'pending',
-      affectedContent: 5
     }
   ];
 
-  const freshnessAnalysis = [
+  const freshnessData = freshnessAnalysis || [
     { category: 'Very Fresh (0-30 days)', count: 45, percentage: 35, status: 'excellent' },
     { category: 'Fresh (31-90 days)', count: 38, percentage: 30, status: 'good' },
     { category: 'Aging (91-180 days)', count: 28, percentage: 22, status: 'warning' },
     { category: 'Stale (180+ days)', count: 17, percentage: 13, status: 'needs-attention' }
   ];
 
-  const seoOptimization = [
+  const seoData = seoOptimization || [
     { 
       aspect: 'Title Tags', 
       score: 85, 
@@ -234,7 +204,7 @@ export function PerformanceOptimizationPanel({ projectId }: PerformanceOptimizat
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {freshnessAnalysis.map((item, index) => (
+                {freshnessData.map((item, index) => (
                   <div key={index} className="flex items-center gap-4">
                     {getStatusIcon(item.status)}
                     <div className="flex-1">
@@ -255,7 +225,7 @@ export function PerformanceOptimizationPanel({ projectId }: PerformanceOptimizat
                 ))}
               </div>
               
-              {freshnessAnalysis.some(item => item.status === 'needs-attention') && (
+              {freshnessData.some(item => item.status === 'needs-attention') && (
                 <Alert className="mt-4">
                   <Lightbulb className="h-4 w-4" />
                   <AlertDescription>
@@ -274,7 +244,7 @@ export function PerformanceOptimizationPanel({ projectId }: PerformanceOptimizat
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {seoOptimization.map((item, index) => (
+                {seoData.map((item, index) => (
                   <div key={index} className="space-y-3">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium">{item.aspect}</h4>

@@ -64,30 +64,27 @@ export interface NotificationFilters {
 }
 
 export class NotificationService {
-  // Notification Management - Using mock implementation until tables are available
+  // Notification Management - Real database implementation
   static async createNotification(notificationData: NotificationCreateInput): Promise<Notification> {
-    // Create mock notification
-    const mockNotification: Notification = {
-      id: Date.now().toString(),
-      recipient_id: notificationData.recipientId,
-      sender_id: notificationData.senderId,
-      team_id: notificationData.teamId,
-      notification_type: notificationData.notificationType,
-      title: notificationData.title,
-      message: notificationData.message,
-      action_url: notificationData.actionUrl,
-      resource_type: notificationData.resourceType,
-      resource_id: notificationData.resourceId,
-      priority: notificationData.priority || 'normal',
-      delivery_method: notificationData.deliveryMethod || { in_app: true, email: false },
-      is_read: false,
-      email_sent: false,
-      metadata: notificationData.metadata || {},
-      expires_at: notificationData.expiresAt,
-      created_at: new Date().toISOString()
-    };
+    const { data, error } = await supabase
+      .from('enhanced_notifications')
+      .insert({
+        recipient_id: notificationData.recipientId,
+        sender_id: notificationData.senderId,
+        team_id: notificationData.teamId,
+        notification_type: notificationData.notificationType,
+        title: notificationData.title,
+        message: notificationData.message,
+        action_url: notificationData.actionUrl,
+        priority: notificationData.priority || 'normal',
+        delivery_channels: notificationData.deliveryMethod || { in_app: true, email: false },
+        metadata: notificationData.metadata || {},
+        expires_at: notificationData.expiresAt
+      })
+      .select()
+      .single();
 
-    console.log('Notification created:', mockNotification);
+    if (error) throw new Error(`Failed to create notification: ${error.message}`);
 
     // Send email if required
     if (notificationData.deliveryMethod?.email) {
@@ -101,36 +98,113 @@ export class NotificationService {
       });
     }
 
-    return mockNotification;
+    return {
+      id: data.id,
+      recipient_id: data.recipient_id,
+      sender_id: data.sender_id,
+      team_id: data.team_id,
+      notification_type: data.notification_type,
+      title: data.title,
+      message: data.message,
+      action_url: data.action_url,
+      priority: data.priority,
+      delivery_method: data.delivery_channels as any,
+      is_read: data.is_read,
+      read_at: data.read_at,
+      email_sent: false,
+      metadata: data.metadata as any,
+      expires_at: data.expires_at,
+      created_at: data.created_at
+    };
   }
 
   static async markAsRead(notificationId: string, userId: string): Promise<void> {
-    // Mock implementation
-    console.log('Marking notification as read:', notificationId, 'for user:', userId);
+    const { error } = await supabase
+      .from('enhanced_notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('id', notificationId)
+      .eq('recipient_id', userId);
+
+    if (error) throw new Error(`Failed to mark notification as read: ${error.message}`);
   }
 
   static async markAllAsRead(userId: string, teamId?: string): Promise<void> {
-    // Mock implementation
-    console.log('Marking all notifications as read for user:', userId, 'team:', teamId);
+    let query = supabase
+      .from('enhanced_notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('recipient_id', userId)
+      .eq('is_read', false);
+
+    if (teamId) {
+      query = query.eq('team_id', teamId);
+    }
+
+    const { error } = await query;
+    if (error) throw new Error(`Failed to mark all notifications as read: ${error.message}`);
   }
 
   static async deleteNotification(notificationId: string, userId: string): Promise<void> {
-    // Mock implementation
-    console.log('Deleting notification:', notificationId, 'for user:', userId);
+    const { error } = await supabase
+      .from('enhanced_notifications')
+      .delete()
+      .eq('id', notificationId)
+      .eq('recipient_id', userId);
+
+    if (error) throw new Error(`Failed to delete notification: ${error.message}`);
   }
 
-  // Notification Queries - Using mock data
+  // Notification Queries - Real database implementation
   static async getUserNotifications(
     userId: string, 
     filters?: NotificationFilters
   ): Promise<Notification[]> {
-    // Return mock notifications for demonstration
-    return this.getMockNotifications(userId, filters);
+    let query = supabase
+      .from('enhanced_notifications')
+      .select('*')
+      .eq('recipient_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (filters?.type) query = query.eq('notification_type', filters.type);
+    if (filters?.isRead !== undefined) query = query.eq('is_read', filters.isRead);
+    if (filters?.priority) query = query.eq('priority', filters.priority);
+    if (filters?.limit) query = query.limit(filters.limit);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch notifications: ${error.message}`);
+
+    return data?.map(item => ({
+      id: item.id,
+      recipient_id: item.recipient_id,
+      sender_id: item.sender_id,
+      team_id: item.team_id,
+      notification_type: item.notification_type,
+      title: item.title,
+      message: item.message,
+      action_url: item.action_url,
+      priority: item.priority,
+      delivery_method: item.delivery_channels as any,
+      is_read: item.is_read,
+      read_at: item.read_at,
+      email_sent: false,
+      metadata: item.metadata as any,
+      expires_at: item.expires_at,
+      created_at: item.created_at
+    })) || [];
   }
 
   static async getUnreadCount(userId: string, teamId?: string): Promise<number> {
-    // Mock implementation - return sample unread count
-    return 3;
+    let query = supabase
+      .from('enhanced_notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_id', userId)
+      .eq('is_read', false);
+
+    if (teamId) query = query.eq('team_id', teamId);
+
+    const { count, error } = await query;
+    if (error) throw new Error(`Failed to get unread count: ${error.message}`);
+    
+    return count || 0;
   }
 
   static async getNotificationsByType(
