@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProtectedRoute, PublicRoute } from "@/components/routing";
-import Index from "./pages/Index";
+import { RootRedirect } from "@/components/routing/RootRedirect";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -58,12 +58,8 @@ const App = () => (
         {/* Public share route */}
         <Route path="/share/:token" element={<Share />} />
         
-        {/* Public routes with main layout */}
-        <Route path="/" element={
-          <Layout>
-            <Index />
-          </Layout>
-        } />
+        {/* Root redirect route */}
+        <Route path="/" element={<RootRedirect />} />
         
         {/* Authentication routes with auth layout */}
         <Route 
