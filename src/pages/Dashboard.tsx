@@ -17,19 +17,18 @@ import {
   Globe,
   ArrowRight,
   Plus,
-  TestTube,
   Loader2,
   RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { AuthDatabaseTester } from '@/components/testing/AuthDatabaseTester';
+
 import { useTeamDashboardStats, useTeamPermissions } from '@/hooks/useTeamAwareQueries';
 import { useRecentActivity, type ActivityItem } from '@/hooks/useRecentActivity';
 import { useMonitoringAlerts, type MonitoringAlert } from '@/hooks/useMonitoringAlerts';
 import { usePerformanceMetrics, type PerformanceMetrics } from '@/hooks/usePerformanceMetrics';
 import { QueryErrorBoundary } from '@/components/ui/query-error-boundary';
 import { ContentErrorBoundary } from '@/components/ui/content-error-boundary';
-import { HealthMonitor } from '@/components/debug/HealthMonitor';
+
 import { useTeamContext } from '@/contexts/TeamContext';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -180,13 +179,6 @@ const Dashboard = () => {
       href: "/analytics",
       variant: "outline" as const
     },
-    {
-      title: "Test Authentication",
-      description: "Verify auth & database integration",
-      icon: TestTube,
-      href: "#auth-test",
-      variant: "outline" as const
-    }
   ];
 
   return (
@@ -424,11 +416,6 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Health Monitoring and Testing Section */}
-      <div id="auth-test">
-        <AuthDatabaseTester />
-        <HealthMonitor />
-      </div>
     </div>
   );
 };
