@@ -18,7 +18,7 @@ export const useSessionSecurity = (config: SessionSecurityConfig = {}) => {
     checkIntervalSeconds = 60
   } = config;
 
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const lastActivityRef = useRef<number>(Date.now());
   const warningShownRef = useRef<boolean>(false);
   const timeoutIdRef = useRef<NodeJS.Timeout>();
@@ -55,9 +55,9 @@ export const useSessionSecurity = (config: SessionSecurityConfig = {}) => {
         description: 'You have been logged out due to inactivity.',
         variant: 'destructive',
       });
-      logout();
+      signOut();
     }
-  }, [user, timeoutMinutes, warningMinutes, logout]);
+  }, [user, timeoutMinutes, warningMinutes, signOut]);
 
   // Track user activity
   useEffect(() => {
@@ -94,8 +94,8 @@ export const useSessionSecurity = (config: SessionSecurityConfig = {}) => {
       description: 'Session terminated for security reasons.',
       variant: 'destructive',
     });
-    logout();
-  }, [logout]);
+    signOut();
+  }, [signOut]);
 
   // Extend session function
   const extendSession = useCallback(() => {
