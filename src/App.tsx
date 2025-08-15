@@ -28,7 +28,7 @@ import NotFound from "./pages/NotFound";
 import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
 import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationPage';
 import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
-import { isDevelopment } from '@/utils/productionUtils';
+import { isDevelopment } from '@/utils/production';
 import { TeamProvider } from '@/contexts/TeamContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { ApiConfigValidator } from '@/components/debug/ApiConfigValidator';
@@ -44,8 +44,13 @@ const App = () => (
       <TeamProvider>
         <AnalyticsProvider>
         <Routes>
-        {/* Authentication testing route (only in development) */}
-        {isDevelopment() && <Route path="/auth-test" element={<AuthTestingPanel />} />}
+        {/* Development-only routes */}
+        {isDevelopment() && (
+          <>
+            <Route path="/auth-test" element={<div>Debug panel disabled in production</div>} />
+            <Route path="/debug" element={<div>Debug tools disabled in production</div>} />
+          </>
+        )}
         
         {/* Public invitation route */}
         <Route path="/invite/:token" element={<AcceptInvitationPage />} />

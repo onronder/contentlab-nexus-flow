@@ -1,6 +1,7 @@
 import React from 'react';
 import { ErrorAlert } from '@/components/ui/error-alert';
-import { logError, isDevelopment } from '@/utils/productionUtils';
+import { handleProductionError, isDevelopment } from '@/utils/production';
+import { productionLogger } from '@/utils/productionLogger';
 
 interface GlobalErrorBoundaryState {
   hasError: boolean;
@@ -23,20 +24,16 @@ class GlobalErrorBoundary extends React.Component<GlobalErrorBoundaryProps, Glob
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error for monitoring
-    logError(error, 'GlobalErrorBoundary');
+    // Use production error handling
+    handleProductionError(error, errorInfo);
     
     // Store error info for debugging
     this.setState({ errorInfo });
     
-    // In development, log full error details
-    if (isDevelopment()) {
-      console.group('🚨 Global Error Boundary');
-      console.error('Error:', error);
-      console.error('Error Info:', errorInfo);
-      console.error('Component Stack:', errorInfo.componentStack);
-      console.groupEnd();
-    }
+    // Log with production logger
+    productionLogger.errorWithContext(error, 'GlobalErrorBoundary', {
+      componentStack: errorInfo.componentStack
+    });
   }
 
   handleRetry = () => {
