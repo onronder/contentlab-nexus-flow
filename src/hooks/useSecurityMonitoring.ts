@@ -1,178 +1,265 @@
-import { useEffect, useCallback } from 'react';
-import { useUser } from '@/contexts';
-import { useSessionManager } from './useSessionManager';
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { securityDocumentationService, SecurityMetrics, SecurityFinding } from '@/services/securityDocumentationService';
 
-/**
- * Hook for monitoring security events and suspicious activities
- */
-export const useSecurityMonitoring = () => {
-  const user = useUser();
-  const isAuthenticated = !!user;
-  const { logSecurityEvent } = useSessionManager();
+interface SecurityMonitoringConfig {
+  scanInterval?: number; // milliseconds
+  alertThreshold?: number; // number of issues before alerting
+  enableRealTimeMonitoring?: boolean;
+}
 
-  // Monitor for potential security threats
-  const monitorSecurityEvents = useCallback(() => {
-    if (!isAuthenticated || !user) return;
+interface SecurityScanResult {
+  scanId: string;
+  timestamp: Date;
+  metrics: SecurityMetrics;
+  findings: SecurityFinding[];
+  newIssues: SecurityFinding[];
+  resolvedIssues: SecurityFinding[];
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+}
 
-    // Monitor for rapid navigation (potential bot behavior)
-    let navigationCount = 0;
-    const resetNavigationCount = () => { navigationCount = 0; };
+export function useSecurityMonitoring(config: SecurityMonitoringConfig = {}) {
+  const { toast } = useToast();
+  const {
+    scanInterval = 6 * 60 * 60 * 1000, // 6 hours
+    alertThreshold = 1,
+    enableRealTimeMonitoring = true
+  } = config;
+
+  const [isScanning, setIsScanning] = useState(false);
+  const [lastScan, setLastScan] = useState<SecurityScanResult | null>(null);
+  const [scanHistory, setScanHistory] = useState<SecurityScanResult[]>([]);
+  const [monitoringActive, setMonitoringActive] = useState(enableRealTimeMonitoring);
+
+  /**
+   * Perform a comprehensive security scan
+   */
+  const runSecurityScan = useCallback(async (): Promise<SecurityScanResult> => {
+    setIsScanning(true);
     
-    const handleNavigation = () => {
-      navigationCount++;
-      if (navigationCount > 10) {
-        logSecurityEvent('rapid_navigation', {
-          navigation_count: navigationCount,
-          user_agent: navigator.userAgent
-        }, 'warning');
-        navigationCount = 0;
-      }
-    };
-
-    // Monitor for suspicious device changes
-    const monitorDeviceFingerprint = () => {
-      const fingerprint = {
-        screen: `${screen.width}x${screen.height}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        language: navigator.language,
-        platform: navigator.platform,
-        cookieEnabled: navigator.cookieEnabled,
-        onLine: navigator.onLine
-      };
-
-      const stored = localStorage.getItem('device_fingerprint');
-      if (stored) {
-        const storedFingerprint = JSON.parse(stored);
-        const changes = Object.keys(fingerprint).filter(
-          key => fingerprint[key as keyof typeof fingerprint] !== storedFingerprint[key]
-        );
-
-        if (changes.length > 2) {
-          logSecurityEvent('device_fingerprint_change', {
-            changed_properties: changes,
-            new_fingerprint: fingerprint,
-            old_fingerprint: storedFingerprint
-          }, 'warning');
-        }
-      }
+    try {
+      // Get current security state
+      const findings = securityDocumentationService.getSecurityFindings();
+      const metrics = securityDocumentationService.calculateSecurityMetrics();
       
-      localStorage.setItem('device_fingerprint', JSON.stringify(fingerprint));
-    };
-
-    // Monitor for unusual time patterns
-    const monitorTimePatterns = () => {
-      const hour = new Date().getHours();
-      const lastActiveHours = JSON.parse(localStorage.getItem('active_hours') || '[]');
+      // Compare with last scan to find changes
+      const newIssues: SecurityFinding[] = [];
+      const resolvedIssues: SecurityFinding[] = [];
       
-      if (!lastActiveHours.includes(hour)) {
-        if (hour < 6 || hour > 22) {
-          logSecurityEvent('unusual_access_time', {
-            access_hour: hour,
-            typical_hours: lastActiveHours
-          }, 'info');
-        }
-        
-        lastActiveHours.push(hour);
-        if (lastActiveHours.length > 24) lastActiveHours.shift();
-        localStorage.setItem('active_hours', JSON.stringify(lastActiveHours));
-      }
-    };
-
-    // Monitor for console access (developer tools)
-    const monitorConsoleAccess = () => {
-      let devtools = { open: false, orientation: null };
-      
-      setInterval(() => {
-        if (window.outerHeight - window.innerHeight > 200 || 
-            window.outerWidth - window.innerWidth > 200) {
-          if (!devtools.open) {
-            devtools.open = true;
-            logSecurityEvent('developer_tools_opened', {
-              window_dimensions: {
-                outer: { width: window.outerWidth, height: window.outerHeight },
-                inner: { width: window.innerWidth, height: window.innerHeight }
-              }
-            }, 'info');
+      if (lastScan) {
+        // Find new issues
+        findings.forEach(finding => {
+          const existingIssue = lastScan.findings.find(f => f.id === finding.id);
+          if (!existingIssue && finding.status !== 'resolved') {
+            newIssues.push(finding);
           }
-        } else {
-          devtools.open = false;
-        }
-      }, 1000);
-    };
+        });
 
-    // Set up event listeners
-    window.addEventListener('beforeunload', handleNavigation);
-    window.addEventListener('popstate', handleNavigation);
+        // Find resolved issues
+        lastScan.findings.forEach(oldFinding => {
+          const currentIssue = findings.find(f => f.id === oldFinding.id);
+          if (currentIssue && oldFinding.status !== 'resolved' && currentIssue.status === 'resolved') {
+            resolvedIssues.push(currentIssue);
+          }
+        });
+      }
+
+      // Determine risk level
+      const criticalCount = findings.filter(f => f.severity === 'critical' && f.status !== 'resolved').length;
+      const highCount = findings.filter(f => f.severity === 'high' && f.status !== 'resolved').length;
+      
+      let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+      if (criticalCount > 0) riskLevel = 'critical';
+      else if (highCount > 0) riskLevel = 'high';
+      else if (findings.filter(f => f.severity === 'medium' && f.status !== 'resolved').length > 2) riskLevel = 'medium';
+
+      const result: SecurityScanResult = {
+        scanId: `scan_${Date.now()}`,
+        timestamp: new Date(),
+        metrics,
+        findings,
+        newIssues,
+        resolvedIssues,
+        riskLevel
+      };
+
+      // Update scan history
+      setScanHistory(prev => [...prev.slice(-9), result]); // Keep last 10 scans
+      setLastScan(result);
+
+      // Alert on significant changes
+      if (newIssues.length >= alertThreshold) {
+        toast({
+          title: "New Security Issues Detected",
+          description: `${newIssues.length} new security issue(s) found during automated scan.`,
+          variant: "destructive"
+        });
+      }
+
+      if (resolvedIssues.length > 0) {
+        toast({
+          title: "Security Issues Resolved",
+          description: `${resolvedIssues.length} security issue(s) have been resolved.`,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Security scan failed:', error);
+      throw error;
+    } finally {
+      setIsScanning(false);
+    }
+  }, [lastScan, alertThreshold, toast]);
+
+  /**
+   * Generate security alert based on scan results
+   */
+  const generateSecurityAlert = useCallback((scanResult: SecurityScanResult) => {
+    const { riskLevel, newIssues, metrics } = scanResult;
     
-    // Initial checks
-    monitorDeviceFingerprint();
-    monitorTimePatterns();
-    monitorConsoleAccess();
-
-    // Periodic checks
-    const deviceInterval = setInterval(monitorDeviceFingerprint, 5 * 60 * 1000); // Every 5 minutes
-    const timeInterval = setInterval(monitorTimePatterns, 60 * 60 * 1000); // Every hour
-    const navigationInterval = setInterval(resetNavigationCount, 60 * 1000); // Reset every minute
-
-    return () => {
-      window.removeEventListener('beforeunload', handleNavigation);
-      window.removeEventListener('popstate', handleNavigation);
-      clearInterval(deviceInterval);
-      clearInterval(timeInterval);
-      clearInterval(navigationInterval);
-    };
-  }, [isAuthenticated, user, logSecurityEvent]);
-
-  // Monitor for clipboard access (potential data theft)
-  const monitorClipboardAccess = useCallback(() => {
-    if (!isAuthenticated) return;
-
-    const originalWriteText = navigator.clipboard?.writeText;
-    const originalReadText = navigator.clipboard?.readText;
-
-    if (navigator.clipboard && originalWriteText) {
-      navigator.clipboard.writeText = function(text: string) {
-        logSecurityEvent('clipboard_write', {
-          text_length: text.length,
-          contains_sensitive: /password|secret|key|token/i.test(text)
-        }, text.length > 1000 ? 'warning' : 'info');
-        
-        return originalWriteText.call(this, text);
+    if (riskLevel === 'critical' || riskLevel === 'high') {
+      return {
+        title: `${riskLevel.toUpperCase()} Security Risk Detected`,
+        message: `Security scan identified ${newIssues.length} new ${riskLevel} severity issues. Immediate attention required.`,
+        severity: riskLevel,
+        actionRequired: true
       };
     }
 
-    if (navigator.clipboard && originalReadText) {
-      navigator.clipboard.readText = function() {
-        logSecurityEvent('clipboard_read', {
-          timestamp: Date.now()
-        }, 'info');
-        
-        return originalReadText.call(this);
+    if (metrics.compliancePercentage < 80) {
+      return {
+        title: 'Security Compliance Below Threshold',
+        message: `Current compliance at ${metrics.compliancePercentage}%. Review and address outstanding security issues.`,
+        severity: 'medium' as const,
+        actionRequired: true
       };
     }
 
-    return () => {
-      if (navigator.clipboard && originalWriteText) {
-        navigator.clipboard.writeText = originalWriteText;
-      }
-      if (navigator.clipboard && originalReadText) {
-        navigator.clipboard.readText = originalReadText;
-      }
-    };
-  }, [isAuthenticated, logSecurityEvent]);
+    return null;
+  }, []);
 
+  /**
+   * Start automated monitoring
+   */
+  const startMonitoring = useCallback(() => {
+    setMonitoringActive(true);
+  }, []);
+
+  /**
+   * Stop automated monitoring
+   */
+  const stopMonitoring = useCallback(() => {
+    setMonitoringActive(false);
+  }, []);
+
+  /**
+   * Get security trend analysis
+   */
+  const getSecurityTrend = useCallback(() => {
+    if (scanHistory.length < 2) return null;
+
+    const recent = scanHistory.slice(-5); // Last 5 scans
+    const complianceScores = recent.map(scan => scan.metrics.compliancePercentage);
+    const avgCompliance = complianceScores.reduce((sum, score) => sum + score, 0) / complianceScores.length;
+    
+    const latestCompliance = complianceScores[complianceScores.length - 1];
+    const previousCompliance = complianceScores[complianceScores.length - 2];
+    
+    const trend = latestCompliance > previousCompliance ? 'improving' : 
+                  latestCompliance < previousCompliance ? 'declining' : 'stable';
+
+    return {
+      trend,
+      averageCompliance: avgCompliance,
+      latestCompliance,
+      previousCompliance,
+      scanCount: recent.length
+    };
+  }, [scanHistory]);
+
+  /**
+   * Export monitoring data
+   */
+  const exportMonitoringData = useCallback((format: 'json' | 'csv' = 'json') => {
+    const data = {
+      monitoringPeriod: {
+        start: scanHistory[0]?.timestamp || new Date(),
+        end: lastScan?.timestamp || new Date()
+      },
+      totalScans: scanHistory.length,
+      currentMetrics: lastScan?.metrics,
+      securityTrend: getSecurityTrend(),
+      scanHistory: scanHistory.map(scan => ({
+        scanId: scan.scanId,
+        timestamp: scan.timestamp,
+        riskLevel: scan.riskLevel,
+        compliancePercentage: scan.metrics.compliancePercentage,
+        issueCount: scan.findings.filter(f => f.status !== 'resolved').length
+      }))
+    };
+
+    if (format === 'json') {
+      return JSON.stringify(data, null, 2);
+    }
+
+    // Simple CSV export
+    const headers = ['Scan ID', 'Timestamp', 'Risk Level', 'Compliance %', 'Open Issues'];
+    const rows = data.scanHistory.map(scan => [
+      scan.scanId,
+      scan.timestamp.toISOString(),
+      scan.riskLevel,
+      scan.compliancePercentage,
+      scan.issueCount
+    ]);
+
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+  }, [scanHistory, lastScan, getSecurityTrend]);
+
+  // Set up automated scanning
   useEffect(() => {
-    const cleanupSecurity = monitorSecurityEvents();
-    const cleanupClipboard = monitorClipboardAccess();
+    if (!monitoringActive) return;
 
-    return () => {
-      cleanupSecurity?.();
-      cleanupClipboard?.();
-    };
-  }, [monitorSecurityEvents, monitorClipboardAccess]);
+    const interval = setInterval(() => {
+      runSecurityScan().catch(error => {
+        console.error('Automated security scan failed:', error);
+        toast({
+          title: "Security Scan Failed",
+          description: "Automated security monitoring encountered an error.",
+          variant: "destructive"
+        });
+      });
+    }, scanInterval);
+
+    // Run initial scan
+    if (!lastScan) {
+      runSecurityScan();
+    }
+
+    return () => clearInterval(interval);
+  }, [monitoringActive, scanInterval, runSecurityScan, lastScan, toast]);
 
   return {
-    // Exposed functions for manual security logging
-    logSecurityEvent,
+    // State
+    isScanning,
+    lastScan,
+    scanHistory,
+    monitoringActive,
+    
+    // Actions
+    runSecurityScan,
+    startMonitoring,
+    stopMonitoring,
+    
+    // Utilities
+    generateSecurityAlert,
+    getSecurityTrend,
+    exportMonitoringData,
+    
+    // Computed values
+    currentRiskLevel: lastScan?.riskLevel || 'low',
+    compliancePercentage: lastScan?.metrics.compliancePercentage || 0,
+    openIssuesCount: lastScan?.findings.filter(f => f.status !== 'resolved').length || 0,
+    platformLimitationsCount: lastScan?.findings.filter(f => f.status === 'platform_limitation').length || 0
   };
-};
+}
