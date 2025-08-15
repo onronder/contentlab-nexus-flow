@@ -79,9 +79,9 @@ export function useAuth() {
       return { error: error.message };
     }
 
-    toast.success('Successfully signed out!');
-    navigate('/');
-    return { error: null };
+  toast.success('Successfully signed out!');
+  navigate('/login');
+  return { error: null };
   };
 
   const resetPassword = async (email: string) => {
