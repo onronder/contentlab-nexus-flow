@@ -1,7 +1,7 @@
 // Image optimization utilities for ContentLab Nexus
 // Provides WebP/AVIF conversion, compression, and responsive loading
 
-import { useEffect, RefObject } from 'react';
+import React, { useEffect, RefObject } from 'react';
 
 interface ImageOptimizationOptions {
   quality?: number;

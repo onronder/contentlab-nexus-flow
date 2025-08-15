@@ -1,7 +1,7 @@
 // Performance optimization utilities for ContentLab Nexus
 // Implements advanced performance monitoring, optimization strategies, and metrics collection
 
-import { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 
 interface PerformanceMetrics {
   fcp: number; // First Contentful Paint
