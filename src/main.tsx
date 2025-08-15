@@ -7,13 +7,11 @@ import { GlobalErrorBoundary } from '@/components/errors/GlobalErrorBoundary'
 import App from './App.tsx'
 import './index.css'
 import { queryClient } from '@/lib/queryClient'
-import { isDevelopment, isProduction } from '@/utils/productionUtils'
-import { prepareForDeployment, ProductionErrorHandler } from '@/utils/productionOptimization'
-// Initialize production optimizations
-if (isProduction()) {
-  ProductionErrorHandler.initialize();
-  prepareForDeployment();
-}
+import { isDevelopment } from '@/utils/productionUtils'
+
+// Debug: Force CSS loading verification
+console.log('🎨 Main.tsx loaded - checking CSS import...');
+console.log('🎨 CSS should be imported from:', './index.css');
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

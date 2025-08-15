@@ -33,10 +33,15 @@ import { TeamProvider } from '@/contexts/TeamContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { ApiConfigValidator } from '@/components/debug/ApiConfigValidator';
 import { ApiDashboard } from '@/components/admin/ApiDashboard';
+
+// Debug: Verify App.tsx is loading properly
+console.log('🎨 App.tsx loaded - Tailwind CSS should be ready');
 import Share from "./pages/Share";
 
 const App = () => (
   <TooltipProvider>
+    {/* DEBUGGING: CSS verification indicator */}
+    <div className="debug-css-loaded">CSS Loaded ✓</div>
     <Toaster />
     <Sonner />
     <ApiConfigValidator />
