@@ -189,16 +189,16 @@ export class ProductionErrorHandler {
 
   static handleUnhandledRejection(event: PromiseRejectionEvent): void {
     console.error('Unhandled Promise Rejection:', event.reason);
-    this.logError(new Error(event.reason));
+    ProductionErrorHandler.logError(new Error(event.reason));
   }
 
   static handleGlobalError(event: ErrorEvent): void {
     console.error('Global Error:', event.error);
-    this.logError(event.error);
+    ProductionErrorHandler.logError(event.error);
   }
 
   static initialize(): void {
-    window.addEventListener('unhandledrejection', this.handleUnhandledRejection);
-    window.addEventListener('error', this.handleGlobalError);
+    window.addEventListener('unhandledrejection', ProductionErrorHandler.handleUnhandledRejection);
+    window.addEventListener('error', ProductionErrorHandler.handleGlobalError);
   }
 }

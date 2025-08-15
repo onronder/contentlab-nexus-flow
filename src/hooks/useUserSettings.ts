@@ -26,7 +26,7 @@ export interface UserSettings {
 
 const fetchUserSettings = async (userId: string): Promise<UserSettings | null> => {
   if (!userId) {
-    throw new Error('User ID is required to fetch settings');
+    return null; // Return null instead of throwing for missing userId
   }
 
   try {
@@ -36,8 +36,11 @@ const fetchUserSettings = async (userId: string): Promise<UserSettings | null> =
     });
 
     if (error) {
-      console.error('Error fetching user settings:', error);
-      throw new Error(`Failed to fetch user settings: ${error.message}`);
+      // Only log actual errors, not missing data scenarios
+      if (error.code !== 'PGRST116') { // Not found error
+        console.error('Error fetching user settings:', error);
+      }
+      return null; // Return null for any error
     }
 
     // Type cast the JSONB fields to proper TypeScript types

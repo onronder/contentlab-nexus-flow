@@ -18,7 +18,7 @@ export interface TeamSettingsData {
 
 const fetchTeamSettings = async (userId: string): Promise<TeamSettingsData | null> => {
   if (!userId) {
-    throw new Error('User ID is required to fetch team settings');
+    return null; // Return null instead of throwing for missing userId
   }
 
   try {
@@ -28,8 +28,11 @@ const fetchTeamSettings = async (userId: string): Promise<TeamSettingsData | nul
     });
 
     if (error) {
-      console.error('Error fetching team settings:', error);
-      throw new Error(`Failed to fetch team settings: ${error.message}`);
+      // Only log actual errors, not missing data scenarios
+      if (error.code !== 'PGRST116') { // Not found error
+        console.error('Error fetching team settings:', error);
+      }
+      return null; // Return null for any error
     }
 
     // If no team data, user is not part of any team

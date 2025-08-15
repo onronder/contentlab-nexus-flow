@@ -50,9 +50,9 @@ export function TeamProvider({ children }: TeamProviderProps) {
         setCurrentTeamState(teamToSet);
         localStorage.setItem('currentTeamId', teamToSet.id);
       }
-    } else if (!isLoading && availableTeams.length === 0) {
-      // No teams found - user needs to create one
-      console.log('No teams found for user:', user?.id);
+    } else if (!isLoading && availableTeams.length === 0 && user?.id) {
+      // No teams found - user needs to create one (only log if user is authenticated)
+      console.log('No teams found for user:', user.id);
       setCurrentTeamState(null);
       localStorage.removeItem('currentTeamId');
     }

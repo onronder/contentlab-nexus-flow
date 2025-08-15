@@ -2,6 +2,7 @@
  * Centralized error monitoring and reporting system
  */
 import { productionLogger } from './logger';
+import { shouldLogError, isBrowserExtensionError, cleanErrorMessage } from './errorFiltering';
 
 export interface ErrorContext {
   component?: string;
@@ -41,8 +42,8 @@ class ErrorMonitoringService {
   logError(error: Error | string, context: ErrorContext = {}) {
     const errorObj = typeof error === 'string' ? new Error(error) : error;
     
-    // Skip browser extension errors
-    if (this.isBrowserExtensionError(errorObj)) {
+    // Skip browser extension errors and other noise
+    if (!shouldLogError(errorObj)) {
       return;
     }
 
@@ -110,21 +111,10 @@ class ErrorMonitoringService {
   }
 
   /**
-   * Check if error is related to browser extensions
+   * Check if error is related to browser extensions (delegated to errorFiltering module)
    */
   private isBrowserExtensionError(error: Error): boolean {
-    const extensionIndicators = [
-      'deref',
-      'content_script',
-      'extension://',
-      'chrome-extension://',
-      'moz-extension://',
-      'safari-extension://'
-    ];
-    
-    return extensionIndicators.some(indicator => 
-      error.message?.includes(indicator) || error.stack?.includes(indicator)
-    );
+    return isBrowserExtensionError(error);
   }
 
   /**
