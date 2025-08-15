@@ -5158,10 +5158,6 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
-      generate_settings_recommendations: {
-        Args: { p_setting_type?: string; p_user_id: string }
-        Returns: undefined
-      }
       get_avatar_url: {
         Args: { full_name: string; user_id: string }
         Returns: string
