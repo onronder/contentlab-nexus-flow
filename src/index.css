@@ -277,18 +277,6 @@
   }
 }
 
-/* DEBUGGING: Temporary verification that CSS is loading */
-.debug-css-loaded {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #22c55e;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  z-index: 9999;
-}
 
 /* Improved mobile responsiveness */
 @media (max-width: 768px) {

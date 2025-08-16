@@ -9,10 +9,6 @@ import './index.css'
 import { queryClient } from '@/lib/queryClient'
 import { isDevelopment } from '@/utils/productionUtils'
 
-// Debug: Force CSS loading verification
-console.log('🎨 Main.tsx loaded - checking CSS import...');
-console.log('🎨 CSS should be imported from:', './index.css');
-
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <GlobalErrorBoundary>
