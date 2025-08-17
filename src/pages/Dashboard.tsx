@@ -26,6 +26,7 @@ import { useTeamDashboardStats, useTeamPermissions } from '@/hooks/useTeamAwareQ
 import { useRecentActivity, type ActivityItem } from '@/hooks/useRecentActivity';
 import { useMonitoringAlerts, type MonitoringAlert } from '@/hooks/useMonitoringAlerts';
 import { usePerformanceMetrics, type PerformanceMetrics } from '@/hooks/usePerformanceMetrics';
+import { useRealDashboardData } from '@/hooks/useRealDashboardData';
 import { QueryErrorBoundary } from '@/components/ui/query-error-boundary';
 import { ContentErrorBoundary } from '@/components/ui/content-error-boundary';
 
@@ -34,6 +35,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const Dashboard = () => {
   const { currentTeam, availableTeams, isLoading: teamLoading } = useTeamContext();
+  const { data: realDashboardData, isLoading: isRealDataLoading } = useRealDashboardData();
   const { data: teamStats, isLoading: isStatsLoading } = useTeamDashboardStats();
   const { data: permissions } = useTeamPermissions();
   const { data: recentActivity, isLoading: isActivityLoading } = useRecentActivity();
@@ -41,11 +43,11 @@ const Dashboard = () => {
   const { data: performanceMetrics, isLoading: isPerformanceLoading } = usePerformanceMetrics();
   const queryClient = useQueryClient();
 
-  // Type-safe access to data with team context
-  const stats = teamStats;
-  const activities = recentActivity as ActivityItem[] | undefined;
+  // Use real data if available, fallback to mock data
+  const stats = realDashboardData || teamStats;
+  const activities = realDashboardData?.recentActivity || (recentActivity as ActivityItem[] | undefined);
   const alertsList = alerts as MonitoringAlert[] | undefined;
-  const metrics = performanceMetrics as PerformanceMetrics | undefined;
+  const metrics = realDashboardData?.performanceMetrics || (performanceMetrics as PerformanceMetrics | undefined);
 
   const formatChange = (value: number) => {
     const isPositive = value >= 0;
@@ -96,7 +98,7 @@ const Dashboard = () => {
     }
   ];
 
-  if (teamLoading || (isStatsLoading && isActivityLoading && isAlertsLoading && isPerformanceLoading)) {
+  if (teamLoading || (isRealDataLoading && isStatsLoading && isActivityLoading && isAlertsLoading && isPerformanceLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

@@ -45,7 +45,7 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
 
   const { uploadFiles, isUploading, uploadProgress, validateFiles, cancelUpload } = useFileUpload({
     onSuccess: (uploadResults) => {
-      // Create content items for uploaded files
+      // Create content items for uploaded files with auto-processing
       uploadResults.forEach(result => {
         createContent.mutate({
           title: title || result.originalFilename,
@@ -58,12 +58,13 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
           mime_type: result.mimeType,
           category_id: categoryId || undefined,
           status: 'draft' as ContentStatus,
+          
         });
       });
       
       toast({
         title: "Upload successful",
-        description: `${uploadResults.length} file(s) uploaded successfully`,
+        description: `${uploadResults.length} file(s) uploaded and processing started`,
       });
       
       handleClose();
