@@ -10,5 +10,3 @@ export { FileAttachments } from './FileAttachments';
 export { TypingIndicator } from './TypingIndicator';
 export { MentionInput } from './MentionInput';
 export { NotificationCenter } from './NotificationCenter';
-export { TypingIndicator } from './TypingIndicator';
-export { MessageReactions } from './MessageReactions';
