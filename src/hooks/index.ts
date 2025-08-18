@@ -194,3 +194,4 @@ export {
 
 // WebSocket collaboration hooks
 export { useWebSocketCollaboration } from './useWebSocketCollaboration';
+export { useAdvancedCollaboration } from './useAdvancedCollaboration';

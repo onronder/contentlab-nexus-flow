@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, Check, Trash2, Settings, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Check, Trash2, Settings, Filter, MessageSquare, UserPlus, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,53 +14,168 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useRealTimeNotifications } from '@/hooks/useRealTimeNotifications';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
-// Remove duplicate interface - using the one from service
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  notification_type: string;
+  priority: string;
+  is_read: boolean;
+  created_at: string;
+  user_id: string;
+  team_id?: string;
+  action_url?: string;
+  metadata?: Record<string, any>;
+}
 
 interface NotificationCenterProps {
-  userId: string;
+  userId?: string;
   teamId?: string;
   className?: string;
+  enableRealTime?: boolean;
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   userId,
   teamId,
-  className = ''
+  className = '',
+  enableRealTime = true
 }) => {
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
-  const {
-    notifications,
-    unreadCount,
-    loading,
-    markAsRead,
-    markAllAsRead: markAllAsReadService,
-    deleteNotification: deleteNotificationService
-  } = useRealTimeNotifications({
-    unread: filter === 'unread',
-    type: filter === 'mentions' ? 'comment_mention' : undefined
-  });
+  const { user } = useAuth();
+
+  const currentUserId = userId || user?.id;
+
+  // Fetch notifications from database
+  const fetchNotifications = async () => {
+    if (!currentUserId) return;
+
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (teamId) {
+        query = query.eq('team_id', teamId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setNotifications(data || []);
+      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!enableRealTime || !currentUserId) return;
+
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${currentUserId}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setNotifications(prev => [payload.new as Notification, ...prev]);
+            if (!(payload.new as Notification).is_read) {
+              setUnreadCount(prev => prev + 1);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setNotifications(prev => 
+              prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
+            );
+            if ((payload.old as Notification).is_read !== (payload.new as Notification).is_read) {
+              setUnreadCount(prev => (payload.new as Notification).is_read ? prev - 1 : prev + 1);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
+            if (!(payload.old as Notification).is_read) {
+              setUnreadCount(prev => prev - 1);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [enableRealTime, currentUserId]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchNotifications();
+  }, [currentUserId, teamId]);
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
 
   const handleMarkAllAsRead = async () => {
-    const success = await markAllAsReadService();
-    if (success) {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', currentUserId)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
       toast({
         title: 'All notifications marked as read',
         description: 'Your notification list has been updated.'
       });
+    } catch (error) {
+      console.error('Error marking all as read:', error);
     }
   };
 
   const handleDeleteNotification = async (notificationId: string) => {
-    const success = await deleteNotificationService(notificationId);
-    if (success) {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
       toast({
         title: 'Notification deleted',
         description: 'The notification has been removed.'
       });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
     }
   };
 
@@ -76,12 +191,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'comment_mention': return '💬';
-      case 'team_invitation': return '👥';
-      case 'project_assigned': return '📋';
-      case 'role_changed': return '🔐';
-      case 'security_alert': return '🔒';
-      default: return '📢';
+      case 'comment_mention': return MessageSquare;
+      case 'team_invitation': return UserPlus;
+      case 'project_assigned': return Bell;
+      case 'role_changed': return Settings;
+      case 'security_alert': return AlertTriangle;
+      default: return Bell;
     }
   };
 
@@ -160,7 +275,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="text-lg">{getTypeIcon(notification.notification_type)}</div>
+                    {React.createElement(getTypeIcon(notification.notification_type), { 
+                      className: "h-4 w-4 mt-1 text-muted-foreground" 
+                    })}
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
