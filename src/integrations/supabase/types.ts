@@ -1633,6 +1633,57 @@ export type Database = {
         }
         Relationships: []
       }
+      file_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          message_id: string
+          mime_type: string | null
+          team_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          message_id: string
+          mime_type?: string | null
+          team_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+          team_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_attachments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_deduplication: {
         Row: {
           content_hash: string
@@ -1991,6 +2042,38 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monitoring_alert_rules: {
         Row: {
@@ -4473,6 +4556,7 @@ export type Database = {
           id: string
           is_deleted: boolean | null
           is_edited: boolean | null
+          is_pinned: boolean | null
           mentions: Json | null
           message_type: string
           metadata: Json | null
@@ -4490,6 +4574,7 @@ export type Database = {
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean | null
+          is_pinned?: boolean | null
           mentions?: Json | null
           message_type?: string
           metadata?: Json | null
@@ -4507,6 +4592,7 @@ export type Database = {
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean | null
+          is_pinned?: boolean | null
           mentions?: Json | null
           message_type?: string
           metadata?: Json | null
@@ -4880,6 +4966,48 @@ export type Database = {
           },
         ]
       }
+      typing_indicators: {
+        Row: {
+          channel_id: string
+          expires_at: string
+          id: string
+          started_at: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          expires_at?: string
+          id?: string
+          started_at?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          expires_at?: string
+          id?: string
+          started_at?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "typing_indicators_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "typing_indicators_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_analytics: {
         Row: {
           browser: string | null
@@ -5212,6 +5340,10 @@ export type Database = {
       cleanup_expired_settings_backups: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      cleanup_expired_typing_indicators: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       compute_next_run_at: {
         Args: {
