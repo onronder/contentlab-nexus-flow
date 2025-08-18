@@ -4993,6 +4993,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_typing_indicators_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "typing_indicators_channel_id_fkey"
             columns: ["channel_id"]
             isOneToOne: false

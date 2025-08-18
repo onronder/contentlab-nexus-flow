@@ -15,11 +15,13 @@ interface MessageReactionsProps {
   reactions: Reaction[];
   currentUserId?: string;
   onReactionToggle?: () => void;
+  onAddReaction?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (messageId: string, emoji: string) => void;
 }
 
 const AVAILABLE_REACTIONS = ['👍', '❤️', '😄', '😮', '😢', '😡', '🎉', '👏'];
 
-export function MessageReactions({ messageId, reactions, currentUserId, onReactionToggle }: MessageReactionsProps) {
+export function MessageReactions({ messageId, reactions, currentUserId, onReactionToggle, onAddReaction, onRemoveReaction }: MessageReactionsProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const { toast } = useToast();
 
@@ -45,6 +47,13 @@ export function MessageReactions({ messageId, reactions, currentUserId, onReacti
             user_id: currentUserId,
             reaction_type: reactionType
           });
+      }
+
+      // Call legacy callback if provided
+      if (userHasReacted) {
+        onRemoveReaction?.(messageId, reactionType);
+      } else {
+        onAddReaction?.(messageId, reactionType);
       }
 
       onReactionToggle?.();
