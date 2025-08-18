@@ -3,3 +3,7 @@ export { RealTimeCollaborativeEditor } from './RealTimeCollaborativeEditor';
 export { AdvancedVersionControl } from './AdvancedVersionControl';
 export { ContentReviewWorkflow } from './ContentReviewWorkflow';
 export { CollaborativeAnalytics } from './CollaborativeAnalytics';
+export { RealTimePresenceIndicator } from './RealTimePresenceIndicator';
+export { EnhancedRealTimeChat } from './EnhancedRealTimeChat';
+export { TypingIndicator } from './TypingIndicator';
+export { MessageReactions } from './MessageReactions';

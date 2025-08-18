@@ -191,3 +191,6 @@ export {
   useCancelInvitation,
   useResendInvitation
 } from './useInvitationMutations';
+
+// WebSocket collaboration hooks
+export { useWebSocketCollaboration } from './useWebSocketCollaboration';
