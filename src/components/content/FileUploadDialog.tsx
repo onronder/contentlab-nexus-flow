@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Upload, X, FileText, Image as ImageIcon, Video, File as FileIcon, AlertCircle, CheckCircle } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useAutoContentProcessing } from '@/hooks/useAutoContentProcessing';
 import { useCreateContent } from '@/hooks/useContentMutations';
 import { useContentCategories } from '@/hooks/useContentQueries';
 import { ContentType, ContentStatus } from '@/types/content';
@@ -78,7 +79,9 @@ export const FileUploadDialog = ({ open, onOpenChange, projectId }: FileUploadDi
     }
   });
 
-  const createContent = useCreateContent();
+  const baseCreateContent = useCreateContent();
+  const { enhanceCreateContent } = useAutoContentProcessing();
+  const createContent = enhanceCreateContent(baseCreateContent);
   const { data: categories } = useContentCategories();
 
 
