@@ -449,6 +449,89 @@ export type Database = {
         }
         Relationships: []
       }
+      collaboration_operations: {
+        Row: {
+          acknowledged_by: Json | null
+          applied_at: string | null
+          id: string
+          operation_data: Json
+          operation_type: string
+          sequence_number: number
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_by?: Json | null
+          applied_at?: string | null
+          id?: string
+          operation_data: Json
+          operation_type: string
+          sequence_number: number
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_by?: Json | null
+          applied_at?: string | null
+          id?: string
+          operation_data?: Json
+          operation_type?: string
+          sequence_number?: number
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_operations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collaborative_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborative_sessions: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          participants: Json | null
+          resource_id: string
+          resource_type: string
+          session_data: Json | null
+          session_name: string | null
+          team_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          resource_id: string
+          resource_type: string
+          session_data?: Json | null
+          session_name?: string | null
+          team_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          resource_id?: string
+          resource_type?: string
+          session_data?: Json | null
+          session_name?: string | null
+          team_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           attachments: Json | null
@@ -4863,6 +4946,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_presence: {
+        Row: {
+          activity_data: Json | null
+          current_location: string | null
+          id: string
+          last_seen: string | null
+          status: string
+          team_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_data?: Json | null
+          current_location?: string | null
+          id?: string
+          last_seen?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_data?: Json | null
+          current_location?: string | null
+          id?: string
+          last_seen?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -4994,6 +5110,39 @@ export type Database = {
           sync_conflicts?: Json | null
           theme_preferences?: Json | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      websocket_sessions: {
+        Row: {
+          connected_at: string | null
+          connection_state: Json | null
+          id: string
+          last_activity: string | null
+          metadata: Json | null
+          session_id: string
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          connection_state?: Json | null
+          id?: string
+          last_activity?: string | null
+          metadata?: Json | null
+          session_id: string
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          connection_state?: Json | null
+          id?: string
+          last_activity?: string | null
+          metadata?: Json | null
+          session_id?: string
+          team_id?: string | null
           user_id?: string
         }
         Relationships: []
