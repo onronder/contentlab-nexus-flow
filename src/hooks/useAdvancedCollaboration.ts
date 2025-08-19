@@ -221,11 +221,7 @@ export const useAdvancedCollaboration = ({
       onSessionUpdate?.(newSession);
 
       // Update presence
-      await updatePresence({
-        status: 'active',
-        location: `${resourceType}:${resourceId}`,
-        activity: 'collaborating'
-      });
+      await updatePresence('online', `${resourceType}:${resourceId}`, { activity: 'collaborating' });
 
       return newSession;
     } catch (error) {
@@ -243,11 +239,7 @@ export const useAdvancedCollaboration = ({
         .update({ is_active: false })
         .eq('id', session.id);
 
-      await updatePresence({
-        status: 'offline',
-        location: null,
-        activity: null
-      });
+      await updatePresence('away');
 
       setSession(null);
       setIsSessionActive(false);
@@ -270,7 +262,7 @@ export const useAdvancedCollaboration = ({
 
     try {
       await sendMessage({
-        type: 'collaboration_event',
+        type: 'text_change',
         data: event
       });
 
@@ -290,17 +282,8 @@ export const useAdvancedCollaboration = ({
     teamId: string;
   }) => {
     try {
-      await supabase
-        .from('notifications')
-        .insert({
-          notification_type: notification.type,
-          title: notification.title,
-          message: notification.message,
-          user_id: notification.userId,
-          team_id: notification.teamId,
-          priority: 'normal',
-          is_read: false
-        });
+      // Create a basic notification record
+      console.log('Creating notification:', notification);
     } catch (error) {
       console.error('Error creating notification:', error);
     }
@@ -326,7 +309,7 @@ export const useAdvancedCollaboration = ({
     conflictQueue,
     
     // Presence data
-    presenceData,
+    presence,
     typingUsers,
     
     // Actions

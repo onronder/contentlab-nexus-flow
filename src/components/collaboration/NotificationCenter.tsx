@@ -3,7 +3,6 @@ import { Bell, Check, Trash2, Settings, Filter, MessageSquare, UserPlus, AlertTr
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -28,7 +27,7 @@ interface Notification {
   user_id: string;
   team_id?: string;
   action_url?: string;
-  metadata?: Record<string, any>;
+  metadata?: any;
 }
 
 interface NotificationCenterProps {
@@ -36,13 +35,15 @@ interface NotificationCenterProps {
   teamId?: string;
   className?: string;
   enableRealTime?: boolean;
+  maxVisible?: number;
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   userId,
   teamId,
   className = '',
-  enableRealTime = true
+  enableRealTime = true,
+  maxVisible = 5
 }) => {
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -73,8 +74,22 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       const { data, error } = await query;
       if (error) throw error;
 
-      setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+      const formattedData: Notification[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        message: item.message,
+        notification_type: item.notification_type,
+        priority: item.priority || 'normal',
+        is_read: item.is_read || false,
+        created_at: item.created_at,
+        user_id: item.user_id || currentUserId || '',
+        team_id: item.team_id,
+        action_url: item.action_url,
+        metadata: item.metadata || {}
+      }));
+      
+      setNotifications(formattedData);
+      setUnreadCount(formattedData.filter(n => !n.is_read).length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -98,20 +113,53 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setNotifications(prev => [payload.new as Notification, ...prev]);
-            if (!(payload.new as Notification).is_read) {
+            const newNotification = payload.new as any;
+            const formattedNotification: Notification = {
+              id: newNotification.id,
+              title: newNotification.title,
+              message: newNotification.message,
+              notification_type: newNotification.notification_type,
+              priority: newNotification.priority || 'normal',
+              is_read: newNotification.is_read || false,
+              created_at: newNotification.created_at,
+              user_id: newNotification.user_id || currentUserId || '',
+              team_id: newNotification.team_id,
+              action_url: newNotification.action_url,
+              metadata: newNotification.metadata || {}
+            };
+            
+            setNotifications(prev => [formattedNotification, ...prev]);
+            if (!formattedNotification.is_read) {
               setUnreadCount(prev => prev + 1);
             }
           } else if (payload.eventType === 'UPDATE') {
+            const updatedNotification = payload.new as any;
+            const formattedNotification: Notification = {
+              id: updatedNotification.id,
+              title: updatedNotification.title,
+              message: updatedNotification.message,
+              notification_type: updatedNotification.notification_type,
+              priority: updatedNotification.priority || 'normal',
+              is_read: updatedNotification.is_read || false,
+              created_at: updatedNotification.created_at,
+              user_id: updatedNotification.user_id || currentUserId || '',
+              team_id: updatedNotification.team_id,
+              action_url: updatedNotification.action_url,
+              metadata: updatedNotification.metadata || {}
+            };
+            
             setNotifications(prev => 
-              prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
+              prev.map(n => n.id === formattedNotification.id ? formattedNotification : n)
             );
-            if ((payload.old as Notification).is_read !== (payload.new as Notification).is_read) {
-              setUnreadCount(prev => (payload.new as Notification).is_read ? prev - 1 : prev + 1);
+            
+            const oldNotification = payload.old as any;
+            if (oldNotification.is_read !== formattedNotification.is_read) {
+              setUnreadCount(prev => formattedNotification.is_read ? prev - 1 : prev + 1);
             }
           } else if (payload.eventType === 'DELETE') {
-            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
-            if (!(payload.old as Notification).is_read) {
+            const deletedNotification = payload.old as any;
+            setNotifications(prev => prev.filter(n => n.id !== deletedNotification.id));
+            if (!deletedNotification.is_read) {
               setUnreadCount(prev => prev - 1);
             }
           }
@@ -261,7 +309,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </div>
           ) : (
             <div className="space-y-1 p-1">
-              {filteredNotifications.map((notification) => (
+              {filteredNotifications.slice(0, maxVisible).map((notification) => (
                 <div
                   key={notification.id}
                   className={`p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors ${

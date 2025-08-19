@@ -66,7 +66,7 @@ export const AdvancedCollaborationManager: React.FC<AdvancedCollaborationManager
 
   const {
     isConnected,
-    presenceData,
+    presence,
     typingUsers,
     connectionError,
     updatePresence,
@@ -83,14 +83,11 @@ export const AdvancedCollaborationManager: React.FC<AdvancedCollaborationManager
     onPresenceUpdate: (presence) => {
       setCollaborationStats(prev => ({
         ...prev,
-        activeUsers: Object.keys(presence).length
+        activeUsers: presence.length
       }));
     },
     onTypingUpdate: (typing) => {
       // Handle typing updates
-    },
-    onError: (error) => {
-      console.error('Collaboration error:', error);
     }
   });
 
@@ -106,11 +103,7 @@ export const AdvancedCollaborationManager: React.FC<AdvancedCollaborationManager
 
     try {
       setIsSessionActive(true);
-      await updatePresence({
-        status: 'active',
-        location: `${resourceType}:${resourceId}`,
-        activity: 'collaborating'
-      });
+      await updatePresence('online', `${resourceType}:${resourceId}`, { activity: 'collaborating' });
 
       setActiveSession({
         id: `session-${Date.now()}`,
@@ -137,11 +130,7 @@ export const AdvancedCollaborationManager: React.FC<AdvancedCollaborationManager
     if (!activeSession) return;
 
     try {
-      await updatePresence({
-        status: 'offline',
-        location: null,
-        activity: null
-      });
+      await updatePresence('away');
       
       setActiveSession(null);
       setIsSessionActive(false);

@@ -35,17 +35,19 @@ interface FileAttachmentsProps {
   enableRealTimeSync?: boolean;
 }
 
-export function FileAttachments({ 
-  attachments, 
-  onAttachmentsChange,
-  maxFiles = 5,
-  maxSize = 10,
-  allowedTypes = ['image/*', 'application/pdf', 'text/*', '.doc', '.docx', '.xls', '.xlsx'],
-  messageId,
-  teamId,
-  onUploadComplete,
-  enableRealTimeSync = false
-}: FileAttachmentsProps) {
+export const FileAttachments: React.FC<FileAttachmentsProps> = (props) => {
+  const { 
+    attachments, 
+    onAttachmentsChange,
+    maxFiles = 5,
+    maxSize = 10,
+    allowedTypes = ['image/*', 'application/pdf', 'text/*', '.doc', '.docx', '.xls', '.xlsx'],
+    messageId,
+    teamId,
+    onUploadComplete,
+    enableRealTimeSync = false
+  } = props;
+  
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -82,7 +84,7 @@ export function FileAttachments({
       .from('team-attachments')
       .getPublicUrl(filePath);
 
-    // Create attachment record in database
+    // Create attachment record
     const attachment: FileAttachment = {
       id: Math.random().toString(36).substr(2, 9),
       name: file.name,
@@ -99,7 +101,7 @@ export function FileAttachments({
       attachment.preview = publicUrl;
     }
 
-    // Save to database
+    // Save to database if needed
     if (messageId && teamId) {
       await supabase
         .from('file_attachments')
@@ -378,4 +380,4 @@ export function FileAttachments({
       )}
     </div>
   );
-}
+};
