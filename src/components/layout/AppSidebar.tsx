@@ -103,10 +103,10 @@ export function AppSidebar() {
       badge: null
     },
     { 
-      title: "API Usage", 
-      url: "/admin/api-usage", 
+      title: "Monitoring", 
+      url: "/monitoring", 
       icon: Activity,
-      description: "AI API metrics",
+      description: "System monitoring",
       badge: null
     },
     { 

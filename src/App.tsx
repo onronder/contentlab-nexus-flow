@@ -24,6 +24,7 @@ import CreateTeam from "./pages/CreateTeam";
 import Settings from "./pages/Settings";
 import Competitive from "./pages/Competitive";
 import Security from "./pages/Security";
+import Monitoring from "./pages/Monitoring";
 import NotFound from "./pages/NotFound";
 import { Collaboration } from "./pages/Collaboration";
 import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
@@ -228,6 +229,16 @@ const App = () => (
             <ProtectedRoute>
               <Layout>
                 <Security />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/monitoring" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Monitoring />
               </Layout>
             </ProtectedRoute>
           } 

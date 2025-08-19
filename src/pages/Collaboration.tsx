@@ -3,16 +3,20 @@ import { CollaborationProvider } from "@/components/collaboration/CollaborationP
 import { CollaborationDashboard } from "@/components/collaboration/CollaborationDashboard";
 import { AdvancedCollaborationManager } from "@/components/collaboration/AdvancedCollaborationManager";
 import { EnhancedCollaborativeEditor } from "@/components/collaboration/EnhancedCollaborativeEditor";
+import { AICollaborationPanel } from "@/components/ai/AICollaborationPanel";
+import { MobileOptimizedCollaboration } from "@/components/mobile/MobileOptimizedCollaboration";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeamQueries } from "@/hooks/queries/useTeamQueries";
-import { Users, FileEdit, BarChart3, Settings } from "lucide-react";
+import { useEnhancedMobile } from "@/hooks/useEnhancedMobile";
+import { Users, FileEdit, BarChart3, Settings, Brain, Smartphone } from "lucide-react";
 
 export function Collaboration() {
   const { user } = useAuth();
   const { data: teams } = useTeamQueries();
+  const { isMobile, isOnline } = useEnhancedMobile();
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [activeDemo, setActiveDemo] = useState<'editor' | 'manager' | null>(null);
 
@@ -82,7 +86,7 @@ export function Collaboration() {
 
         {/* Main Content */}
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Dashboard
@@ -94,6 +98,14 @@ export function Collaboration() {
             <TabsTrigger value="editor" className="flex items-center gap-2">
               <FileEdit className="h-4 w-4" />
               Editor Demo
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              AI Assistant
+            </TabsTrigger>
+            <TabsTrigger value="mobile" className="flex items-center gap-2">
+              <Smartphone className="h-4 w-4" />
+              Mobile
             </TabsTrigger>
             <TabsTrigger value="features" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -132,6 +144,39 @@ export function Collaboration() {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="ai" className="space-y-6">
+            <AICollaborationPanel 
+              sessionId="demo-session"
+            />
+          </TabsContent>
+
+          <TabsContent value="mobile" className="space-y-6">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    Mobile Collaboration
+                    {!isOnline && (
+                      <span className="text-xs px-2 py-1 bg-destructive text-destructive-foreground rounded">
+                        Offline
+                      </span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Optimized collaboration experience for mobile devices
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MobileOptimizedCollaboration 
+                    teamId={currentTeam.id}
+                    resourceId="demo-mobile-resource"
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="features" className="space-y-6">
@@ -174,6 +219,34 @@ export function Collaboration() {
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
                     Track collaboration metrics, session analytics, and team performance insights.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-primary" />
+                    AI Collaboration Assistant
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Get intelligent suggestions, automated content improvements, and AI-powered collaboration insights.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Smartphone className="h-5 w-5 text-primary" />
+                    Mobile Optimization
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Touch-optimized interfaces, offline capabilities, and responsive collaboration tools for mobile devices.
                   </p>
                 </CardContent>
               </Card>
