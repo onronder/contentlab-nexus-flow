@@ -86,6 +86,56 @@ export type Database = {
           },
         ]
       }
+      ai_suggestions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          original_content: string | null
+          session_id: string | null
+          status: string | null
+          suggested_content: string
+          suggestion_type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          original_content?: string | null
+          session_id?: string | null
+          status?: string | null
+          suggested_content: string
+          suggestion_type: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          original_content?: string | null
+          session_id?: string | null
+          status?: string | null
+          suggested_content?: string
+          suggestion_type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collaborative_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_insights: {
         Row: {
           confidence_score: number | null
@@ -161,6 +211,59 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_predictions: {
+        Row: {
+          accuracy_score: number | null
+          confidence_level: number | null
+          created_at: string
+          id: string
+          input_data: Json
+          model_version: string | null
+          prediction_data: Json
+          prediction_type: string
+          status: string | null
+          team_id: string | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          confidence_level?: number | null
+          created_at?: string
+          id?: string
+          input_data?: Json
+          model_version?: string | null
+          prediction_data?: Json
+          prediction_type: string
+          status?: string | null
+          team_id?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          confidence_level?: number | null
+          created_at?: string
+          id?: string
+          input_data?: Json
+          model_version?: string | null
+          prediction_data?: Json
+          prediction_type?: string
+          status?: string | null
+          team_id?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_predictions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_settings: {
         Row: {
           alert_settings: Json | null
@@ -206,6 +309,45 @@ export type Database = {
           team_id?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      analytics_streams: {
+        Row: {
+          aggregation_rules: Json | null
+          created_at: string
+          data_source: string
+          error_log: Json | null
+          id: string
+          last_processed_at: string | null
+          processing_status: string | null
+          real_time_data: Json | null
+          stream_name: string
+          updated_at: string
+        }
+        Insert: {
+          aggregation_rules?: Json | null
+          created_at?: string
+          data_source: string
+          error_log?: Json | null
+          id?: string
+          last_processed_at?: string | null
+          processing_status?: string | null
+          real_time_data?: Json | null
+          stream_name: string
+          updated_at?: string
+        }
+        Update: {
+          aggregation_rules?: Json | null
+          created_at?: string
+          data_source?: string
+          error_log?: Json | null
+          id?: string
+          last_processed_at?: string | null
+          processing_status?: string | null
+          real_time_data?: Json | null
+          stream_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1373,6 +1515,65 @@ export type Database = {
           },
         ]
       }
+      custom_dashboards: {
+        Row: {
+          created_at: string
+          dashboard_config: Json
+          description: string | null
+          filters: Json | null
+          id: string
+          is_template: boolean | null
+          name: string
+          sharing_settings: Json | null
+          team_id: string | null
+          template_category: string | null
+          updated_at: string
+          user_id: string | null
+          view_count: number | null
+          widgets: Json | null
+        }
+        Insert: {
+          created_at?: string
+          dashboard_config?: Json
+          description?: string | null
+          filters?: Json | null
+          id?: string
+          is_template?: boolean | null
+          name: string
+          sharing_settings?: Json | null
+          team_id?: string | null
+          template_category?: string | null
+          updated_at?: string
+          user_id?: string | null
+          view_count?: number | null
+          widgets?: Json | null
+        }
+        Update: {
+          created_at?: string
+          dashboard_config?: Json
+          description?: string | null
+          filters?: Json | null
+          id?: string
+          is_template?: boolean | null
+          name?: string
+          sharing_settings?: Json | null
+          team_id?: string | null
+          template_category?: string | null
+          updated_at?: string
+          user_id?: string | null
+          view_count?: number | null
+          widgets?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_dashboards_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_events: {
         Row: {
           correlation_id: string | null
@@ -2074,6 +2275,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mobile_sessions: {
+        Row: {
+          created_at: string
+          device_info: Json | null
+          device_type: string
+          gestures_used: Json | null
+          id: string
+          offline_actions: Json | null
+          performance_metrics: Json | null
+          session_duration: number | null
+          sync_status: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_info?: Json | null
+          device_type: string
+          gestures_used?: Json | null
+          id?: string
+          offline_actions?: Json | null
+          performance_metrics?: Json | null
+          session_duration?: number | null
+          sync_status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_info?: Json | null
+          device_type?: string
+          gestures_used?: Json | null
+          id?: string
+          offline_actions?: Json | null
+          performance_metrics?: Json | null
+          session_duration?: number | null
+          sync_status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       monitoring_alert_rules: {
         Row: {
