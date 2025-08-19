@@ -10,7 +10,8 @@ import {
   Home,
   Sparkles,
   Activity,
-  Building2
+  Building2,
+  MessageSquare
 } from "lucide-react";
 import {
   Sidebar,
@@ -114,6 +115,13 @@ export function AppSidebar() {
       icon: Users,
       description: "Team collaboration",
       badge: { text: badgeCounts.team.toString(), variant: "secondary" as const }
+    },
+    { 
+      title: "Collaboration", 
+      url: "/collaboration", 
+      icon: MessageSquare,
+      description: "Real-time collaboration",
+      badge: null
     },
   ];
 

@@ -3176,6 +3176,59 @@ export type Database = {
           },
         ]
       }
+      session_recordings: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          metadata: Json | null
+          recorded_by: string
+          recording_name: string | null
+          session_id: string
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          recorded_by: string
+          recording_name?: string | null
+          session_id: string
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json | null
+          recorded_by?: string
+          recording_name?: string | null
+          session_id?: string
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_recordings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collaborative_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings_analytics: {
         Row: {
           action_type: string

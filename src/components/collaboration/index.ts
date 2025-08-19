@@ -20,3 +20,4 @@ export { AdvancedCollaborationManager } from './AdvancedCollaborationManager';
 export { EnhancedCollaborativeEditor } from './EnhancedCollaborativeEditor';
 export { CollaborationDashboard } from './CollaborationDashboard';
 export { SessionRecorder } from './SessionRecorder';
+export { CollaborationWidget } from './CollaborationWidget';

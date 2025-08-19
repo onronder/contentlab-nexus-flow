@@ -25,6 +25,7 @@ import Settings from "./pages/Settings";
 import Competitive from "./pages/Competitive";
 import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
+import { Collaboration } from "./pages/Collaboration";
 import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
 import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationPage';
 import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
@@ -227,6 +228,16 @@ const App = () => (
             <ProtectedRoute>
               <Layout>
                 <Security />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/collaboration" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Collaboration />
               </Layout>
             </ProtectedRoute>
           } 
