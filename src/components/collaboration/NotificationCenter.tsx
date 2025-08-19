@@ -15,20 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  notification_type: string;
-  priority: string;
-  is_read: boolean;
-  created_at: string;
-  user_id: string;
-  team_id?: string;
-  action_url?: string;
-  metadata?: any;
-}
+import { Notification } from '@/types/notifications';
 
 interface NotificationCenterProps {
   userId?: string;
@@ -63,7 +50,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       let query = supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', currentUserId)
+        .eq('recipient_id', currentUserId)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -82,7 +69,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         priority: item.priority || 'normal',
         is_read: item.is_read || false,
         created_at: item.created_at,
-        user_id: item.user_id || currentUserId || '',
+        user_id: item.recipient_id || currentUserId || '',
         team_id: item.team_id,
         action_url: item.action_url,
         metadata: item.metadata || {}
@@ -109,7 +96,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${currentUserId}`
+          filter: `recipient_id=eq.${currentUserId}`
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -195,7 +182,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
-        .eq('user_id', currentUserId)
+        .eq('recipient_id', currentUserId)
         .eq('is_read', false);
 
       if (error) throw error;

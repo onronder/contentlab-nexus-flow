@@ -233,14 +233,14 @@ export const FileAttachments: React.FC<FileAttachmentsProps> = (props) => {
             .from('team-attachments')
             .remove([attachment.storagePath]);
             
-          // Remove from database
-          if (attachment.messageId) {
-            await supabase
-              .from('file_attachments')
-              .delete()
-              .eq('message_id', attachment.messageId)
-              .eq('file_url', attachment.url);
-          }
+      // Remove from database
+      if (attachment.messageId) {
+        await supabase
+          .from('file_attachments')
+          .delete()
+          .eq('message_id', attachment.messageId)
+          .eq('file_path', attachment.storagePath);
+      }
         } catch (error) {
           console.error('Error removing file:', error);
         }
