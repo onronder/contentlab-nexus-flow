@@ -29,3 +29,4 @@ const customRender = (
 
 export * from '@testing-library/react';
 export { customRender as render };
+export { default as userEvent } from '@testing-library/user-event';
