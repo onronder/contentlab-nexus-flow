@@ -65,7 +65,8 @@ export const MobileOptimizedCollaboration: React.FC<MobileOptimizedCollaboration
     broadcastTextChange
   } = useAdvancedCollaboration({
     teamId: teamId || '',
-    resourceId: resourceId || ''
+    resourceId: resourceId || '',
+    resourceType: 'content'
   });
 
   // Touch gesture handlers
