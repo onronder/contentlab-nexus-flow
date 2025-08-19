@@ -100,8 +100,6 @@ export const SessionRecorder: React.FC<{
       // Mock data since session_recordings table doesn't exist yet
       const data: any[] = [];
 
-      if (error) throw error;
-
       const formattedRecordings: SessionRecording[] = data?.map(recording => ({
         id: recording.id,
         sessionId: recording.session_id,
