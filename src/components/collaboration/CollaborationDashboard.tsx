@@ -64,73 +64,84 @@ export const CollaborationDashboard: React.FC<{ teamId: string; className?: stri
   const [recentActivity, setRecentActivity] = useState<TeamActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch collaboration metrics
+  // Fetch collaboration metrics using real service
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
         setIsLoading(true);
 
-        // Fetch session metrics
-        const { data: sessions, error: sessionError } = await supabase
-          .from('collaborative_sessions')
-          .select('*')
-          .eq('team_id', teamId)
-          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+        // Use real collaboration service instead of mock data
+        const { realTimeCollaborationService } = await import('@/services/realTimeCollaborationService');
+        const realMetrics = await realTimeCollaborationService.getCollaborationMetrics(teamId);
+        
+        setMetrics(realMetrics);
 
-        if (sessionError) throw sessionError;
-
-        // Fetch recent activity
+        // Fetch recent activity from real database
         const { data: activities, error: activityError } = await supabase
           .from('activity_logs')
-          .select('*')
+          .select(`
+            *,
+            profiles:user_id(id, full_name, email)
+          `)
           .eq('team_id', teamId)
           .in('activity_type', ['team_management', 'content_activity', 'system_event'])
           .order('created_at', { ascending: false })
           .limit(20);
 
-        if (activityError) throw activityError;
+        if (activityError) {
+          console.warn('Error fetching activities:', activityError);
+          // Fallback to project activities if activity_logs is not available
+          const { data: projectActivities } = await supabase
+            .from('project_activities')
+            .select(`
+              *,
+              profiles:user_id(id, full_name, email)
+            `)
+            .order('created_at', { ascending: false })
+            .limit(20);
+            
+          if (projectActivities) {
+            const formattedActivity: TeamActivity[] = projectActivities.map(activity => ({
+              userId: activity.user_id || '',
+              userName: (activity.profiles && typeof activity.profiles === 'object' && !Array.isArray(activity.profiles) && 'full_name' in activity.profiles) 
+                ? (activity.profiles as any).full_name || 'Team Member' 
+                : 'Team Member',
+              activity: activity.activity_description || activity.activity_type,
+              timestamp: activity.created_at,
+              type: getActivityType(activity.activity_type)
+            }));
+            setRecentActivity(formattedActivity);
+          }
+        } else {
+          // Format real activity data
+          const formattedActivity: TeamActivity[] = activities?.map(activity => ({
+            userId: activity.user_id || '',
+            userName: (activity.profiles && typeof activity.profiles === 'object' && !Array.isArray(activity.profiles) && 'full_name' in activity.profiles) 
+              ? (activity.profiles as any).full_name || 'Team Member' 
+              : 'Team Member',
+            activity: activity.description || activity.action,
+            timestamp: activity.created_at,
+            type: getActivityType(activity.action)
+          })) || [];
+          setRecentActivity(formattedActivity);
+        }
 
-        // Calculate metrics
-        const activeSessions = sessions?.filter(s => s.is_active) || [];
-        const totalSessions = sessions?.length || 0;
-        const averageDuration = sessions?.reduce((acc, session) => {
-          const duration = new Date(session.updated_at).getTime() - new Date(session.created_at).getTime();
-          return acc + duration;
-        }, 0) / (totalSessions || 1) / (1000 * 60); // Convert to minutes
-
-        // Calculate collaboration score based on activity and engagement
-        const activityScore = Math.min(100, (activities?.length || 0) * 2);
-        const sessionScore = Math.min(100, totalSessions * 5);
-        const userScore = Math.min(100, state.participants.length * 10);
-        const collaborationScore = Math.round((activityScore + sessionScore + userScore) / 3);
-
+      } catch (error) {
+        console.error('Error fetching collaboration metrics:', error);
+        // Set default metrics on error
         setMetrics({
-          totalSessions,
+          totalSessions: 0,
           activeUsers: state.participants.length,
-          messageCount: activities?.filter(a => a.action === 'message_posted').length || 0,
-          fileShares: activities?.filter(a => a.action === 'file_shared').length || 0,
-          averageSessionDuration: Math.round(averageDuration),
-          collaborationScore,
+          messageCount: 0,
+          fileShares: 0,
+          averageSessionDuration: 0,
+          collaborationScore: 0,
           performanceMetrics: {
             latency: state.performance.messageLatency,
             throughput: state.performance.operationThroughput,
             errorRate: state.performance.conflictRate
           }
         });
-
-        // Format recent activity
-        const formattedActivity: TeamActivity[] = activities?.map(activity => ({
-          userId: activity.user_id || '',
-          userName: 'Team Member',
-          activity: activity.description || activity.action,
-          timestamp: activity.created_at,
-          type: getActivityType(activity.action)
-        })) || [];
-
-        setRecentActivity(formattedActivity);
-
-      } catch (error) {
-        console.error('Error fetching collaboration metrics:', error);
       } finally {
         setIsLoading(false);
       }
