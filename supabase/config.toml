@@ -138,3 +138,15 @@ verify_jwt = false
 
 [functions.insights-generator]
 verify_jwt = false
+
+[functions.analytics-streaming]
+verify_jwt = false
+
+[functions.ai-collaboration-assistant]
+verify_jwt = true
+
+[functions.mobile-push-notifications]
+verify_jwt = true
+
+[functions.predictive-analytics-engine]
+verify_jwt = true
