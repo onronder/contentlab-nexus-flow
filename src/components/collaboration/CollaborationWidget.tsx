@@ -106,7 +106,7 @@ export function CollaborationWidget({
                   <span>{activeParticipants}</span>
                 </div>
               </div>
-              <div className="text-sm font-medium">{session.sessionName || 'Untitled Session'}</div>
+              <div className="text-sm font-medium">{session.name || 'Untitled Session'}</div>
               <div className="text-xs text-muted-foreground mt-1">
                 Started {new Date().toLocaleTimeString()}
               </div>
