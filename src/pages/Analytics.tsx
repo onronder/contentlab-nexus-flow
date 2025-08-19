@@ -1,6 +1,5 @@
 import React from 'react';
-import { AdvancedAnalyticsDashboard } from '@/components/analytics/AdvancedAnalyticsDashboard';
-import { PredictiveAnalyticsDashboard } from '@/components/analytics/PredictiveAnalyticsDashboard';
+import { LazyAdvancedAnalyticsDashboard, LazyPredictiveAnalyticsDashboard, LazyWrapper } from '@/components/lazy/LazyComponents';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -63,11 +62,15 @@ const Analytics = () => {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
-          <AdvancedAnalyticsDashboard />
+          <LazyWrapper>
+            <LazyAdvancedAnalyticsDashboard />
+          </LazyWrapper>
         </TabsContent>
 
         <TabsContent value="predictive" className="space-y-6">
-          <PredictiveAnalyticsDashboard projectId="demo-project" />
+          <LazyWrapper>
+            <LazyPredictiveAnalyticsDashboard projectId="demo-project" />
+          </LazyWrapper>
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">

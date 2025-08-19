@@ -6,6 +6,7 @@ import { ErrorTrackingDashboard } from '@/components/monitoring/ErrorTrackingDas
 import { PerformanceDashboard } from '@/components/monitoring/PerformanceDashboard';
 import { LogManagementDashboard } from '@/components/monitoring/LogManagementDashboard';
 import { CacheManagementDashboard } from '@/components/monitoring/CacheManagementDashboard';
+import { ProductionHealthDashboard } from '@/components/monitoring/ProductionHealthDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -94,21 +95,25 @@ export default function Monitoring() {
       </div>
 
       {/* Main Monitoring Dashboard */}
-      <Tabs defaultValue="errors" className="space-y-4">
+      <Tabs defaultValue="health" className="space-y-4">
         <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="health">Health</TabsTrigger>
           <TabsTrigger value="errors">Error Tracking</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="logging">Logging</TabsTrigger>
           <TabsTrigger value="caching">Caching</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="infrastructure">Infrastructure</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="health">
+          <ProductionHealthDashboard />
+        </TabsContent>
 
         <TabsContent value="errors">
           <ErrorTrackingDashboard />
         </TabsContent>
 
-        <TabsContent value="performance" className="space-y-6">
+        <TabsContent value="performance">
           <PerformanceDashboard />
         </TabsContent>
 
