@@ -72,7 +72,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         user_id: item.recipient_id || currentUserId || '',
         team_id: item.team_id,
         action_url: item.action_url,
-        metadata: item.metadata || {}
+        metadata: (item.metadata as Record<string, any>) || {}
       }));
       
       setNotifications(formattedData);
