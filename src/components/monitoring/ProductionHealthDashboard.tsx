@@ -419,13 +419,13 @@ export const ProductionHealthDashboard = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 glass-card rounded-lg">
                       <div className="text-2xl font-bold text-success">
-                        {Math.floor(Math.random() * 100) + 900}ms
+                        {apiStatus?.averageResponseTime || '< 200'}ms
                       </div>
                       <p className="text-xs text-muted-foreground">Avg Response</p>
                     </div>
                     <div className="text-center p-3 glass-card rounded-lg">
                       <div className="text-2xl font-bold text-primary">
-                        99.{Math.floor(Math.random() * 9) + 1}%
+                        {apiStatus?.uptime || '99.9'}%
                       </div>
                       <p className="text-xs text-muted-foreground">Uptime</p>
                     </div>

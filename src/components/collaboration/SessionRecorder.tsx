@@ -97,8 +97,14 @@ export const SessionRecorder: React.FC<{
 
   const loadRecordings = async () => {
     try {
-      // Mock data since session_recordings table doesn't exist yet
-      const data: any[] = [];
+      const { data, error } = await supabase
+        .from('session_recordings')
+        .select('*')
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
 
       const formattedRecordings: SessionRecording[] = data?.map(recording => ({
         id: recording.id,
@@ -196,8 +202,19 @@ export const SessionRecorder: React.FC<{
         fileSize: JSON.stringify(eventsRef.current).length
       };
 
-      // Save to database (mock for now)
-      const error = null; // Mock success
+      // Save to database
+      const { error } = await supabase
+        .from('session_recordings')
+        .insert([{
+          session_id: recording.sessionId,
+          team_id: recording.teamId,
+          name: recording.name,
+          duration: recording.duration,
+          events: recording.events,
+          participants: recording.participants,
+          file_size: recording.fileSize,
+          status: 'active'
+        }]);
 
       if (error) throw error;
 
