@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { withSecurity, validateInput } from '../_shared/security.ts';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -132,15 +133,39 @@ const generateInvitationTemplate = (data: InvitationEmailRequest): string => `
 </html>
 `;
 
-const handler = async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+const handler = withSecurity(async (req, logger) => {
+  logger.info('Processing invitation email request');
 
   try {
     const emailData: InvitationEmailRequest = await req.json();
 
-    console.log("Sending invitation email to:", emailData.email);
+    // Validate required inputs
+    const emailValidation = validateInput.email(emailData.email);
+    if (!emailValidation.isValid) {
+      logger.warn('Invalid email provided', { email: emailData.email, error: emailValidation.error });
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: emailValidation.error 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
+      });
+    }
+
+    // Validate team name and other inputs
+    const teamNameValidation = validateInput.text(emailData.teamName, 100);
+    if (!teamNameValidation.isValid) {
+      logger.warn('Invalid team name provided', { teamName: emailData.teamName });
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: teamNameValidation.error 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
+      });
+    }
+
+    logger.info("Sending invitation email", { to: emailData.email, team: emailData.teamName });
 
     const emailResponse = await resend.emails.send({
       from: "ContentLab Nexus <invitations@resend.dev>",
@@ -149,7 +174,7 @@ const handler = async (req: Request): Promise<Response> => {
       html: generateInvitationTemplate(emailData),
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    logger.info("Email sent successfully", { to: emailData.email, messageId: emailResponse.data?.id });
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -162,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error sending invitation email:", error);
+    logger.error("Error sending invitation email", { error: error.message, email: emailData?.email });
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -174,6 +199,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   }
-};
+}, {
+  requireAuth: true,
+  rateLimit: { requests: 10, windowMs: 60000 }, // 10 emails per minute
+  inputValidation: true
+});
 
 serve(handler);
