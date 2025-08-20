@@ -5939,6 +5939,10 @@ export type Database = {
         }
         Returns: string
       }
+      manage_file_versions: {
+        Args: { action: string; content_id: string; version_data?: Json }
+        Returns: Json
+      }
       resend_team_invitation: {
         Args: { p_invitation_id: string }
         Returns: undefined
