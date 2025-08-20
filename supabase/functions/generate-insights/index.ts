@@ -1,11 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { withSecurity, validateInput, CircuitBreaker } from '../_shared/security.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const openAICircuitBreaker = new CircuitBreaker(5, 120000, 60000);
 
 // Rate limiting and retry utilities
 async function delay(ms: number) {
@@ -47,12 +44,7 @@ async function retryWithExponentialBackoff<T>(
   throw lastError;
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = withSecurity(async (req, logger) => {
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const OPENAI_API_KEY_SECONDARY = Deno.env.get('OPENAI_API_KEY_SECONDARY');
@@ -66,9 +58,19 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
       global: { headers: { Authorization: req.headers.get('Authorization') || '' } }
     });
+    
     const { projectId, competitors, project } = await req.json();
 
-    console.log('Generating insights for project:', project.name, 'with', competitors.length, 'competitors');
+    // Input validation
+    const projectIdValidation = validateInput.uuid(projectId);
+    if (!projectIdValidation.isValid) {
+      throw new Error(`Project ID validation failed: ${projectIdValidation.error}`);
+    }
+
+    logger.info('Generating insights', { 
+      projectName: project.name, 
+      competitorCount: competitors.length 
+    });
 
     // Prepare competitor summary
     const competitorSummary = competitors.map(comp => ({
@@ -191,7 +193,7 @@ Return response in this exact JSON format:
     const data = await response.json();
     const content = data.choices[0].message.content;
 
-    console.log('OpenAI insights response received');
+    logger.info('OpenAI insights response received');
 
     // Parse JSON response
     let insights;
@@ -234,17 +236,17 @@ Return response in this exact JSON format:
       generatedAt: insights.generatedAt || new Date().toISOString()
     };
 
-    console.log('Project insights generated successfully');
+    logger.info('Project insights generated successfully', { projectId });
 
     return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-insights function:', error);
+    logger.error('Error in generate-insights function', error as Error);
     const err: any = error || {};
     const retryAfter = err?.retryAfter || parseInt(err?.headers?.['retry-after'] || '60', 10) || 60;
-    const headers = { ...corsHeaders, 'Content-Type': 'application/json' } as Record<string,string>;
+    const headers = { 'Content-Type': 'application/json' } as Record<string,string>;
     
     // Insufficient quota → 402 Payment Required
     if (err?.code === 'insufficient_quota' || /insufficient_quota/i.test(err?.detail || err?.message || '')) {
@@ -304,4 +306,12 @@ Return response in this exact JSON format:
       headers,
     });
   }
+}, {
+  requireAuth: true,
+  rateLimitRequests: 5, // Very limited for expensive AI operations
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });
+
+Deno.serve(handler);

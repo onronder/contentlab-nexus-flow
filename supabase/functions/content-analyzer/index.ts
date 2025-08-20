@@ -1,11 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.0";
+import { withSecurity, validateInput, CircuitBreaker } from '../_shared/security.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const openAICircuitBreaker = new CircuitBreaker(3, 60000, 30000);
 
 interface ContentAnalysisRequest {
   contentId: string;
@@ -15,11 +12,7 @@ interface ContentAnalysisRequest {
   description?: string;
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = withSecurity(async (req, logger) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -27,8 +20,11 @@ serve(async (req) => {
     );
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    const openAIApiKeySecondary = Deno.env.get('OPENAI_API_KEY_SECONDARY');
+    
+    if (!openAIApiKey && !openAIApiKeySecondary) {
+      logger.error('OpenAI API key not configured');
+      throw new Error('AI service not configured');
     }
 
     const { 
@@ -39,7 +35,16 @@ serve(async (req) => {
       description = '' 
     }: ContentAnalysisRequest = await req.json();
 
-    console.log(`Analyzing content ${contentId} for types: ${analysisTypes.join(', ')}`);
+    // Input validation
+    const contentIdValidation = validateInput.uuid(contentId);
+    if (!contentIdValidation.isValid) {
+      throw new Error(`Content ID validation failed: ${contentIdValidation.error}`);
+    }
+
+    logger.info('Content analysis started', { 
+      contentId, 
+      analysisTypes: analysisTypes.join(', ') 
+    });
 
     // Get content details if not provided
     let analysisContent = content;
@@ -106,35 +111,52 @@ serve(async (req) => {
             break;
         }
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an expert content analyst. Provide detailed, structured analysis in JSON format. Be specific and actionable in your recommendations.'
+        async function analyzeWithAI(apiKey: string) {
+          return await openAICircuitBreaker.call(async () => {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
               },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            max_tokens: 1000,
-            temperature: 0.3
-          }),
-        });
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are an expert content analyst. Provide detailed, structured analysis in JSON format. Be specific and actionable in your recommendations. Do not reproduce sensitive or personal information.'
+                  },
+                  {
+                    role: 'user',
+                    content: prompt
+                  }
+                ],
+                max_tokens: 1000,
+                temperature: 0.3
+              }),
+            });
 
-        if (!response.ok) {
-          console.error(`OpenAI API error for ${analysisType}:`, await response.text());
-          continue;
+            if (!response.ok) {
+              logger.error(`OpenAI API error for ${analysisType}`, new Error(`${response.status}: ${response.statusText}`));
+              throw new Error(`Analysis failed for ${analysisType}`);
+            }
+
+            return response.json();
+          });
         }
 
-        const aiResponse = await response.json();
+        let aiResponse;
+        try {
+          aiResponse = await analyzeWithAI(openAIApiKey || openAIApiKeySecondary!);
+        } catch (error) {
+          if (openAIApiKeySecondary && openAIApiKey) {
+            logger.warn(`Primary API key failed for ${analysisType}, trying secondary`);
+            aiResponse = await analyzeWithAI(openAIApiKeySecondary);
+          } else {
+            throw error;
+          }
+        }
+
         const analysisText = aiResponse.choices[0]?.message?.content;
 
         if (analysisText) {
@@ -155,7 +177,7 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 500));
 
       } catch (error) {
-        console.error(`Error analyzing ${analysisType}:`, error);
+        logger.error(`Error analyzing ${analysisType}`, error as Error);
         analysisResults[analysisType] = {
           error: `Failed to analyze ${analysisType}`,
           fallback: generateFallbackAnalysis(analysisType, textToAnalyze)
@@ -213,23 +235,41 @@ serve(async (req) => {
         completed_at: new Date().toISOString()
       });
 
+    logger.info('Content analysis completed', { 
+      contentId, 
+      overallScore: analysisResults.overallScore 
+    });
+
     return new Response(JSON.stringify({
       success: true,
       analysisResults
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error: any) {
-    console.error('Content analysis error:', error);
+    logger.error('Content analysis error', error as Error);
+    
+    const sanitizedError = error.message?.includes('API') 
+      ? 'AI analysis service temporarily unavailable' 
+      : 'Content analysis failed';
+      
     return new Response(JSON.stringify({
-      error: error.message || 'Content analysis failed'
+      error: sanitizedError
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
+}, {
+  requireAuth: false, // Allow system calls
+  rateLimitRequests: 10, // Limit analysis requests per minute
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });
+
+Deno.serve(handler);
 
 function generateFallbackAnalysis(type: string, content: string) {
   const words = content.split(/\s+/).length;
