@@ -34,7 +34,7 @@ export interface StatisticalForecast {
     lower: TimeSeriesPoint[];
   };
   model: string;
-  parameters: Record<string, number>;
+  parameters: Record<string, any>;
   diagnostics: {
     ljungBox: number;
     jarqueBera: number;
