@@ -99,31 +99,14 @@ function calculateViewsTrend(analytics: ContentAnalyticsItem[]): number {
   return olderViews > 0 ? ((recentViews - olderViews) / olderViews) * 100 : 0;
 }
 
-function generateMockPredictions(baseData: any): PredictiveInsight[] {
-  return [
-    {
-      id: '1',
-      title: 'Content Performance Forecast',
-      description: `Based on current trends, your content engagement is expected to ${baseData.trend > 0 ? 'increase' : 'decrease'} by ${Math.abs(baseData.trend).toFixed(1)}% next month`,
-      confidence: 85,
-      impact: baseData.trend > 0 ? 'positive' : 'negative',
-      category: 'engagement',
-      timeframe: '30 days',
-      recommendations: baseData.trend > 0 
-        ? ['Continue current content strategy', 'Increase posting frequency by 20%']
-        : ['Revise content strategy', 'Focus on high-performing content types']
-    },
-    {
-      id: '2',
-      title: 'Seasonal Content Opportunity',
-      description: 'Historical data suggests potential for increased engagement in the coming weeks',
-      confidence: 72,
-      impact: 'positive',
-      category: 'trend',
-      timeframe: '14 days',
-      recommendations: ['Prepare seasonal content', 'Schedule promotional campaigns']
-    }
-  ];
+async function generateRealPredictions(teamId?: string, projectId?: string): Promise<PredictiveInsight[]> {
+  try {
+    const { RealPredictiveAnalytics } = await import('@/services/realPredictiveAnalytics');
+    return await RealPredictiveAnalytics.generatePredictiveInsights(teamId, projectId);
+  } catch (error) {
+    console.error('Error generating real predictions:', error);
+    return [];
+  }
 }
 
 // Main interface
@@ -286,11 +269,10 @@ export const useAdvancedContentAnalytics = (projectId: string) => {
       }
 
       // Generate predictions based on real data trends
-      const predictions = generateMockPredictions({
-        trend: viewsTrend,
-        engagement: engagementRate,
-        conversion: conversionRate
-      });
+      const predictions = await generateRealPredictions(
+        (contentAnalytics[0]?.content_items as any)?.team_id,
+        projectId
+      );
 
       return {
         performanceMetrics: {
