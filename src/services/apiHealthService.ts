@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ApiHealthStatus {
   isHealthy: boolean;
   responseTime: number;
+  averageResponseTime: number;
+  uptime: number;
   lastCheck: Date;
   consecutiveFailures: number;
   errorRate: number;
@@ -32,6 +34,8 @@ export class ApiHealthService {
   private healthStatus: ApiHealthStatus = {
     isHealthy: true,
     responseTime: 0,
+    averageResponseTime: 0,
+    uptime: 0,
     lastCheck: new Date(),
     consecutiveFailures: 0,
     errorRate: 0

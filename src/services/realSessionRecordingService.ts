@@ -12,16 +12,14 @@ interface SessionEvent {
 interface SessionRecording {
   id: string;
   session_id: string;
-  team_id: string;
-  name: string;
-  duration: number; // in seconds
-  events: SessionEvent[];
-  participants: string[];
-  file_size: number;
-  storage_path?: string;
-  status: 'recording' | 'processing' | 'active' | 'archived';
-  created_by?: string;
+  recording_name: string | null;
+  duration_seconds: number | null;
+  recorded_by: string;
+  file_size: number | null;
+  metadata: any;
   created_at: string;
+  started_at: string;
+  ended_at: string | null;
   updated_at: string;
 }
 
@@ -55,13 +53,15 @@ class RealSessionRecordingService {
         .from('session_recordings')
         .insert([{
           session_id: sessionId,
-          team_id: teamId,
-          name: recordingName,
-          status: 'recording',
-          events: [],
-          participants: [],
-          duration: 0,
-          file_size: 0
+          recorded_by: 'system',
+          recording_name: recordingName,
+          duration_seconds: 0,
+          file_size: 0,
+          metadata: JSON.parse(JSON.stringify({
+            status: 'recording',
+            events: [],
+            participants: []
+          }))
         }])
         .select()
         .single();
@@ -308,7 +308,7 @@ class RealSessionRecordingService {
       // Get current recording
       const { data: recording, error: fetchError } = await supabase
         .from('session_recordings')
-        .select('events')
+        .select('metadata')
         .eq('id', this.currentSession)
         .single();
 
@@ -319,14 +319,18 @@ class RealSessionRecordingService {
         return;
       }
 
-      const currentEvents = recording.events || [];
+      const metadata = recording.metadata as any || {};
+      const currentEvents = metadata.events || [];
       const updatedEvents = [...currentEvents, ...eventsToFlush];
 
       // Update recording with new events
       const { error } = await supabase
         .from('session_recordings')
         .update({
-          events: updatedEvents,
+          metadata: JSON.parse(JSON.stringify({
+            ...metadata,
+            events: updatedEvents
+          })),
           file_size: JSON.stringify(updatedEvents).length,
           updated_at: new Date().toISOString()
         })
@@ -370,7 +374,6 @@ class RealSessionRecordingService {
       const { data, error } = await supabase
         .from('session_recordings')
         .select('*')
-        .eq('team_id', teamId)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -398,6 +401,8 @@ class RealSessionRecordingService {
         console.error('Failed to get recording:', error);
         return null;
       }
+
+      if (!data) return null;
 
       return data;
     } catch (error) {

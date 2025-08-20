@@ -30,14 +30,15 @@ interface SessionEvent {
 
 interface SessionRecording {
   id: string;
-  sessionId: string;
-  teamId: string;
-  name: string;
-  duration: number;
-  events: SessionEvent[];
-  participants: string[];
-  createdAt: string;
-  fileSize: number;
+  session_id: string;
+  recording_name: string | null;
+  duration_seconds: number | null;
+  recorded_by: string;
+  file_size: number | null;
+  created_at: string;
+  started_at: string;
+  ended_at: string | null;
+  metadata: any;
 }
 
 export const SessionRecorder: React.FC<{
@@ -100,23 +101,12 @@ export const SessionRecorder: React.FC<{
       const { data, error } = await supabase
         .from('session_recordings')
         .select('*')
-        .eq('team_id', teamId)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (error) throw error;
 
-      const formattedRecordings: SessionRecording[] = data?.map(recording => ({
-        id: recording.id,
-        sessionId: recording.session_id,
-        teamId: recording.team_id,
-        name: recording.name,
-        duration: recording.duration,
-        events: recording.events || [],
-        participants: recording.participants || [],
-        createdAt: recording.created_at,
-        fileSize: recording.file_size || 0
-      })) || [];
+      const formattedRecordings: SessionRecording[] = data || [];
 
       setRecordings(formattedRecordings);
     } catch (error) {
@@ -190,40 +180,28 @@ export const SessionRecorder: React.FC<{
     }
 
     try {
-      const recording: SessionRecording = {
-        id: `recording-${Date.now()}`,
-        sessionId: sessionId!,
-        teamId,
-        name: `Session ${new Date().toLocaleString()}`,
-        duration: recordingDuration,
-        events: eventsRef.current,
-        participants: state.participants.map(p => p.user_id),
-        createdAt: new Date().toISOString(),
-        fileSize: JSON.stringify(eventsRef.current).length
-      };
-
       // Save to database
       const { error } = await supabase
         .from('session_recordings')
         .insert([{
-          session_id: recording.sessionId,
-          team_id: recording.teamId,
-          name: recording.name,
-          duration: recording.duration,
-          events: recording.events,
-          participants: recording.participants,
-          file_size: recording.fileSize,
-          status: 'active'
+          session_id: sessionId!,
+          recorded_by: state.participants.find(p => p.user_id === state.participants[0]?.user_id)?.user_id || 'unknown',
+          recording_name: `Session ${new Date().toLocaleString()}`,
+          duration_seconds: recordingDuration,
+          file_size: JSON.stringify(eventsRef.current).length,
+          metadata: JSON.parse(JSON.stringify({
+            events: eventsRef.current,
+            participants: state.participants.map(p => p.user_id)
+          }))
         }]);
 
       if (error) throw error;
 
-      setCurrentRecording(recording);
       await loadRecordings();
 
       toast({
         title: "Recording Saved",
-        description: `Session recording saved with ${recording.events.length} events.`,
+        description: `Session recording saved with ${eventsRef.current.length} events.`,
       });
     } catch (error) {
       console.error('Error saving recording:', error);
@@ -247,8 +225,9 @@ export const SessionRecorder: React.FC<{
       setPlaybackPosition(currentTime);
 
       // Process events at current time
-      const eventsAtTime = recording.events.filter(
-        event => event.timestamp >= currentTime - 100 && event.timestamp < currentTime
+      const events = (recording.metadata as any)?.events || [];
+      const eventsAtTime = events.filter(
+        (event: any) => event.timestamp >= currentTime - 100 && event.timestamp < currentTime
       );
 
       eventsAtTime.forEach(event => {
@@ -256,7 +235,8 @@ export const SessionRecorder: React.FC<{
         console.log('Playback event:', event);
       });
 
-      if (currentTime >= recording.duration * 1000) {
+      const totalDuration = (recording.duration_seconds || 0) * 1000;
+      if (currentTime >= totalDuration) {
         setIsPlaying(false);
         if (playbackIntervalRef.current) {
           clearInterval(playbackIntervalRef.current);
@@ -389,9 +369,9 @@ export const SessionRecorder: React.FC<{
       {/* Playback Controls */}
       {currentRecording && (
         <Card>
-          <CardHeader>
-            <CardTitle>Playback: {currentRecording.name}</CardTitle>
-          </CardHeader>
+        <CardHeader>
+          <CardTitle>Playback: {currentRecording.recording_name || 'Untitled Recording'}</CardTitle>
+        </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -411,7 +391,7 @@ export const SessionRecorder: React.FC<{
                 </Button>
                 
                 <Button
-                  onClick={() => seekPlayback(Math.min(currentRecording.duration * 1000, playbackPosition + 10000))}
+                  onClick={() => seekPlayback(Math.min((currentRecording.duration_seconds || 0) * 1000, playbackPosition + 10000))}
                   variant="outline"
                   size="sm"
                 >
@@ -420,19 +400,19 @@ export const SessionRecorder: React.FC<{
 
                 <div className="flex-1">
                   <Progress 
-                    value={(playbackPosition / (currentRecording.duration * 1000)) * 100} 
+                    value={(playbackPosition / ((currentRecording.duration_seconds || 0) * 1000)) * 100} 
                     className="cursor-pointer"
                     onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const clickX = e.clientX - rect.left;
                       const percentage = clickX / rect.width;
-                      seekPlayback(percentage * currentRecording.duration * 1000);
+                      seekPlayback(percentage * (currentRecording.duration_seconds || 0) * 1000);
                     }}
                   />
                 </div>
 
                 <div className="text-sm font-mono">
-                  {formatDuration(Math.floor(playbackPosition / 1000))} / {formatDuration(currentRecording.duration)}
+                  {formatDuration(Math.floor(playbackPosition / 1000))} / {formatDuration(currentRecording.duration_seconds || 0)}
                 </div>
               </div>
             </div>
@@ -450,12 +430,12 @@ export const SessionRecorder: React.FC<{
             {recordings.map(recording => (
               <div key={recording.id} className="flex items-center gap-4 p-3 border rounded-lg">
                 <div className="flex-1">
-                  <div className="font-medium">{recording.name}</div>
+                  <div className="font-medium">{recording.recording_name || 'Untitled Recording'}</div>
                   <div className="text-sm text-muted-foreground">
-                    {formatDuration(recording.duration)} • {recording.events.length} events • {recording.participants.length} participants
+                    {formatDuration(recording.duration_seconds || 0)} • {(recording.metadata as any)?.events?.length || 0} events • {(recording.metadata as any)?.participants?.length || 0} participants
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(recording.createdAt).toLocaleString()}
+                    {new Date(recording.created_at).toLocaleString()}
                   </div>
                 </div>
                 
