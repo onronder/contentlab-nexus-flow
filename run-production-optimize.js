@@ -12,7 +12,7 @@ console.log('🚀 Starting Production Optimization Process...\n');
 
 try {
   // Run the production optimization script
-  const scriptPath = path.join(__dirname, 'scripts', 'production-optimize.js');
+  const scriptPath = path.join(__dirname, 'execute-optimization.js');
   
   console.log('📊 Executing production optimization...');
   const result = execSync(`node "${scriptPath}"`, { 
