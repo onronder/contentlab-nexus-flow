@@ -186,7 +186,7 @@ class StatisticalCacheService {
       cache: cacheStats,
       computations: computationStats,
       efficiency: {
-        hitRate: (cacheStats.hits || 0) / ((cacheStats.hits || 0) + (cacheStats.misses || 0)),
+        hitRate: (cacheStats.totalHits || 0) / ((cacheStats.totalHits || 0) + (cacheStats.totalMisses || 0)),
         avgSavings: computationStats.reduce((sum, stat) => sum + stat.avgComputationTime, 0) / computationStats.length
       }
     };

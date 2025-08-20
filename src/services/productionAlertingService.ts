@@ -39,6 +39,16 @@ class ProductionAlertingService {
   private lastTriggered: Map<string, number> = new Map();
   private subscribers: Map<string, (alert: Alert) => void> = new Map();
 
+  private mapSeverityToDatabase(severity: Alert['severity']): 'debug' | 'info' | 'warning' | 'error' | 'critical' {
+    switch (severity) {
+      case 'low': return 'info';
+      case 'medium': return 'warning';
+      case 'high': return 'error';
+      case 'critical': return 'critical';
+      default: return 'info';
+    }
+  }
+
   constructor() {
     this.initializeDefaultRules();
     this.startMonitoring();
@@ -240,7 +250,7 @@ class ProductionAlertingService {
         activity_type: 'system_event',
         action: 'alert_triggered',
         description: alert.message,
-        severity: alert.severity,
+        severity: this.mapSeverityToDatabase(alert.severity),
         metadata: {
           alertId: alert.id,
           alertType: alert.type,
