@@ -86,6 +86,84 @@ export type Database = {
           },
         ]
       }
+      ai_job_queue: {
+        Row: {
+          assigned_worker: string | null
+          attempts: number
+          completed_at: string | null
+          correlation_id: string | null
+          created_at: string
+          error_data: Json | null
+          expires_at: string | null
+          id: string
+          input_data: Json
+          job_type: string
+          max_attempts: number
+          output_data: Json | null
+          priority: number
+          progress_message: string | null
+          progress_percent: number | null
+          scheduled_at: string
+          source_ip: unknown | null
+          started_at: string | null
+          status: string
+          team_id: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          assigned_worker?: string | null
+          attempts?: number
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_data?: Json | null
+          expires_at?: string | null
+          id?: string
+          input_data?: Json
+          job_type: string
+          max_attempts?: number
+          output_data?: Json | null
+          priority?: number
+          progress_message?: string | null
+          progress_percent?: number | null
+          scheduled_at?: string
+          source_ip?: unknown | null
+          started_at?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          assigned_worker?: string | null
+          attempts?: number
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_data?: Json | null
+          expires_at?: string | null
+          id?: string
+          input_data?: Json
+          job_type?: string
+          max_attempts?: number
+          output_data?: Json | null
+          priority?: number
+          progress_message?: string | null
+          progress_percent?: number | null
+          scheduled_at?: string
+          source_ip?: unknown | null
+          started_at?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_suggestions: {
         Row: {
           confidence_score: number | null
@@ -135,6 +213,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_usage_analytics: {
+        Row: {
+          confidence_score: number | null
+          cost_estimate: number | null
+          created_at: string
+          endpoint: string
+          error_type: string | null
+          id: string
+          model_used: string
+          operation_type: string | null
+          processing_time_ms: number | null
+          request_date: string
+          success: boolean
+          team_id: string | null
+          tokens_used: number
+          user_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          cost_estimate?: number | null
+          created_at?: string
+          endpoint: string
+          error_type?: string | null
+          id?: string
+          model_used: string
+          operation_type?: string | null
+          processing_time_ms?: number | null
+          request_date?: string
+          success?: boolean
+          team_id?: string | null
+          tokens_used?: number
+          user_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          cost_estimate?: number | null
+          created_at?: string
+          endpoint?: string
+          error_type?: string | null
+          id?: string
+          model_used?: string
+          operation_type?: string | null
+          processing_time_ms?: number | null
+          request_date?: string
+          success?: boolean
+          team_id?: string | null
+          tokens_used?: number
+          user_id?: string | null
+        }
+        Relationships: []
       }
       analytics_insights: {
         Row: {
@@ -5627,6 +5756,10 @@ export type Database = {
       check_team_membership: {
         Args: { p_email: string; p_team_id: string }
         Returns: boolean
+      }
+      cleanup_expired_ai_jobs: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       cleanup_expired_invitations: {
         Args: Record<PropertyKey, never>

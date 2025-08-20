@@ -6,6 +6,7 @@ import { SessionList } from './SessionList';
 import { SecurityEventCard } from './SecurityEventCard';
 import { SecurityComplianceReport } from './SecurityComplianceReport';
 import { SecurityMonitoringDashboard } from './SecurityMonitoringDashboard';
+import { AISecurityAnalytics } from './AISecurityAnalytics';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { securityMonitoringService } from '@/services/securityMonitoringService';
 import { AlertTriangle, Shield, Clock, Globe, Lock, Activity, CheckCircle, Eye } from 'lucide-react';
@@ -72,9 +73,10 @@ export const SecurityDashboard = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Security Overview</TabsTrigger>
           <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+          <TabsTrigger value="ai-security">AI Security</TabsTrigger>
           <TabsTrigger value="compliance">Compliance Report</TabsTrigger>
           <TabsTrigger value="sessions">Active Sessions</TabsTrigger>
         </TabsList>
@@ -201,6 +203,10 @@ export const SecurityDashboard = () => {
         
         <TabsContent value="monitoring" className="space-y-6">
           <SecurityMonitoringDashboard />
+        </TabsContent>
+        
+        <TabsContent value="ai-security" className="space-y-6">
+          <AISecurityAnalytics />
         </TabsContent>
         
         <TabsContent value="compliance" className="space-y-6">
