@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withSecurity, SecurityLogger } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,11 +31,7 @@ const connections = new Map<string, WebSocketConnection>();
 const teamConnections = new Map<string, Set<string>>(); // teamId -> Set of connectionIds
 const resourceConnections = new Map<string, Set<string>>(); // resourceId -> Set of connectionIds
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
 
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
@@ -86,7 +82,7 @@ serve(async (req) => {
   const sessionId = crypto.randomUUID();
   const connectionId = `${user.id}-${sessionId}`;
 
-  console.log(`New WebSocket connection: ${connectionId} for team ${teamId}`);
+  logger.info(`New WebSocket connection established`, { connectionId, teamId, userId: user.id });
 
   socket.onopen = async () => {
     // Store connection
@@ -244,6 +240,14 @@ serve(async (req) => {
   };
 
   return response;
+};
+
+export default withSecurity(handler, {
+  requireAuth: true,
+  rateLimitRequests: 1000, // Higher limit for WebSocket connections
+  rateLimitWindow: 60000,
+  validateInput: false, // WebSocket upgrade doesn't need JSON validation
+  enableCORS: true
 });
 
 async function handlePresenceUpdate(supabase: any, userId: string, teamId: string, data: any) {

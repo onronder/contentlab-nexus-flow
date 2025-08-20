@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.0";
+import { withSecurity, SecurityLogger } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,12 +18,9 @@ interface CDNRequest {
   };
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
   try {
+    logger.info('CDN manager request received');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -31,7 +28,7 @@ serve(async (req) => {
 
     const { action, filePaths = [], projectId, settings = {} }: CDNRequest = await req.json();
 
-    console.log(`CDN Manager: Executing ${action} action`);
+    logger.info('CDN Manager operation', { action, fileCount: filePaths.length, projectId });
 
     let results: any = {
       action,
@@ -65,22 +62,31 @@ serve(async (req) => {
         throw new Error(`Unknown action: ${action}`);
     }
 
+    logger.info('CDN operation completed', { action, processed: results.processed });
     return new Response(JSON.stringify({
       success: true,
       results
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error: any) {
-    console.error('CDN Manager error:', error);
+    logger.error('CDN Manager operation failed', error, { action: req.url });
     return new Response(JSON.stringify({
       error: error.message || 'CDN operation failed'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
+};
+
+export default withSecurity(handler, {
+  requireAuth: true,
+  rateLimitRequests: 100,
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });
 
 async function cacheFiles(supabase: any, filePaths: string[], settings: any) {

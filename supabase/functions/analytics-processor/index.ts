@@ -1,20 +1,14 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withSecurity, SecurityLogger } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
   try {
-    console.log('Analytics processor started');
+    logger.info('Analytics processor started');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -22,7 +16,7 @@ serve(async (req) => {
     );
 
     const { event, data } = await req.json();
-    console.log('Processing analytics event:', event, data);
+    logger.info('Processing analytics event', { event });
 
     switch (event) {
       case 'user_action':
@@ -41,6 +35,7 @@ serve(async (req) => {
         console.log('Unknown event type:', event);
     }
 
+    logger.info('Analytics event processed successfully', { event });
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -49,13 +44,13 @@ serve(async (req) => {
         timestamp: new Date().toISOString()
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 200,
       }
     );
 
   } catch (error) {
-    console.error('Error processing analytics:', error);
+    logger.error('Analytics processing failed', error as Error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -64,10 +59,18 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }
+};
+
+export default withSecurity(handler, {
+  requireAuth: false, // Internal analytics function
+  rateLimitRequests: 1000, // High limit for analytics
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });
 
 async function processUserAction(supabase: any, data: any) {

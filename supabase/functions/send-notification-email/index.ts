@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { withSecurity, SecurityLogger, validateInput } from "../_shared/security.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -16,23 +16,51 @@ interface NotificationEmailRequest {
   actionUrl?: string;
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { 
       status: 405,
-      headers: corsHeaders 
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 
   try {
     const { to, name, subject, message, actionUrl }: NotificationEmailRequest = await req.json();
 
-    console.log('Sending notification email to:', to);
+    // Validate input
+    const emailValidation = validateInput.email(to);
+    if (!emailValidation.isValid) {
+      return new Response(JSON.stringify({ error: emailValidation.error }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const nameValidation = validateInput.text(name, 100);
+    if (!nameValidation.isValid) {
+      return new Response(JSON.stringify({ error: nameValidation.error }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const subjectValidation = validateInput.text(subject, 200);
+    if (!subjectValidation.isValid) {
+      return new Response(JSON.stringify({ error: subjectValidation.error }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const messageValidation = validateInput.text(message, 5000);
+    if (!messageValidation.isValid) {
+      return new Response(JSON.stringify({ error: messageValidation.error }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    logger.info('Sending notification email', { to, subject });
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -153,17 +181,16 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailHtml,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    logger.info("Email sent successfully", { to, emailId: emailResponse.id });
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        ...corsHeaders,
       },
     });
   } catch (error: any) {
-    console.error("Error in send-notification-email function:", error);
+    logger.error("Failed to send notification email", error, { to, subject });
     return new Response(
       JSON.stringify({ 
         error: error.message,
@@ -173,11 +200,16 @@ const handler = async (req: Request): Promise<Response> => {
         status: 500,
         headers: { 
           "Content-Type": "application/json", 
-          ...corsHeaders 
         },
       }
     );
   }
 };
 
-serve(handler);
+export default withSecurity(handler, {
+  requireAuth: true,
+  rateLimitRequests: 10, // Strict limit for email sending
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
+});

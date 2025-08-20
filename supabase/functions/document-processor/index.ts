@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.0";
+import { withSecurity, SecurityLogger } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,12 +14,9 @@ interface DocumentProcessingRequest {
   analyzeStructure: boolean;
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
   try {
+    logger.info('Starting document processing', { contentId: 'pending' });
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -207,20 +204,29 @@ serve(async (req) => {
         completed_at: new Date().toISOString()
       });
 
+    logger.info('Document processing completed', { contentId, fileType: mimeType });
     return new Response(JSON.stringify({
       success: true,
       processingResults
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error: any) {
-    console.error('Document processing error:', error);
+    logger.error('Document processing failed', error, { contentId: req.url });
     return new Response(JSON.stringify({
       error: error.message || 'Document processing failed'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
+};
+
+export default withSecurity(handler, {
+  requireAuth: true,
+  rateLimitRequests: 30, // Moderate limit for document processing
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });

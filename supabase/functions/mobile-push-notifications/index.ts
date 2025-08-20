@@ -1,17 +1,12 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { withSecurity, SecurityLogger } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -29,7 +24,7 @@ serve(async (req) => {
       notificationType = 'general'
     } = await req.json();
 
-    console.log(`Push notification request: userId=${userId}, type=${notificationType}`);
+    logger.info('Push notification request', { userId, notificationType });
 
     if (!userId || !title || !body) {
       throw new Error('userId, title, and body are required');
@@ -135,7 +130,7 @@ serve(async (req) => {
       })
       .eq('id', notification.id);
 
-    console.log(`Notification sent: ${notification.id}, delivered to ${successCount}/${activeDevices.length} devices`);
+    logger.info('Notification sent successfully', { notificationId: notification.id, deliveredTo: successCount });
 
     return new Response(
       JSON.stringify({
@@ -148,11 +143,11 @@ serve(async (req) => {
           deliveryRate: activeDevices.length > 0 ? (successCount / activeDevices.length * 100).toFixed(1) + '%' : '0%'
         }
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Push notification error:', error);
+    logger.error('Push notification failed', error as Error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
@@ -160,10 +155,18 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }
+};
+
+export default withSecurity(handler, {
+  requireAuth: true,
+  rateLimitRequests: 100, // Reasonable limit for push notifications
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });
 
 // Simulate push notification delivery

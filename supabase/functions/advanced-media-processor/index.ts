@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.0";
+import { withSecurity, SecurityLogger } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,12 +13,9 @@ interface MediaProcessingRequest {
   outputFormats?: string[];
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
   try {
+    logger.info('Starting media processing', { contentId: 'pending' });
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -195,20 +192,29 @@ serve(async (req) => {
         processing_time_ms: Date.now() - new Date().getTime()
       });
 
+    logger.info('Media processing completed', { contentId, optimizationLevel });
     return new Response(JSON.stringify({
       success: true,
       optimizationResults: optimizationMetadata
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error: any) {
-    console.error('Media processing error:', error);
+    logger.error('Media processing failed', error, { contentId: req.url });
     return new Response(JSON.stringify({
       error: error.message || 'Media processing failed'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
+};
+
+export default withSecurity(handler, {
+  requireAuth: true,
+  rateLimitRequests: 20, // Lower limit for media processing
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });

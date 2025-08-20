@@ -1,6 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { withSecurity, SecurityLogger } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -127,19 +126,16 @@ const extractContent = (html: string, url: string) => {
   };
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+const handler = async (req: Request, logger: SecurityLogger): Promise<Response> => {
   try {
+    logger.info('Web scraping request received');
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { action, competitorId, url, detectChanges = false } = await req.json();
+    logger.info('Processing web scraping', { action, competitorId, url });
 
     if (action === 'scrape_website') {
       console.log(`Scraping website: ${url} for competitor: ${competitorId}`);
@@ -304,12 +300,20 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in web scraping function:', error);
+    logger.error('Web scraping failed', error as Error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : 'Unknown error occurred' 
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
+};
+
+export default withSecurity(handler, {
+  requireAuth: true,
+  rateLimitRequests: 30, // Limited due to web scraping
+  rateLimitWindow: 60000,
+  validateInput: true,
+  enableCORS: true
 });
