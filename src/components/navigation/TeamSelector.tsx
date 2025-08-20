@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Users, ChevronDown } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TeamSelectorProps {
@@ -72,7 +72,6 @@ export function TeamSelector({ className }: TeamSelectorProps) {
             </>
           )}
         </div>
-        <ChevronDown className="h-4 w-4 opacity-50 ml-auto flex-shrink-0" />
       </SelectTrigger>
       <SelectContent>
         {availableTeams.map((team) => (
