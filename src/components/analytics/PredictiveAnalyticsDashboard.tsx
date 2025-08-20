@@ -19,15 +19,17 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
   
   const { performanceForecasts, contentDemandPrediction, strategicRecommendations, isLoading } = usePredictiveAnalytics(projectId);
 
-  // Use real data from statistical models - no fallbacks
+  // Use real data from statistical models with proper fallbacks
   const demandData = contentDemandPrediction || [];
+  const forecastData = performanceForecasts || [];
+  const strategicData = strategicRecommendations || [];
 
   // Generate lifecycle predictions from real performance data using statistical analysis
   const lifecyclePredictions = React.useMemo(() => {
-    if (!performanceForecasts || performanceForecasts.length === 0) return [];
+    if (!forecastData || forecastData.length === 0) return [];
     
     // Use trend analysis to predict content lifecycle stages
-    return performanceForecasts.slice(0, 3).map((forecast, index) => {
+    return forecastData.slice(0, 3).map((forecast, index) => {
       const trend = forecast.predicted > forecast.actual ? 'growing' : 'declining';
       const confidence = Math.min(95, forecast.confidence * 100);
       
@@ -40,13 +42,13 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
         risk: confidence > 85 ? 'low' : confidence > 70 ? 'medium' : 'high'
       };
     });
-  }, [performanceForecasts]);
+  }, [forecastData]);
 
   // Generate audience growth predictions from performance data
   const audienceGrowthPrediction = React.useMemo(() => {
-    if (!performanceForecasts || performanceForecasts.length === 0) return [];
+    if (!forecastData || forecastData.length === 0) return [];
     
-    const avgGrowth = performanceForecasts.reduce((sum, f) => sum + (f.predicted - f.actual), 0) / performanceForecasts.length;
+    const avgGrowth = forecastData.reduce((sum, f) => sum + (f.predicted - f.actual), 0) / forecastData.length;
     const baseSegments = ['Power Users', 'Regular Users', 'Occasional Users', 'New Users'];
     
     return baseSegments.map((segment, index) => {
@@ -63,7 +65,7 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
         likelihood: Math.abs(growth) < 10 ? 'high' : 'medium'
       };
     });
-  }, [performanceForecasts]);
+  }, [forecastData]);
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
@@ -143,44 +145,62 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={performanceForecasts}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="actual" 
-                    stroke={COLORS[0]} 
-                    strokeWidth={2}
-                    name="Actual Performance"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="predicted" 
-                    stroke={COLORS[1]} 
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    name="Predicted Performance"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">+18%</div>
-                  <div className="text-sm text-muted-foreground">Expected Growth</div>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading forecast data...</p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">85%</div>
-                  <div className="text-sm text-muted-foreground">Avg. Confidence</div>
+              ) : forecastData.length === 0 ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="text-center">
+                    <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No forecast data available</p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">1,720</div>
-                  <div className="text-sm text-muted-foreground">Peak Prediction</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={forecastData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="actual" 
+                      stroke={COLORS[0]} 
+                      strokeWidth={2}
+                      name="Actual Performance"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="predicted" 
+                      stroke={COLORS[1]} 
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      name="Predicted Performance"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+              {!isLoading && forecastData.length > 0 && (
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">+18%</div>
+                    <div className="text-sm text-muted-foreground">Expected Growth</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">85%</div>
+                    <div className="text-sm text-muted-foreground">Avg. Confidence</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">1,720</div>
+                    <div className="text-sm text-muted-foreground">Peak Prediction</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -191,43 +211,59 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
               <CardTitle>Content Demand Predictions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {demandData.map((item, index) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-medium">{item.category}</h4>
-                      <div className="flex items-center gap-2">
-                        {item.growth > 20 ? (
-                          <TrendingUp className="h-4 w-4 text-green-500" />
-                        ) : item.growth < 0 ? (
-                          <TrendingDown className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <TrendingUp className="h-4 w-4 text-blue-500" />
-                        )}
-                        <Badge variant={item.growth > 20 ? 'default' : 'secondary'}>
-                          {item.growth > 0 ? '+' : ''}{item.growth}%
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <div className="text-sm text-muted-foreground">Current Demand</div>
-                        <Progress value={item.currentDemand} className="h-2 mt-1" />
-                        <div className="text-xs text-muted-foreground mt-1">{item.currentDemand}%</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">Predicted Demand</div>
-                        <Progress value={item.predictedDemand} className="h-2 mt-1" />
-                        <div className="text-xs text-muted-foreground mt-1">{item.predictedDemand}%</div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Confidence</span>
-                      <span className={getConfidenceColor(item.confidence)}>{item.confidence}%</span>
-                    </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading demand predictions...</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : demandData.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <Target className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No demand predictions available</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {demandData.map((item, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-medium">{item.category}</h4>
+                        <div className="flex items-center gap-2">
+                          {item.growth > 20 ? (
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                          ) : item.growth < 0 ? (
+                            <TrendingDown className="h-4 w-4 text-red-500" />
+                          ) : (
+                            <TrendingUp className="h-4 w-4 text-blue-500" />
+                          )}
+                          <Badge variant={item.growth > 20 ? 'default' : 'secondary'}>
+                            {item.growth > 0 ? '+' : ''}{item.growth}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <div className="text-sm text-muted-foreground">Current Demand</div>
+                          <Progress value={item.currentDemand} className="h-2 mt-1" />
+                          <div className="text-xs text-muted-foreground mt-1">{item.currentDemand}%</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Predicted Demand</div>
+                          <Progress value={item.predictedDemand} className="h-2 mt-1" />
+                          <div className="text-xs text-muted-foreground mt-1">{item.predictedDemand}%</div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Confidence</span>
+                        <span className={getConfidenceColor(item.confidence)}>{item.confidence}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -238,38 +274,54 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
               <CardTitle>Content Lifecycle Predictions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {lifecyclePredictions.map((item, index) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-medium">{item.content}</h4>
-                        <div className="text-sm text-muted-foreground">
-                          Current: {item.currentStage}
+              {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading lifecycle predictions...</p>
+                  </div>
+                </div>
+              ) : lifecyclePredictions.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No lifecycle predictions available</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {lifecyclePredictions.map((item, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-medium">{item.content}</h4>
+                          <div className="text-sm text-muted-foreground">
+                            Current: {item.currentStage}
+                          </div>
+                        </div>
+                        <Badge variant={getRiskColor(item.risk)}>
+                          {item.risk} risk
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Obsolescence:</span>
+                          <span className="ml-2 font-medium">{item.predictedObsolescence}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Confidence:</span>
+                          <span className={`ml-2 font-medium ${getConfidenceColor(item.confidence)}`}>
+                            {item.confidence}%
+                          </span>
                         </div>
                       </div>
-                      <Badge variant={getRiskColor(item.risk)}>
-                        {item.risk} risk
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Obsolescence:</span>
-                        <span className="ml-2 font-medium">{item.predictedObsolescence}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Confidence:</span>
-                        <span className={`ml-2 font-medium ${getConfidenceColor(item.confidence)}`}>
-                          {item.confidence}%
-                        </span>
+                      <div className="mt-3 p-2 bg-muted rounded text-sm">
+                        <strong>Recommendation:</strong> {item.recommendation}
                       </div>
                     </div>
-                    <div className="mt-3 p-2 bg-muted rounded text-sm">
-                      <strong>Recommendation:</strong> {item.recommendation}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -280,29 +332,45 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
               <CardTitle>Audience Growth Predictions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {audienceGrowthPrediction.map((segment, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium">{segment.segment}</h4>
-                      <div className="text-sm text-muted-foreground">
-                        {segment.current} → {segment.predicted} users
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className={`text-lg font-bold ${segment.growth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {segment.growth > 0 ? '+' : ''}{segment.growth}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">Growth</div>
-                      </div>
-                      <Badge variant={segment.likelihood === 'high' ? 'default' : 'secondary'}>
-                        {segment.likelihood} likelihood
-                      </Badge>
-                    </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading audience predictions...</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : audienceGrowthPrediction.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No audience growth predictions available</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {audienceGrowthPrediction.map((segment, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{segment.segment}</h4>
+                        <div className="text-sm text-muted-foreground">
+                          {segment.current} → {segment.predicted} users
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className={`text-lg font-bold ${segment.growth > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {segment.growth > 0 ? '+' : ''}{segment.growth}%
+                          </div>
+                          <div className="text-xs text-muted-foreground">Growth</div>
+                        </div>
+                        <Badge variant={segment.likelihood === 'high' ? 'default' : 'secondary'}>
+                          {segment.likelihood} likelihood
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -313,36 +381,52 @@ export function PredictiveAnalyticsDashboard({ projectId }: PredictiveAnalyticsD
               <CardTitle>Strategic Recommendations</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {strategicRecommendations.map((rec, index) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant={rec.priority === 'high' ? 'destructive' : 'default'}>
-                            {rec.priority.toUpperCase()}
-                          </Badge>
-                          <span className="font-medium">{rec.type}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{rec.prediction}</p>
-                      </div>
-                      <div className={`text-sm font-medium ${getConfidenceColor(rec.confidence)}`}>
-                        {rec.confidence}% confidence
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div>
-                        <strong className="text-sm">Recommendation:</strong>
-                        <p className="text-sm text-muted-foreground">{rec.recommendation}</p>
-                      </div>
-                      <div>
-                        <strong className="text-sm">Expected Impact:</strong>
-                        <p className="text-sm text-muted-foreground">{rec.impact}</p>
-                      </div>
-                    </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading strategic insights...</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : strategicData.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No strategic recommendations available</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {strategicData.map((rec, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant={rec.priority === 'high' ? 'destructive' : 'default'}>
+                              {rec.priority.toUpperCase()}
+                            </Badge>
+                            <span className="font-medium">{rec.type}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{rec.prediction}</p>
+                        </div>
+                        <div className={`text-sm font-medium ${getConfidenceColor(rec.confidence)}`}>
+                          {rec.confidence}% confidence
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <strong className="text-sm">Recommendation:</strong>
+                          <p className="text-sm text-muted-foreground">{rec.recommendation}</p>
+                        </div>
+                        <div>
+                          <strong className="text-sm">Expected Impact:</strong>
+                          <p className="text-sm text-muted-foreground">{rec.impact}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
