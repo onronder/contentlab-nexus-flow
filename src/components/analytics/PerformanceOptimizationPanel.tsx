@@ -17,54 +17,10 @@ export function PerformanceOptimizationPanel({ projectId }: PerformanceOptimizat
   
   const { recommendations, freshnessAnalysis, seoOptimization, isLoading } = usePerformanceOptimization(projectId);
 
-  // Use real data from hooks, fallback to mock data
-  const performanceRecommendations = recommendations || [
-    {
-      id: 1,
-      type: 'performance',
-      priority: 'high',
-      title: 'Optimize Image Compression',
-      description: 'Large images are slowing down page load times.',
-      impact: 'Reduce page load time by 2.3 seconds',
-      effort: 'Low',
-      status: 'pending',
-      affectedContent: 23
-    }
-  ];
-
-  const freshnessData = freshnessAnalysis || [
-    { category: 'Very Fresh (0-30 days)', count: 45, percentage: 35, status: 'excellent' },
-    { category: 'Fresh (31-90 days)', count: 38, percentage: 30, status: 'good' },
-    { category: 'Aging (91-180 days)', count: 28, percentage: 22, status: 'warning' },
-    { category: 'Stale (180+ days)', count: 17, percentage: 13, status: 'needs-attention' }
-  ];
-
-  const seoData = seoOptimization || [
-    { 
-      aspect: 'Title Tags', 
-      score: 85, 
-      issues: 3, 
-      recommendations: ['Optimize 3 titles that are too long', 'Add target keywords to 2 titles']
-    },
-    { 
-      aspect: 'Meta Descriptions', 
-      score: 72, 
-      issues: 15, 
-      recommendations: ['Add meta descriptions to 15 pages', 'Optimize length for 5 descriptions']
-    },
-    { 
-      aspect: 'Header Structure', 
-      score: 90, 
-      issues: 2, 
-      recommendations: ['Fix H1 tag hierarchy on 2 pages']
-    },
-    { 
-      aspect: 'Image Optimization', 
-      score: 68, 
-      issues: 23, 
-      recommendations: ['Add alt text to 8 images', 'Optimize file size for 15 images']
-    }
-  ];
+  // Use real data from hooks - no fallbacks
+  const performanceRecommendations = recommendations || [];
+  const freshnessData = freshnessAnalysis || [];
+  const seoData = seoOptimization || [];
 
   const accessibilityChecks = [
     { check: 'Alt Text Coverage', score: 78, status: 'warning', issues: 8 },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
+import { realStorageAnalytics } from '@/services/realStorageAnalytics';
 
 interface StorageAnalyticsDashboardProps {
   projectId: string;
@@ -39,39 +40,57 @@ interface StorageData {
 
 export const StorageAnalyticsDashboard = ({ projectId }: StorageAnalyticsDashboardProps) => {
   const [dateRange, setDateRange] = useState('30d');
-  
-  // Mock data - replace with actual data from your analytics service
-  const storageData: StorageData = {
-    totalFiles: 1247,
-    totalStorage: 5368709120, // ~5GB in bytes
-    storageByType: {
-      'image': 2147483648, // ~2GB
-      'video': 1610612736, // ~1.5GB
-      'document': 1073741824, // ~1GB
-      'audio': 536870912, // ~0.5GB
-    },
-    uploadTrend: [
-      { date: '2024-01-01', uploads: 15, size: 157286400 },
-      { date: '2024-01-02', uploads: 23, size: 241172480 },
-      { date: '2024-01-03', uploads: 18, size: 188743680 },
-      { date: '2024-01-04', uploads: 31, size: 325058560 },
-      { date: '2024-01-05', uploads: 12, size: 125829120 },
-      { date: '2024-01-06', uploads: 27, size: 283467776 },
-      { date: '2024-01-07', uploads: 19, size: 199229440 },
-    ],
-    topFiles: [
-      { name: 'product-demo-video.mp4', size: 157286400, type: 'video', lastAccessed: new Date('2024-01-15') },
-      { name: 'marketing-presentation.pptx', size: 52428800, type: 'document', lastAccessed: new Date('2024-01-14') },
-      { name: 'hero-banner-4k.jpg', size: 31457280, type: 'image', lastAccessed: new Date('2024-01-13') },
-      { name: 'podcast-episode-12.mp3', size: 26214400, type: 'audio', lastAccessed: new Date('2024-01-12') },
-      { name: 'annual-report-2023.pdf', size: 20971520, type: 'document', lastAccessed: new Date('2024-01-11') },
-    ],
-    storageTierDistribution: [
-      { tier: 'hot', files: 425, storage: 2147483648 },
-      { tier: 'warm', files: 623, storage: 2147483648 },
-      { tier: 'cold', files: 199, storage: 1073741824 },
-    ]
-  };
+  const [storageData, setStorageData] = useState<StorageData | null>(null);
+  const [optimizations, setOptimizations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStorageData = async () => {
+      setIsLoading(true);
+      try {
+        const [analytics, opts] = await Promise.all([
+          realStorageAnalytics.getStorageAnalytics(projectId, dateRange),
+          realStorageAnalytics.getStorageOptimizations(projectId)
+        ]);
+        
+        setStorageData(analytics);
+        setOptimizations(opts);
+      } catch (error) {
+        console.error('Error loading storage data:', error);
+        setStorageData({
+          totalFiles: 0,
+          totalStorage: 0,
+          storageByType: {},
+          uploadTrend: [],
+          topFiles: [],
+          storageTierDistribution: []
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStorageData();
+  }, [projectId, dateRange]);
+
+  if (isLoading || !storageData) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="animate-pulse">
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-4 bg-muted rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -362,44 +381,34 @@ export const StorageAnalyticsDashboard = ({ projectId }: StorageAnalyticsDashboa
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="p-3 border rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Zap className="h-5 w-5 text-yellow-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Compress Large Images</p>
-                        <p className="text-sm text-muted-foreground">
-                          Found 15 images over 5MB that could be compressed to save ~45MB
-                        </p>
-                        <Button size="sm" className="mt-2">Optimize Images</Button>
+                  {optimizations.map((opt, index) => (
+                    <div key={index} className="p-3 border rounded-lg">
+                      <div className="flex items-start gap-3">
+                        {opt.actionType === 'compress' && <Zap className="h-5 w-5 text-yellow-500 mt-0.5" />}
+                        {opt.actionType === 'archive' && <Archive className="h-5 w-5 text-blue-500 mt-0.5" />}
+                        {opt.actionType === 'deduplicate' && <Clock className="h-5 w-5 text-orange-500 mt-0.5" />}
+                        <div>
+                          <p className="font-medium">{opt.category}</p>
+                          <p className="text-sm text-muted-foreground">{opt.description}</p>
+                          {opt.potentialSavings > 0 && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Potential savings: {formatFileSize(opt.potentialSavings)}
+                            </p>
+                          )}
+                          <Button size="sm" variant="outline" className="mt-2">
+                            {opt.actionType === 'compress' && 'Optimize'}
+                            {opt.actionType === 'archive' && 'Archive'}
+                            {opt.actionType === 'deduplicate' && 'View Duplicates'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="p-3 border rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Archive className="h-5 w-5 text-blue-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Archive Old Files</p>
-                        <p className="text-sm text-muted-foreground">
-                          23 files haven't been accessed in 90+ days
-                        </p>
-                        <Button size="sm" variant="outline" className="mt-2">Move to Cold Storage</Button>
-                      </div>
+                  ))}
+                  {optimizations.length === 0 && (
+                    <div className="text-center p-6 text-muted-foreground">
+                      No optimization opportunities found.
                     </div>
-                  </div>
-
-                  <div className="p-3 border rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Clock className="h-5 w-5 text-orange-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Remove Duplicates</p>
-                        <p className="text-sm text-muted-foreground">
-                          8 duplicate files consuming 2.3GB of space
-                        </p>
-                        <Button size="sm" variant="outline" className="mt-2">View Duplicates</Button>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

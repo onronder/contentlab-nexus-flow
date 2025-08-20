@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,7 @@ import {
 import { useAdvancedFileManagement } from '@/hooks/useAdvancedFileManagement';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { realDeduplicationService } from '@/services/realDeduplicationService';
 
 interface DeduplicationManagerProps {
   projectId: string;
@@ -54,6 +55,8 @@ export const DeduplicationManager = ({ projectId }: DeduplicationManagerProps) =
   const [selectedDuplicates, setSelectedDuplicates] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<DuplicateGroup | null>(null);
+  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
   
@@ -62,79 +65,32 @@ export const DeduplicationManager = ({ projectId }: DeduplicationManagerProps) =
     isMergingDuplicates 
   } = useAdvancedFileManagement();
 
-  // Mock data for demonstration - replace with actual data from hook
-  const duplicateGroups: DuplicateGroup[] = [
-    {
-      id: '1',
-      originalId: 'content-1',
-      duplicateIds: ['content-2', 'content-3'],
-      similarityScore: 0.98,
-      contentHash: 'abc123',
-      fileSize: 2048576,
-      mimeType: 'image/jpeg',
-      spaceSaved: 4097152,
-      status: 'pending',
-      files: [
-        {
-          id: 'content-1',
-          title: 'Marketing Banner Original',
-          filePath: '/uploads/banner-original.jpg',
-          createdAt: new Date('2024-01-15'),
-          fileSize: 2048576,
-          isOriginal: true
-        },
-        {
-          id: 'content-2',
-          title: 'Marketing Banner Copy',
-          filePath: '/uploads/banner-copy.jpg',
-          createdAt: new Date('2024-01-16'),
-          fileSize: 2048576,
-          isOriginal: false
-        },
-        {
-          id: 'content-3',
-          title: 'Banner Duplicate',
-          filePath: '/uploads/banner-dup.jpg',
-          createdAt: new Date('2024-01-17'),
-          fileSize: 2048576,
-          isOriginal: false
-        }
-      ]
-    },
-    {
-      id: '2',
-      originalId: 'content-4',
-      duplicateIds: ['content-5'],
-      similarityScore: 0.95,
-      contentHash: 'def456',
-      fileSize: 1048576,
-      mimeType: 'application/pdf',
-      spaceSaved: 1048576,
-      status: 'pending',
-      files: [
-        {
-          id: 'content-4',
-          title: 'Product Spec Sheet',
-          filePath: '/uploads/spec-original.pdf',
-          createdAt: new Date('2024-01-10'),
-          fileSize: 1048576,
-          isOriginal: true
-        },
-        {
-          id: 'content-5',
-          title: 'Product Specifications',
-          filePath: '/uploads/spec-duplicate.pdf',
-          createdAt: new Date('2024-01-12'),
-          fileSize: 1048576,
-          isOriginal: false
-        }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const loadDuplicates = async () => {
+      setIsLoading(true);
+      try {
+        const groups = await realDeduplicationService.findDuplicateGroups(projectId);
+        setDuplicateGroups(groups);
+      } catch (error) {
+        console.error('Error loading duplicates:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load duplicate analysis.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    loadDuplicates();
+  }, [projectId, toast]);
+
+  // Calculate summary stats
   const totalDuplicates = duplicateGroups.reduce((sum, group) => sum + group.duplicateIds.length, 0);
   const totalSpaceSaved = duplicateGroups.reduce((sum, group) => sum + group.spaceSaved, 0);
   const processedGroups = duplicateGroups.filter(g => g.status === 'processed').length;
+
 
   const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith('image/')) return <ImageIcon className="h-4 w-4" />;
@@ -182,11 +138,7 @@ export const DeduplicationManager = ({ projectId }: DeduplicationManagerProps) =
       const selectedGroups = duplicateGroups.filter(g => selectedDuplicates.has(g.id));
       
       for (const group of selectedGroups) {
-        await mergeDuplicates({
-          originalId: group.originalId,
-          duplicateIds: group.duplicateIds,
-          deleteOriginals: true
-        } as any);
+        await realDeduplicationService.mergeDuplicates(group.originalId, group.duplicateIds);
       }
 
       toast({
@@ -205,6 +157,25 @@ export const DeduplicationManager = ({ projectId }: DeduplicationManagerProps) =
       setIsProcessing(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="animate-pulse">
+                  <div className="h-8 bg-muted rounded mb-2"></div>
+                  <div className="h-4 bg-muted rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
