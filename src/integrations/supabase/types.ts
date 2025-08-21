@@ -591,6 +591,45 @@ export type Database = {
         }
         Relationships: []
       }
+      behavioral_analytics: {
+        Row: {
+          anomaly_detected: boolean | null
+          baseline_deviation: number | null
+          behavior_data: Json
+          behavior_type: string
+          created_at: string | null
+          id: string
+          processed_at: string | null
+          risk_score: number | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          anomaly_detected?: boolean | null
+          baseline_deviation?: number | null
+          behavior_data?: Json
+          behavior_type: string
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          risk_score?: number | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          anomaly_detected?: boolean | null
+          baseline_deviation?: number | null
+          behavior_data?: Json
+          behavior_type?: string
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          risk_score?: number | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       business_metrics: {
         Row: {
           calculated_fields: Json | null
@@ -1763,6 +1802,45 @@ export type Database = {
         }
         Relationships: []
       }
+      enhanced_monitoring: {
+        Row: {
+          configuration: Json
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          monitoring_type: string
+          started_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          monitoring_type: string
+          started_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          monitoring_type?: string
+          started_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       enhanced_notifications: {
         Row: {
           action_url: string | null
@@ -2306,6 +2384,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ip_blocklist: {
+        Row: {
+          block_type: string
+          blocked_at: string | null
+          blocked_by: string | null
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          is_active: boolean | null
+          metadata: Json | null
+          reason: string
+          unblock_at: string | null
+          unblocked_at: string | null
+          unblocked_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          block_type: string
+          blocked_at?: string | null
+          blocked_by?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address: unknown
+          is_active?: boolean | null
+          metadata?: Json | null
+          reason: string
+          unblock_at?: string | null
+          unblocked_at?: string | null
+          unblocked_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          block_type?: string
+          blocked_at?: string | null
+          blocked_by?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          is_active?: boolean | null
+          metadata?: Json | null
+          reason?: string
+          unblock_at?: string | null
+          unblocked_at?: string | null
+          unblocked_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       log_entries: {
         Row: {
@@ -3284,6 +3410,141 @@ export type Database = {
           },
         ]
       }
+      rate_limit_overrides: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          endpoint: string
+          expires_at: string
+          id: string
+          identifier: string
+          is_active: boolean | null
+          multiplier: number | null
+          override_type: string
+          reason: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          endpoint: string
+          expires_at: string
+          id?: string
+          identifier: string
+          is_active?: boolean | null
+          multiplier?: number | null
+          override_type: string
+          reason: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          endpoint?: string
+          expires_at?: string
+          id?: string
+          identifier?: string
+          is_active?: boolean | null
+          multiplier?: number | null
+          override_type?: string
+          reason?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      rate_limit_usage: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number
+          threat_level: string | null
+          updated_at: string | null
+          user_tier: string | null
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number
+          threat_level?: string | null
+          updated_at?: string | null
+          user_tier?: string | null
+          window_end: string
+          window_start?: string
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          threat_level?: string | null
+          updated_at?: string | null
+          user_tier?: string | null
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      real_time_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          affected_users: Json | null
+          alert_type: string
+          created_at: string | null
+          description: string
+          id: string
+          metadata: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          source_system: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          affected_users?: Json | null
+          alert_type: string
+          created_at?: string | null
+          description: string
+          id?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          source_system: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          affected_users?: Json | null
+          alert_type?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source_system?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       recurring_tasks: {
         Row: {
           created_at: string
@@ -3504,6 +3765,51 @@ export type Database = {
           },
         ]
       }
+      security_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          read_at: string | null
+          severity: string
+          team_id: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          read_at?: string | null
+          severity: string
+          team_id?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          read_at?: string | null
+          severity?: string
+          team_id?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string
@@ -3547,6 +3853,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_incidents: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          incident_type: string
+          ip_address: unknown | null
+          metadata: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string | null
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          incident_type: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          status?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          incident_type?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       session_recordings: {
         Row: {
@@ -5391,6 +5745,54 @@ export type Database = {
           },
         ]
       }
+      threat_intelligence: {
+        Row: {
+          confidence_score: number
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          indicator_type: string
+          indicator_value: string
+          is_active: boolean | null
+          metadata: Json | null
+          severity: string
+          source: string
+          threat_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          confidence_score: number
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          indicator_type: string
+          indicator_value: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          severity: string
+          source: string
+          threat_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          confidence_score?: number
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          indicator_type?: string
+          indicator_value?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          severity?: string
+          source?: string
+          threat_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       typing_indicators: {
         Row: {
           channel_id: string
@@ -5578,6 +5980,54 @@ export type Database = {
           role_type?: Database["public"]["Enums"]["role_type"]
           slug?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_security_locks: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          lock_type: string
+          locked_at: string | null
+          locked_by: string | null
+          metadata: Json | null
+          reason: string
+          unlock_at: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          lock_type: string
+          locked_at?: string | null
+          locked_by?: string | null
+          metadata?: Json | null
+          reason: string
+          unlock_at?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          lock_type?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          metadata?: Json | null
+          reason?: string
+          unlock_at?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
