@@ -20,11 +20,20 @@ export function usePerformanceMonitoring(refreshInterval = 5000) {
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([]);
 
   useEffect(() => {
-    const updateMetrics = () => {
-      setWebVitals(performanceMonitoringService.getCoreWebVitals());
-      setDatabaseMetrics(performanceMonitoringService.getDatabaseMetrics());
-      setSystemMetrics(performanceMonitoringService.getSystemMetrics());
-      setAlerts(performanceMonitoringService.getAlerts());
+    const updateMetrics = async () => {
+      try {
+        setWebVitals(performanceMonitoringService.getCoreWebVitals());
+        
+        const dbMetrics = await performanceMonitoringService.getDatabaseMetrics();
+        setDatabaseMetrics(dbMetrics);
+        
+        const sysMetrics = await performanceMonitoringService.getSystemMetrics();
+        setSystemMetrics(sysMetrics);
+        
+        setAlerts(performanceMonitoringService.getAlerts());
+      } catch (error) {
+        console.error('Error updating performance metrics:', error);
+      }
     };
 
     updateMetrics();
