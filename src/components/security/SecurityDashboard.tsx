@@ -7,9 +7,10 @@ import { SecurityEventCard } from './SecurityEventCard';
 import { SecurityComplianceReport } from './SecurityComplianceReport';
 import { SecurityMonitoringDashboard } from './SecurityMonitoringDashboard';
 import { AISecurityAnalytics } from './AISecurityAnalytics';
+import { RealTimeSecurityMonitor } from './RealTimeSecurityMonitor';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { securityMonitoringService } from '@/services/securityMonitoringService';
-import { AlertTriangle, Shield, Clock, Globe, Lock, Activity, CheckCircle, Eye, Settings } from 'lucide-react';
+import { AlertTriangle, Shield, Clock, Globe, Lock, Activity, CheckCircle, Eye, Settings, Brain, FileCheck, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export const SecurityDashboard = () => {
@@ -73,12 +74,31 @@ export const SecurityDashboard = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Security Overview</TabsTrigger>
-          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-          <TabsTrigger value="ai-security">AI Security</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance Report</TabsTrigger>
-          <TabsTrigger value="sessions">Active Sessions</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="realtime" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Real-Time
+          </TabsTrigger>
+          <TabsTrigger value="monitoring" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Monitoring
+          </TabsTrigger>
+          <TabsTrigger value="ai-security" className="flex items-center gap-2">
+            <Brain className="h-4 w-4" />
+            AI Security
+          </TabsTrigger>
+          <TabsTrigger value="compliance" className="flex items-center gap-2">
+            <FileCheck className="h-4 w-4" />
+            Compliance
+          </TabsTrigger>
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Sessions
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -164,7 +184,11 @@ export const SecurityDashboard = () => {
             </Card>
           </div>
         </TabsContent>
-        
+
+        <TabsContent value="realtime" className="space-y-6">
+          <RealTimeSecurityMonitor />
+        </TabsContent>
+
         <TabsContent value="monitoring" className="space-y-6">
           <SecurityMonitoringDashboard />
         </TabsContent>
