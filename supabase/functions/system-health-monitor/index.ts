@@ -1,10 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { withSecurity, SecurityLogger } from '../_shared/security.ts'
 
 interface HealthStatus {
   service_name: string;
@@ -143,12 +138,7 @@ async function checkNetwork() {
   }
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+async function handleHealthMonitor(req: Request, logger: SecurityLogger): Promise<Response> {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -244,7 +234,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in system-health-monitor function:', error);
+    logger.error('Error in system-health-monitor function', error as Error);
     
     return new Response(JSON.stringify({
       success: false,
@@ -252,8 +242,15 @@ serve(async (req) => {
       error: error.message,
       overall_status: 'unhealthy'
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       status: 500
     });
   }
+}
+
+export default withSecurity(handleHealthMonitor, {
+  requireAuth: false, // System monitoring
+  rateLimitRequests: 1000,
+  rateLimitWindow: 60000,
+  adminOnly: true
 });

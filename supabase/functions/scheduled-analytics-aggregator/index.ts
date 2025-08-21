@@ -1,23 +1,14 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { withSecurity, SecurityLogger } from '../_shared/security.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-
+async function handleScheduledAnalytics(req: Request, logger: SecurityLogger): Promise<Response> {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('Scheduled analytics aggregator started')
+    logger.info('Scheduled analytics aggregator started')
 
     // Run daily aggregations
     await aggregateDailyAnalytics(supabaseClient)
@@ -31,19 +22,19 @@ serve(async (req) => {
         message: 'Scheduled analytics aggregation completed',
         timestamp: new Date().toISOString()
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error in scheduled analytics aggregation:', error)
+    logger.error('Error in scheduled analytics aggregation', error as Error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' }
       }
     )
   }
-})
+}
 
 async function aggregateDailyAnalytics(supabase: any) {
   console.log('Aggregating daily analytics...')
@@ -276,3 +267,10 @@ async function generatePredictiveInsights(supabase: any) {
 
   console.log('Predictive insights generated')
 }
+
+export default withSecurity(handleScheduledAnalytics, {
+  requireAuth: false, // Cron job
+  rateLimitRequests: 100,
+  rateLimitWindow: 3600000, // 1 hour
+  adminOnly: true
+})

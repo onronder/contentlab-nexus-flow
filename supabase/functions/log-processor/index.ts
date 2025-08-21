@@ -1,10 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { withSecurity, SecurityLogger } from '../_shared/security.ts'
 
 interface LogEntry {
   level: 'debug' | 'info' | 'warn' | 'error' | 'fatal';
@@ -25,12 +20,7 @@ interface LogEntry {
   project_id?: string;
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+async function handleLogProcessor(req: Request, logger: SecurityLogger): Promise<Response> {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -186,15 +176,22 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in log-processor function:', error);
+    logger.error('Error in log-processor function', error as Error);
     
     return new Response(JSON.stringify({
       success: false,
       message: 'Internal server error',
       error: error.message
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       status: 500
     });
   }
+}
+
+export default withSecurity(handleLogProcessor, {
+  requireAuth: false, // System function
+  rateLimitRequests: 1000,
+  rateLimitWindow: 60000,
+  adminOnly: true
 });

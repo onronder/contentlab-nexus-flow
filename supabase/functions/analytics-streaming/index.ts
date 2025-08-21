@@ -1,17 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { withSecurity, SecurityLogger } from '../_shared/security.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+async function handleAnalyticsStreaming(req: Request, logger: SecurityLogger): Promise<Response> {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -51,7 +42,7 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Analytics streaming error:', error);
+    logger.error('Analytics streaming error', error as Error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
@@ -59,10 +50,17 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }
+}
+
+export default withSecurity(handleAnalyticsStreaming, {
+  requireAuth: true,
+  rateLimitRequests: 100,
+  rateLimitWindow: 60000,
+  enableCORS: true
 });
 
 async function createAnalyticsStream(supabaseClient: any, streamName: string, aggregationRules: any) {

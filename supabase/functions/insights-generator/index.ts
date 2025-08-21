@@ -1,20 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withSecurity, SecurityLogger } from '../_shared/security.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+async function handleInsightsGenerator(req: Request, logger: SecurityLogger): Promise<Response> {
   try {
-    console.log('Insights generator started');
+    logger.info('Insights generator started');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -66,7 +56,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error generating insights:', error);
+    logger.error('Error generating insights', error as Error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -75,10 +65,17 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }
+}
+
+export default withSecurity(handleInsightsGenerator, {
+  requireAuth: true,
+  rateLimitRequests: 50,
+  rateLimitWindow: 300000, // 5 minutes
+  enableCORS: true
 });
 
 async function generatePerformanceInsights(supabase: any, teamId?: string, projectId?: string) {

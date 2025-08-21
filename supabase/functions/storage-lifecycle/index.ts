@@ -1,10 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.0";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { withSecurity, SecurityLogger } from '../_shared/security.ts'
 
 interface LifecycleRequest {
   action: 'cleanup' | 'archive' | 'optimize' | 'backup' | 'migrate';
@@ -14,11 +9,7 @@ interface LifecycleRequest {
   maxAge?: number; // days
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+async function handleStorageLifecycle(req: Request, logger: SecurityLogger): Promise<Response> {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -84,18 +75,25 @@ serve(async (req) => {
       success: true,
       results
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error: any) {
-    console.error('Storage lifecycle error:', error);
+    logger.error('Storage lifecycle error', error);
     return new Response(JSON.stringify({
       error: error.message || 'Storage lifecycle operation failed'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
+}
+
+export default withSecurity(handleStorageLifecycle, {
+  requireAuth: false, // System function
+  rateLimitRequests: 500,
+  rateLimitWindow: 60000,
+  adminOnly: true
 });
 
 async function performCleanup(supabase: any, options: any) {
