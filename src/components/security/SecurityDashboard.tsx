@@ -8,6 +8,7 @@ import { SecurityComplianceReport } from './SecurityComplianceReport';
 import { SecurityMonitoringDashboard } from './SecurityMonitoringDashboard';
 import { AISecurityAnalytics } from './AISecurityAnalytics';
 import { RealTimeSecurityMonitor } from './RealTimeSecurityMonitor';
+import { PlatformComplianceDashboard } from './PlatformComplianceDashboard';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { securityMonitoringService } from '@/services/securityMonitoringService';
 import { AlertTriangle, Shield, Clock, Globe, Lock, Activity, CheckCircle, Eye, Settings, Brain, FileCheck, Users } from 'lucide-react';
@@ -198,7 +199,7 @@ export const SecurityDashboard = () => {
         </TabsContent>
         
         <TabsContent value="compliance" className="space-y-6">
-          <SecurityComplianceReport />
+          <PlatformComplianceDashboard />
         </TabsContent>
         
         <TabsContent value="sessions" className="space-y-6">
