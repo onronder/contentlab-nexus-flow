@@ -92,7 +92,7 @@ export function useUsagePatternAnalytics(timeRange: string = '30d') {
           const activity = data?.filter(d => {
             const date = new Date(d.created_at);
             return date.getDay() === day && date.getHours() === hour;
-          }).length || Math.floor(Math.random() * 20);
+          }).length || 0;
           
           heatmapData.push({ day, hour, activity });
         }
