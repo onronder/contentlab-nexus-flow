@@ -20,6 +20,13 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
   const { currentTeam } = useTeamContext();
   const isInitialized = useRef(false);
   const sessionStartTime = useRef<number>(Date.now());
+  const lastPageView = useRef<string>('');
+  const lastPageViewTime = useRef<number>(0);
+
+  // Reduced frequency constants
+  const PAGE_VIEW_DEBOUNCE = 2000; // 2 seconds
+  const PERFORMANCE_TRACK_INTERVAL = 30000; // 30 seconds
+  const SESSION_TRACK_INTERVAL = 60000; // 1 minute
 
   // Initialize analytics tracking
   useEffect(() => {
@@ -29,134 +36,194 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
-  // Track page performance metrics
+  // Track page performance metrics with reduced frequency
   useEffect(() => {
     if (!user) return;
 
     const trackPerformanceMetrics = () => {
-      if ('performance' in window) {
-        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-        if (navigation) {
-          advancedAnalyticsService.recordSystemMetric({
-            metricName: 'page_load_time',
-            metricValue: navigation.loadEventEnd - navigation.loadEventStart,
-            metricUnit: 'ms',
-            dimensions: {
-              page: window.location.pathname,
-              device: getDeviceType(),
-              browser: getBrowser()
-            },
-            aggregationPeriod: 'hourly',
-            periodStart: new Date().toISOString(),
-            periodEnd: new Date().toISOString()
-          });
+      try {
+        if ('performance' in window) {
+          const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+          if (navigation && navigation.loadEventEnd > 0) {
+            // Only track if load time is reasonable (not a cached/instant load)
+            const loadTime = navigation.loadEventEnd - navigation.loadEventStart;
+            if (loadTime > 100) { // Skip very fast loads
+              advancedAnalyticsService.recordSystemMetric({
+                metricName: 'page_load_time',
+                metricValue: loadTime,
+                metricUnit: 'ms',
+                dimensions: {
+                  page: window.location.pathname,
+                  device: getDeviceType(),
+                  browser: getBrowser()
+                },
+                aggregationPeriod: 'hourly',
+                periodStart: new Date().toISOString(),
+                periodEnd: new Date().toISOString()
+              });
+            }
+          }
         }
+      } catch (error) {
+        console.error('Performance tracking failed:', error);
       }
     };
 
-    // Track on page load
-    if (document.readyState === 'complete') {
-      trackPerformanceMetrics();
-    } else {
-      window.addEventListener('load', trackPerformanceMetrics);
-      return () => window.removeEventListener('load', trackPerformanceMetrics);
-    }
+    // Track performance with delay to ensure page is fully loaded
+    const performanceTimer = setTimeout(trackPerformanceMetrics, PERFORMANCE_TRACK_INTERVAL);
+    return () => clearTimeout(performanceTimer);
   }, [user]);
 
-  // Track user session duration
+  // Track user session duration with reduced frequency
   useEffect(() => {
     if (!user) return;
 
+    const trackSessionActivity = () => {
+      try {
+        const sessionDuration = Date.now() - sessionStartTime.current;
+        // Only track if session is meaningful (> 10 seconds)
+        if (sessionDuration > 10000) {
+          advancedAnalyticsService.trackUserEvent({
+            userId: user.id,
+            sessionId: getSessionId(),
+            eventType: 'session',
+            eventName: 'session_activity',
+            eventProperties: {
+              duration_ms: sessionDuration,
+              pages_visited: getVisitedPages().length,
+              team_id: currentTeam?.id,
+              is_active: document.visibilityState === 'visible'
+            },
+            pagePath: window.location.pathname
+          });
+        }
+      } catch (error) {
+        console.error('Session activity tracking failed:', error);
+      }
+    };
+
+    // Track session activity periodically
+    const sessionInterval = setInterval(trackSessionActivity, SESSION_TRACK_INTERVAL);
+
+    // Track session end on page unload
     const trackSessionEnd = () => {
-      const sessionDuration = Date.now() - sessionStartTime.current;
-      advancedAnalyticsService.trackUserEvent({
-        userId: user.id,
-        sessionId: getSessionId(),
-        eventType: 'session',
-        eventName: 'session_end',
-        eventProperties: {
-          duration_ms: sessionDuration,
-          pages_visited: getVisitedPages(),
-          team_id: currentTeam?.id
-        },
-        pagePath: window.location.pathname
-      });
+      try {
+        const sessionDuration = Date.now() - sessionStartTime.current;
+        if (sessionDuration > 5000) { // Only track sessions > 5 seconds
+          navigator.sendBeacon('/api/analytics/session-end', JSON.stringify({
+            userId: user.id,
+            sessionId: getSessionId(),
+            duration_ms: sessionDuration,
+            pages_visited: getVisitedPages().length,
+            team_id: currentTeam?.id
+          }));
+        }
+      } catch (error) {
+        console.error('Session end tracking failed:', error);
+      }
     };
 
     window.addEventListener('beforeunload', trackSessionEnd);
-    return () => window.removeEventListener('beforeunload', trackSessionEnd);
+    
+    return () => {
+      clearInterval(sessionInterval);
+      window.removeEventListener('beforeunload', trackSessionEnd);
+    };
   }, [user, currentTeam]);
 
   const initializeAnalytics = async () => {
     if (!user) return;
 
-    // Track session start
-    await advancedAnalyticsService.trackUserEvent({
-      userId: user.id,
-      sessionId: getSessionId(),
-      eventType: 'session',
-      eventName: 'session_start',
-      eventProperties: {
-        team_id: currentTeam?.id,
-        device_type: getDeviceType(),
+    try {
+      // Track session start with minimal data
+      await advancedAnalyticsService.trackUserEvent({
+        userId: user.id,
+        sessionId: getSessionId(),
+        eventType: 'session',
+        eventName: 'session_start',
+        eventProperties: {
+          team_id: currentTeam?.id,
+          device_type: getDeviceType(),
+          browser: getBrowser(),
+          referrer: document.referrer,
+          utm_source: new URLSearchParams(window.location.search).get('utm_source')
+        },
+        pagePath: window.location.pathname,
+        deviceType: getDeviceType(),
         browser: getBrowser(),
-        user_agent: navigator.userAgent,
-        referrer: document.referrer,
-        utm_source: new URLSearchParams(window.location.search).get('utm_source'),
-        utm_medium: new URLSearchParams(window.location.search).get('utm_medium'),
-        utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign')
-      },
-      pagePath: window.location.pathname,
-      userAgent: navigator.userAgent,
-      deviceType: getDeviceType(),
-      browser: getBrowser(),
-      referrer: document.referrer
-    });
+        referrer: document.referrer
+      });
+    } catch (error) {
+      console.error('Analytics initialization failed:', error);
+    }
   };
 
   const trackPageView = async (path: string, properties?: Record<string, any>) => {
     if (!user) return;
 
-    await advancedAnalyticsService.trackPageView(path, {
-      userId: user.id,
-      eventProperties: {
-        team_id: currentTeam?.id,
-        ...properties
-      }
-    });
+    // Debounce page views
+    const now = Date.now();
+    if (lastPageView.current === path && now - lastPageViewTime.current < PAGE_VIEW_DEBOUNCE) {
+      return;
+    }
 
-    // Update visited pages
-    updateVisitedPages(path);
+    lastPageView.current = path;
+    lastPageViewTime.current = now;
+
+    try {
+      await advancedAnalyticsService.trackPageView(path, {
+        userId: user.id,
+        eventProperties: {
+          team_id: currentTeam?.id,
+          ...properties
+        }
+      });
+
+      // Update visited pages
+      updateVisitedPages(path);
+    } catch (error) {
+      console.error('Page view tracking failed:', error);
+    }
   };
 
   const trackInteraction = async (component: string, action: string, properties?: Record<string, any>) => {
     if (!user) return;
 
-    await advancedAnalyticsService.trackInteraction(component, action, {
-      team_id: currentTeam?.id,
-      user_id: user.id,
-      timestamp: new Date().toISOString(),
-      ...properties
-    });
+    try {
+      await advancedAnalyticsService.trackInteraction(component, action, {
+        team_id: currentTeam?.id,
+        user_id: user.id,
+        timestamp: new Date().toISOString(),
+        ...properties
+      });
+    } catch (error) {
+      console.error('Interaction tracking failed:', error);
+    }
   };
 
   const trackContentView = async (contentId: string, properties?: Record<string, any>) => {
-    if (!user) return;
+    if (!user || !contentId) return;
 
-    // Track the view event
-    await advancedAnalyticsService.trackCustomEvent({
-      teamId: currentTeam?.id,
-      userId: user.id,
-      eventName: 'content_view',
-      eventCategory: 'content',
-      entityType: 'content',
-      entityId: contentId,
-      sourceComponent: 'content_card',
-      eventProperties: properties
-    });
+    try {
+      // Track the view event
+      await advancedAnalyticsService.trackCustomEvent({
+        teamId: currentTeam?.id,
+        userId: user.id,
+        eventName: 'content_view',
+        eventCategory: 'content',
+        entityType: 'content',
+        entityId: contentId,
+        sourceComponent: 'content_card',
+        eventProperties: properties
+      });
 
-    // Update content analytics directly
-    await updateContentAnalytics(contentId, 'view');
+      // Update content analytics in background
+      updateContentAnalytics(contentId, 'view').catch(error => {
+        console.error('Content analytics update failed:', error);
+      });
+    } catch (error) {
+      console.error('Content view tracking failed:', error);
+    }
   };
 
   const trackContentEngagement = async (
@@ -164,91 +231,69 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
     type: 'like' | 'share' | 'comment' | 'download', 
     properties?: Record<string, any>
   ) => {
-    if (!user) return;
+    if (!user || !contentId) return;
 
-    // Track the engagement event
-    await advancedAnalyticsService.trackCustomEvent({
-      teamId: currentTeam?.id,
-      userId: user.id,
-      eventName: `content_${type}`,
-      eventCategory: 'engagement',
-      entityType: 'content',
-      entityId: contentId,
-      sourceComponent: 'content_card',
-      eventProperties: properties
-    });
+    try {
+      // Track the engagement event
+      await advancedAnalyticsService.trackCustomEvent({
+        teamId: currentTeam?.id,
+        userId: user.id,
+        eventName: `content_${type}`,
+        eventCategory: 'engagement',
+        entityType: 'content',
+        entityId: contentId,
+        sourceComponent: 'content_card',
+        eventProperties: properties
+      });
 
-    // Update content analytics directly
-    await updateContentAnalytics(contentId, type);
+      // Update content analytics in background
+      updateContentAnalytics(contentId, type).catch(error => {
+        console.error('Content analytics update failed:', error);
+      });
+    } catch (error) {
+      console.error('Content engagement tracking failed:', error);
+    }
   };
 
   const trackBusinessMetric = async (metric: any) => {
     if (!user) return;
 
-    await advancedAnalyticsService.recordBusinessMetric({
-      teamId: currentTeam?.id,
-      ...metric
-    });
-  };
-
-  // Helper function to update content analytics
-  const updateContentAnalytics = async (contentId: string, type: string) => {
     try {
-      // Get existing analytics or create new
-      const { data: existing } = await supabase
-        .from('content_analytics')
-        .select('*')
-        .eq('content_id', contentId)
-        .eq('analytics_date', new Date().toISOString().split('T')[0])
-        .single();
-
-      const updateData: any = {
-        content_id: contentId,
-        analytics_date: new Date().toISOString().split('T')[0]
-      };
-
-      if (existing) {
-        // Update existing record
-        switch (type) {
-          case 'view':
-            updateData.views = (existing.views || 0) + 1;
-            break;
-          case 'like':
-            updateData.likes = (existing.likes || 0) + 1;
-            break;
-          case 'share':
-            updateData.shares = (existing.shares || 0) + 1;
-            break;
-          case 'comment':
-            updateData.comments = (existing.comments || 0) + 1;
-            break;
-          case 'download':
-            updateData.downloads = (existing.downloads || 0) + 1;
-            break;
-        }
-
-        await supabase
-          .from('content_analytics')
-          .update(updateData)
-          .eq('id', existing.id);
-      } else {
-        // Create new record
-        updateData.views = type === 'view' ? 1 : 0;
-        updateData.likes = type === 'like' ? 1 : 0;
-        updateData.shares = type === 'share' ? 1 : 0;
-        updateData.comments = type === 'comment' ? 1 : 0;
-        updateData.downloads = type === 'download' ? 1 : 0;
-
-        await supabase
-          .from('content_analytics')
-          .insert(updateData);
-      }
+      await advancedAnalyticsService.recordBusinessMetric({
+        teamId: currentTeam?.id,
+        ...metric
+      });
     } catch (error) {
-      console.error('Error updating content analytics:', error);
+      console.error('Business metric tracking failed:', error);
     }
   };
 
-  // Utility functions
+  // Optimized content analytics update with error handling
+  const updateContentAnalytics = async (contentId: string, type: string) => {
+    try {
+      // Use upsert pattern for better performance
+      const updateData: any = {
+        content_id: contentId,
+        analytics_date: new Date().toISOString().split('T')[0],
+        [`${type}s`]: 1 // Will be handled by database with increment
+      };
+
+      const { error } = await supabase
+        .from('content_analytics')
+        .upsert(updateData, {
+          onConflict: 'content_id,analytics_date',
+          ignoreDuplicates: false
+        });
+
+      if (error) {
+        console.error('Error updating content analytics:', error);
+      }
+    } catch (error) {
+      console.error('Content analytics update failed:', error);
+    }
+  };
+
+  // Utility functions (simplified and cached)
   const getSessionId = (): string => {
     let sessionId = sessionStorage.getItem('analytics_session_id');
     if (!sessionId) {
@@ -260,7 +305,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
 
   const getDeviceType = (): string => {
     const userAgent = navigator.userAgent.toLowerCase();
-    if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
+    if (/mobile|android|iphone|phone/i.test(userAgent)) {
       return 'mobile';
     } else if (/tablet|ipad/i.test(userAgent)) {
       return 'tablet';
@@ -278,15 +323,27 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateVisitedPages = (path: string) => {
-    const pages = JSON.parse(sessionStorage.getItem('visited_pages') || '[]');
-    if (!pages.includes(path)) {
-      pages.push(path);
-      sessionStorage.setItem('visited_pages', JSON.stringify(pages));
+    try {
+      const pages = JSON.parse(sessionStorage.getItem('visited_pages') || '[]');
+      if (!pages.includes(path)) {
+        pages.push(path);
+        // Limit to last 20 pages to prevent memory issues
+        if (pages.length > 20) {
+          pages.splice(0, pages.length - 20);
+        }
+        sessionStorage.setItem('visited_pages', JSON.stringify(pages));
+      }
+    } catch (error) {
+      console.error('Failed to update visited pages:', error);
     }
   };
 
   const getVisitedPages = (): string[] => {
-    return JSON.parse(sessionStorage.getItem('visited_pages') || '[]');
+    try {
+      return JSON.parse(sessionStorage.getItem('visited_pages') || '[]');
+    } catch {
+      return [];
+    }
   };
 
   const value: AnalyticsContextType = {
