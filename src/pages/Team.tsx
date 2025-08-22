@@ -18,7 +18,8 @@ import {
   Mail,
   Shield,
   MessageCircle,
-  Bell
+  Bell,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeams, useTeamMembers, useTeamStats, useTeamActivity } from "@/hooks/useTeamQueries";
@@ -37,12 +38,14 @@ import { TeamBillingDashboard } from "@/components/team/TeamBillingDashboard";
 import { TeamProjectsOverview } from "@/components/team/TeamProjectsOverview";
 import { TeamContentLibrary } from "@/components/team/TeamContentLibrary";
 import { TeamPerformanceDashboard } from "@/components/team/TeamPerformanceDashboard";
+import { TeamQuickActions } from "@/components/team/TeamQuickActions";
 const Team = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("members");
 
   // Fetch real data from database
   const { data: teams, isLoading: teamsLoading } = useTeams();
@@ -213,79 +216,103 @@ const Team = () => {
         </div>
 
         {/* Team Content */}
-        <Tabs defaultValue="members" className="w-full">
-          <TabsList className="grid w-full grid-cols-12">
-            <TabsTrigger value="admin">Enterprise Admin</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-            <TabsTrigger value="communication">
-              <MessageCircle className="h-4 w-4 mr-1" />
-              Communication
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+          <div className="lg:col-span-1">
+            <TeamQuickActions teamId={teamId || ""} onTabChange={setActiveTab} />
+          </div>
+          <div className="lg:col-span-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-1">
+            <TabsTrigger value="members" className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Members ({totalMembers})</span>
+              <span className="sm:hidden">Members</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications">
-              <Bell className="h-4 w-4 mr-1" />
-              Notifications
+            <TabsTrigger value="communication" className="flex items-center gap-1">
+              <MessageCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Chat</span>
             </TabsTrigger>
-            <TabsTrigger value="members">Team Members ({totalMembers})</TabsTrigger>
-            <TabsTrigger value="invitations">Invitations</TabsTrigger>
-            <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
-            <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="content">Content Library</TabsTrigger>
-            <TabsTrigger value="settings">Team Settings</TabsTrigger>
+            <TabsTrigger value="projects" className="flex items-center gap-1">
+              <Activity className="h-4 w-4" />
+              <span className="hidden sm:inline">Projects</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-1">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="management" className="flex items-center gap-1">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Management</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-1">
+              <SettingsIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="admin" className="mt-6">
-            <TeamAdminDashboard teamId={teamId || ""} />
-          </TabsContent>
-
-          <TabsContent value="billing" className="mt-6">
-            <TeamBillingDashboard teamId={teamId || ""} />
+          <TabsContent value="members" className="mt-6">
+            <MemberDirectory teamId={teamId || ""} />
           </TabsContent>
 
           <TabsContent value="communication" className="mt-6">
-            <TeamChat teamId={teamId || ""} />
-          </TabsContent>
-
-          <TabsContent value="notifications" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <NotificationCenter teamId={teamId || ""} />
-              <TeamActivityFeed teamId={teamId || ""} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <TeamChat teamId={teamId || ""} />
+              </div>
+              <div className="space-y-4">
+                <NotificationCenter teamId={teamId || ""} />
+                <TeamActivityFeed teamId={teamId || ""} />
+              </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="members" className="mt-6">
-            <MemberDirectory 
-              teamId={teamId || ""}
-            />
-          </TabsContent>
-
-          <TabsContent value="invitations" className="mt-6">
-            <InvitationList teamId={teamId || ""} />
-          </TabsContent>
-
-          <TabsContent value="roles" className="mt-6">
-            <RoleManagement teamId={teamId || ""} />
-          </TabsContent>
-
-          <TabsContent value="activity" className="mt-6">
-            <ActivityFeed 
-              teamId={teamId || ""}
-            />
-          </TabsContent>
-
-          <TabsContent value="settings" className="mt-6">
-            <TeamSettings teamId={teamId || ""} />
+          <TabsContent value="projects" className="mt-6">
+            <div className="space-y-6">
+              <TeamProjectsOverview />
+              <TeamContentLibrary />
+            </div>
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
             <div className="space-y-6">
               <TeamAnalytics teamId={teamId || ""} />
-              {/* Enhanced performance dashboard */}
               <TeamPerformanceDashboard teamId={teamId || ""} />
             </div>
           </TabsContent>
-        </Tabs>
+
+          <TabsContent value="management" className="mt-6">
+            <Tabs defaultValue="roles" className="w-full">
+              <TabsList className="grid w-full grid-cols-1 md:grid-cols-4">
+                <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
+                <TabsTrigger value="invitations">Invitations</TabsTrigger>
+                <TabsTrigger value="admin">Admin Tools</TabsTrigger>
+                <TabsTrigger value="billing">Billing</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="roles" className="mt-4">
+                <RoleManagement teamId={teamId || ""} />
+              </TabsContent>
+              
+              <TabsContent value="invitations" className="mt-4">
+                <InvitationList teamId={teamId || ""} />
+              </TabsContent>
+              
+              <TabsContent value="admin" className="mt-4">
+                <TeamAdminDashboard teamId={teamId || ""} />
+              </TabsContent>
+              
+              <TabsContent value="billing" className="mt-4">
+                <TeamBillingDashboard teamId={teamId || ""} />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-6">
+            <TeamSettings teamId={teamId || ""} />
+          </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );
