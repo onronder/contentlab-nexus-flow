@@ -6473,6 +6473,12 @@ export type Database = {
           team_id: string
         }[]
       }
+      get_user_teams_direct: {
+        Args: { user_id_param: string }
+        Returns: {
+          team_id: string
+        }[]
+      }
       get_user_teams_safe: {
         Args: { p_user_id: string }
         Returns: {
@@ -6499,7 +6505,15 @@ export type Database = {
         Args: { p_exclude_team_id?: string; p_slug: string }
         Returns: boolean
       }
+      is_team_member: {
+        Args: { team_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
       is_team_member_safe: {
+        Args: { team_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
+      is_team_owner: {
         Args: { team_id_param: string; user_id_param: string }
         Returns: boolean
       }
