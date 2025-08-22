@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useCollaborativeAnalytics } from '@/hooks/collaboration/useCollaborativeAnalytics';
 import { 
   Users, 
   Activity, 
@@ -83,124 +85,21 @@ export const CollaborativeAnalytics: React.FC<CollaborativeAnalyticsProps> = ({
   const [contentImpact, setContentImpact] = useState<ContentImpactMetric[]>([]);
   const [workflowEfficiency, setWorkflowEfficiency] = useState<WorkflowEfficiencyData[]>([]);
 
-  // Sample data - in production, this would come from your analytics service
+  // Real data integration
+  const { 
+    collaborationMetrics: realCollaborationMetrics,
+    productivityData: realProductivityData,
+    contentImpact: realContentImpact,
+    workflowEfficiency: realWorkflowEfficiency,
+    isLoading
+  } = useCollaborativeAnalytics(teamId, dateRange);
+
   useEffect(() => {
-    const sampleMetrics: CollaborationMetric[] = [
-      {
-        userId: 'user1',
-        userName: 'John Doe',
-        role: 'Content Creator',
-        contributionScore: 92,
-        commentsCount: 45,
-        versionsCreated: 12,
-        reviewsCompleted: 8,
-        responseTime: 2.5,
-        qualityRating: 4.8,
-        lastActive: new Date('2024-01-18T14:30:00')
-      },
-      {
-        userId: 'user2',
-        userName: 'Sarah Wilson',
-        role: 'Senior Reviewer',
-        contributionScore: 88,
-        commentsCount: 67,
-        versionsCreated: 3,
-        reviewsCompleted: 23,
-        responseTime: 1.8,
-        qualityRating: 4.9,
-        lastActive: new Date('2024-01-18T16:45:00')
-      },
-      {
-        userId: 'user3',
-        userName: 'Mike Johnson',
-        role: 'Analytics Specialist',
-        contributionScore: 85,
-        commentsCount: 34,
-        versionsCreated: 7,
-        reviewsCompleted: 15,
-        responseTime: 3.2,
-        qualityRating: 4.6,
-        lastActive: new Date('2024-01-18T11:20:00')
-      },
-      {
-        userId: 'user4',
-        userName: 'Emily Chen',
-        role: 'Project Manager',
-        contributionScore: 90,
-        commentsCount: 52,
-        versionsCreated: 5,
-        reviewsCompleted: 19,
-        responseTime: 1.5,
-        qualityRating: 4.7,
-        lastActive: new Date('2024-01-18T17:10:00')
-      }
-    ];
-
-    const sampleProductivity: TeamProductivityData[] = [
-      { date: '2024-01-01', contentCreated: 8, reviewsCompleted: 12, collaborationEvents: 45, issuesResolved: 6 },
-      { date: '2024-01-02', contentCreated: 12, reviewsCompleted: 15, collaborationEvents: 52, issuesResolved: 8 },
-      { date: '2024-01-03', contentCreated: 6, reviewsCompleted: 9, collaborationEvents: 38, issuesResolved: 4 },
-      { date: '2024-01-04', contentCreated: 15, reviewsCompleted: 18, collaborationEvents: 67, issuesResolved: 11 },
-      { date: '2024-01-05', contentCreated: 10, reviewsCompleted: 14, collaborationEvents: 43, issuesResolved: 7 },
-      { date: '2024-01-06', contentCreated: 9, reviewsCompleted: 11, collaborationEvents: 39, issuesResolved: 5 },
-      { date: '2024-01-07', contentCreated: 13, reviewsCompleted: 16, collaborationEvents: 58, issuesResolved: 9 }
-    ];
-
-    const sampleContentImpact: ContentImpactMetric[] = [
-      {
-        contentId: 'content1',
-        title: 'Q1 Competitive Analysis',
-        contributors: 8,
-        versions: 15,
-        comments: 67,
-        viewCount: 234,
-        engagementScore: 85,
-        businessValue: 92
-      },
-      {
-        contentId: 'content2',
-        title: 'Market Research Report',
-        contributors: 5,
-        versions: 9,
-        comments: 34,
-        viewCount: 156,
-        engagementScore: 72,
-        businessValue: 78
-      },
-      {
-        contentId: 'content3',
-        title: 'Strategy Presentation',
-        contributors: 6,
-        versions: 12,
-        comments: 45,
-        viewCount: 189,
-        engagementScore: 79,
-        businessValue: 86
-      },
-      {
-        contentId: 'content4',
-        title: 'Product Comparison',
-        contributors: 4,
-        versions: 7,
-        comments: 23,
-        viewCount: 98,
-        engagementScore: 65,
-        businessValue: 71
-      }
-    ];
-
-    const sampleWorkflowEfficiency: WorkflowEfficiencyData[] = [
-      { stageName: 'Content Review', averageTime: 2.5, bottleneckCount: 3, successRate: 92 },
-      { stageName: 'Legal Review', averageTime: 4.8, bottleneckCount: 8, successRate: 87 },
-      { stageName: 'Final Approval', averageTime: 1.2, bottleneckCount: 1, successRate: 96 },
-      { stageName: 'Publication', averageTime: 0.8, bottleneckCount: 0, successRate: 99 }
-    ];
-
-    setCollaborationMetrics(sampleMetrics);
-    setProductivityData(sampleProductivity);
-    setContentImpact(sampleContentImpact);
-    setWorkflowEfficiency(sampleWorkflowEfficiency);
-  }, [teamId, selectedPeriod]);
+    setCollaborationMetrics(realCollaborationMetrics);
+    setProductivityData(realProductivityData);
+    setContentImpact(realContentImpact);
+    setWorkflowEfficiency(realWorkflowEfficiency);
+  }, [realCollaborationMetrics, realProductivityData, realContentImpact, realWorkflowEfficiency]);
 
   const getContributionColor = (score: number) => {
     if (score >= 90) return 'text-green-600 bg-green-100';

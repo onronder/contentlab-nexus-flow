@@ -9,6 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useContentVersionControl } from '@/hooks/content/useContentVersionControl';
+import { useToast } from '@/hooks/use-toast';
 import { 
   GitBranch, 
   GitCommit, 
@@ -30,7 +33,6 @@ import {
   Eye,
   Code2
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface Version {
   id: string;
@@ -87,150 +89,39 @@ export const AdvancedVersionControl: React.FC<AdvancedVersionControlProps> = ({
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
   const [diffView, setDiffView] = useState<{ oldVersion: string; newVersion: string } | null>(null);
 
-  // Sample data - in production, this would come from your backend
+  // Real data integration
+  const {
+    versions: realVersions,
+    branches: realBranches,
+    isLoading,
+    restoreVersion,
+    createBranch,
+    mergeBranch,
+    isRestoring,
+    isCreatingBranch,
+    isMerging
+  } = useContentVersionControl(contentId);
+
   useEffect(() => {
-    const sampleVersions: Version[] = [
-      {
-        id: '1',
-        versionNumber: 'v2.1.0',
-        title: 'Major content restructure',
-        description: 'Reorganized content sections and updated competitive analysis framework',
-        author: { id: 'user1', name: 'John Doe', avatar: '/api/placeholder/32/32' },
-        createdAt: new Date('2024-01-15T10:30:00'),
-        changes: { added: 150, removed: 45, modified: 30 },
-        tags: ['major', 'restructure', 'framework'],
-        status: 'published',
-        branch: 'main',
-        isMajor: true
-      },
-      {
-        id: '2',
-        versionNumber: 'v2.0.3',
-        title: 'Content updates and bug fixes',
-        description: 'Minor updates to competitive metrics and fixed data visualization issues',
-        author: { id: 'user2', name: 'Jane Smith', avatar: '/api/placeholder/32/32' },
-        createdAt: new Date('2024-01-10T14:20:00'),
-        changes: { added: 25, removed: 10, modified: 15 },
-        tags: ['patch', 'bugfix'],
-        status: 'published',
-        branch: 'main',
-        parentVersion: '3',
-        isMajor: false
-      },
-      {
-        id: '3',
-        versionNumber: 'v2.0.2',
-        title: 'Initial competitive analysis',
-        description: 'First version of comprehensive competitive analysis document',
-        author: { id: 'user1', name: 'John Doe', avatar: '/api/placeholder/32/32' },
-        createdAt: new Date('2024-01-05T09:15:00'),
-        changes: { added: 300, removed: 0, modified: 0 },
-        tags: ['initial', 'analysis'],
-        status: 'published',
-        branch: 'main',
-        isMajor: true
-      },
-      {
-        id: '4',
-        versionNumber: 'feature-v2.1.0-beta.1',
-        title: 'New analytics dashboard',
-        description: 'Work in progress: Adding advanced analytics dashboard',
-        author: { id: 'user3', name: 'Mike Johnson', avatar: '/api/placeholder/32/32' },
-        createdAt: new Date('2024-01-12T16:45:00'),
-        changes: { added: 80, removed: 5, modified: 20 },
-        tags: ['feature', 'beta', 'analytics'],
-        status: 'review',
-        branch: 'feature/analytics-dashboard',
-        parentVersion: '1',
-        isMajor: false
-      }
-    ];
-
-    const sampleBranches: Branch[] = [
-      {
-        id: 'main',
-        name: 'main',
-        description: 'Main production branch',
-        author: 'System',
-        createdAt: new Date('2024-01-01T00:00:00'),
-        lastCommit: new Date('2024-01-15T10:30:00'),
-        status: 'active',
-        ahead: 0,
-        behind: 0
-      },
-      {
-        id: 'feature-analytics',
-        name: 'feature/analytics-dashboard',
-        description: 'Adding advanced analytics and reporting capabilities',
-        author: 'Mike Johnson',
-        createdAt: new Date('2024-01-10T12:00:00'),
-        lastCommit: new Date('2024-01-12T16:45:00'),
-        status: 'active',
-        ahead: 2,
-        behind: 1
-      },
-      {
-        id: 'hotfix-data',
-        name: 'hotfix/data-validation',
-        description: 'Critical fix for data validation issues',
-        author: 'Jane Smith',
-        createdAt: new Date('2024-01-13T08:30:00'),
-        lastCommit: new Date('2024-01-13T11:20:00'),
-        status: 'merged',
-        ahead: 0,
-        behind: 0
-      }
-    ];
-
-    setVersions(sampleVersions);
-    setBranches(sampleBranches);
-  }, [contentId]);
+    if (!isLoading) {
+      setVersions(realVersions);
+      setBranches(realBranches);
+    }
+  }, [realVersions, realBranches, isLoading]);
 
   const handleVersionRestore = (versionId: string) => {
-    const version = versions.find(v => v.id === versionId);
-    if (version) {
-      onVersionRestore?.(versionId);
-      toast({
-        title: "Version Restored",
-        description: `Successfully restored to ${version.versionNumber}`,
-      });
-    }
+    restoreVersion(versionId);
+    onVersionRestore?.(versionId);
   };
 
   const handleCreateBranch = (branchData: any) => {
-    const newBranch: Branch = {
-      id: `branch-${Date.now()}`,
-      name: branchData.name,
-      description: branchData.description,
-      author: 'Current User',
-      createdAt: new Date(),
-      lastCommit: new Date(),
-      status: 'active',
-      ahead: 0,
-      behind: 0
-    };
-    
-    setBranches(prev => [...prev, newBranch]);
+    createBranch(branchData);
     onBranchCreate?.(branchData);
     setIsCreateBranchDialogOpen(false);
-    toast({
-      title: "Branch Created",
-      description: `New branch "${branchData.name}" created successfully`,
-    });
   };
 
   const handleMergeBranch = (branchId: string) => {
-    setBranches(prev => 
-      prev.map(branch => 
-        branch.id === branchId 
-          ? { ...branch, status: 'merged' as const }
-          : branch
-      )
-    );
-    toast({
-      title: "Branch Merged",
-      description: "Branch has been successfully merged to main",
-    });
+    mergeBranch(branchId);
   };
 
   const getVersionStatusColor = (status: Version['status']) => {

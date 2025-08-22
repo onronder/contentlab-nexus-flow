@@ -130,7 +130,9 @@ const Analytics = () => {
                       </div>
                       <div className="text-center p-3 glass-card rounded-lg">
                         <p className="text-2xl font-bold text-success">
-                          +{Math.floor(Math.random() * 20) + 5}%
+                          +{activePredictions[0]?.prediction_data?.growth_rate 
+                            ? Math.round(activePredictions[0].prediction_data.growth_rate) 
+                            : 15}%
                         </p>
                         <p className="text-xs text-muted-foreground">Growth Forecast</p>
                       </div>

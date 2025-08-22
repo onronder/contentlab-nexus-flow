@@ -101,15 +101,26 @@ export const useRealDashboardData = () => {
         type: activity.activity_type
       }));
 
-      // Fetch analytics data for performance metrics
+      // Fetch analytics data for performance metrics (current period)
       const { data: analyticsData } = await supabase
         .from('content_analytics')
         .select('performance_score, engagement_rate, reach')
         .gte('analytics_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
+      // Fetch previous period analytics for comparison
+      const { data: previousAnalyticsData } = await supabase
+        .from('content_analytics')
+        .select('performance_score, engagement_rate, reach')
+        .gte('analytics_date', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
+        .lt('analytics_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
       const avgPerformance = analyticsData?.length 
         ? analyticsData.reduce((sum, item) => sum + (item.performance_score || 0), 0) / analyticsData.length
         : 75;
+
+      const previousAvgPerformance = previousAnalyticsData?.length
+        ? previousAnalyticsData.reduce((sum, item) => sum + (item.performance_score || 0), 0) / previousAnalyticsData.length
+        : avgPerformance;
 
       const avgEngagement = analyticsData?.length
         ? analyticsData.reduce((sum, item) => sum + (item.engagement_rate || 0), 0) / analyticsData.length
@@ -118,8 +129,45 @@ export const useRealDashboardData = () => {
       // Calculate market coverage based on active projects
       const marketCoverage = Math.min((activeProjects / Math.max(totalProjects, 1)) * 100, 100);
 
+      // Get previous period projects for comparison
+      const { data: previousProjectsData } = await supabase
+        .from('projects')
+        .select('id, status')
+        .eq('team_id', currentTeam.id)
+        .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      const previousActiveProjects = previousProjectsData?.filter(p => p.status === 'active').length || 0;
+      const previousTotalProjects = previousProjectsData?.length || 1;
+      const previousMarketCoverage = Math.min((previousActiveProjects / Math.max(previousTotalProjects, 1)) * 100, 100);
+
       // Calculate competitive score based on competitors and content
       const competitiveScore = Math.min((totalCompetitors * 0.3 + publishedContent * 0.1), 5.0);
+
+      // Calculate percentage changes based on real data
+      const contentPerformanceChange = previousAvgPerformance > 0 
+        ? Math.round(((avgPerformance - previousAvgPerformance) / previousAvgPerformance) * 100)
+        : 0;
+
+      const marketCoverageChange = previousMarketCoverage > 0
+        ? Math.round(((marketCoverage - previousMarketCoverage) / previousMarketCoverage) * 100)
+        : 0;
+
+      // Get previous competitive score for comparison
+      const { data: previousCompetitorsData } = await supabase
+        .from('project_competitors')
+        .select(`
+          id,
+          projects!inner(team_id, created_at)
+        `)
+        .eq('projects.team_id', currentTeam.id)
+        .lt('projects.created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      const previousTotalCompetitors = previousCompetitorsData?.length || 0;
+      const previousCompetitiveScore = Math.min((previousTotalCompetitors * 0.3 + (publishedContent * 0.8) * 0.1), 5.0);
+      
+      const competitiveScoreChange = previousCompetitiveScore > 0
+        ? Math.round(((competitiveScore - previousCompetitiveScore) / previousCompetitiveScore) * 100) / 10
+        : 0;
 
       return {
         totalProjects,
@@ -131,11 +179,11 @@ export const useRealDashboardData = () => {
         recentActivity,
         performanceMetrics: {
           contentPerformance: Math.round(avgPerformance),
-          contentPerformanceChange: Math.round(Math.random() * 20 - 10), // Mock change
+          contentPerformanceChange,
           marketCoverage: Math.round(marketCoverage),
-          marketCoverageChange: Math.round(Math.random() * 15 - 7), // Mock change
+          marketCoverageChange,
           competitiveScore: Math.round(competitiveScore * 10) / 10,
-          competitiveScoreChange: Math.round((Math.random() * 1 - 0.5) * 10) / 10 // Mock change
+          competitiveScoreChange
         }
       };
     },
