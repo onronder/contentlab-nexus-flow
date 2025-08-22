@@ -9,10 +9,12 @@ export default function CreateTeam() {
   const navigate = useNavigate();
 
   const handleTeamCreated = () => {
-    // Teams will be automatically refreshed via React Query
-    
-    // Navigate to team page to show the new team
+    // Force immediate refresh of team queries
     navigate('/team');
+    // Give a small delay to ensure navigation completes, then refresh
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const handleCancel = () => {

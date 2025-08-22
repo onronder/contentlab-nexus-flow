@@ -200,17 +200,34 @@ export class TeamService {
     console.log('TeamService: Fetching teams for user:', userId, 'with options:', options);
 
     try {
-      // With the new RLS policies, users can only see teams they own
-      // This is intentionally restrictive to avoid recursion issues
+      // Use the fixed safe function to get user teams without recursion
+      const { data: userTeams, error: userTeamsError } = await supabase
+        .rpc('get_user_teams_safe', { p_user_id: userId });
+
+      if (userTeamsError) {
+        console.error('TeamService: Error fetching user teams:', userTeamsError);
+        throw new TeamValidationError('Failed to fetch user teams', 'FETCH_ERROR');
+      }
+
+      if (!userTeams || userTeams.length === 0) {
+        console.log('TeamService: No teams found for user');
+        return [];
+      }
+
+      // Get team IDs from the function result
+      const teamIds = userTeams.map((t: any) => t.team_id);
+      console.log('TeamService: Found team IDs:', teamIds);
+
+      // Now fetch the full team data using the IDs
       const { data: teams, error } = await supabase
         .from('teams')
         .select('*')
-        .eq('owner_id', userId)
+        .in('id', teamIds)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('TeamService: Error fetching teams:', error);
+        console.error('TeamService: Error fetching team details:', error);
         return [];
       }
 

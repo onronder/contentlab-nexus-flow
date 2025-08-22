@@ -19,9 +19,18 @@ export function useTeams(options?: TeamQueryOptions) {
   
   return useQuery({
     queryKey: ['teams', user?.id, options],
-    queryFn: () => TeamService.getTeamsByUser(user!.id, options),
+    queryFn: async () => {
+      if (!user?.id) return [];
+      try {
+        return await TeamService.getTeamsByUser(user.id, options);
+      } catch (error) {
+        console.error('Error fetching teams:', error);
+        return [];
+      }
+    },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Only retry once to avoid infinite loops
   });
 }
 
