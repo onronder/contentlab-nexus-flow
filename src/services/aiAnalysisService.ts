@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Competitor, CompetitorAnalysisMetadata } from '@/types/competitors';
 import { requestQueueService } from './requestQueueService';
 import { apiMonitoringService } from './apiMonitoringService';
+import { openaiOptimizationService } from './openaiOptimizationService';
 export interface AnalysisRequest {
   competitorId: string;
   analysisType: 'positioning' | 'content_gap' | 'market_share' | 'feature_comparison' | 'pricing' | 'marketing';

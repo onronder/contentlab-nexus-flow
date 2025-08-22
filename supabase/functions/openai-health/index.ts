@@ -3,7 +3,8 @@ import { withSecurity } from '../_shared/security.ts';
 import { CircuitBreaker } from '../_shared/security.ts';
 import { globalPerformanceMonitor } from '../_shared/monitoring.ts';
 
-const openAICircuitBreaker = new CircuitBreaker(3, 60000, 30000);
+// Standardized circuit breaker configuration
+const openAICircuitBreaker = new CircuitBreaker(5, 120000, 30000); // 5 failures, 2 min timeout
 
 const handler = withSecurity(async (req, logger) => {
 
