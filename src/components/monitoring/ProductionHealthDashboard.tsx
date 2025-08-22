@@ -351,10 +351,10 @@ export const ProductionHealthDashboard = () => {
 
         <TabsContent value="performance" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Cache Performance */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
                   <CardTitle className="flex items-center gap-2">
                     <Database className="h-5 w-5" />
                     Cache Performance
@@ -363,47 +363,51 @@ export const ProductionHealthDashboard = () => {
                     Clear Cache
                   </Button>
                 </div>
-                <CardDescription>Production cache statistics and health</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {cacheStats ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 glass-card rounded-lg">
-                        <div className="text-2xl font-bold text-primary">
-                          {Math.round(cacheStats.hitRate * 100)}%
-                        </div>
-                        <p className="text-xs text-muted-foreground">Hit Rate</p>
+              </div>
+              <CardDescription>Production cache statistics and health</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {cacheMetrics ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 glass-card rounded-lg">
+                      <div className="text-2xl font-bold text-primary">
+                        {Math.round(cacheMetrics.hitRate * 100)}%
                       </div>
-                      <div className="text-center p-3 glass-card rounded-lg">
-                        <div className="text-2xl font-bold text-primary">
-                          {cacheStats.size}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Entries</p>
-                      </div>
+                      <p className="text-xs text-muted-foreground">Hit Rate</p>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Cache Hits</span>
-                        <span className="font-medium">{cacheStats.hits}</span>
+                    <div className="text-center p-3 glass-card rounded-lg">
+                      <div className="text-2xl font-bold text-primary">
+                        {cacheMetrics.size}
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Cache Misses</span>
-                        <span className="font-medium">{cacheStats.misses}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Memory Usage</span>
-                        <span className="font-medium">
-                          {Math.round(cacheStats.memoryUsage / 1024)} KB
-                        </span>
-                      </div>
+                      <p className="text-xs text-muted-foreground">Entries</p>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground">Loading cache statistics...</p>
-                )}
-              </CardContent>
-            </Card>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Cache Hits</span>
+                      <span className="font-medium">{cacheMetrics.hits}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Cache Misses</span>
+                      <span className="font-medium">{cacheMetrics.misses}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Memory Usage</span>
+                      <span className="font-medium">
+                        {Math.round(cacheMetrics.memoryUsage / 1024)} KB
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner />
+                  <span className="ml-2">Loading cache statistics...</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
             {/* System Performance */}
             <Card>

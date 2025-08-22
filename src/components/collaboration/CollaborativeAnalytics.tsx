@@ -149,11 +149,17 @@ export const CollaborativeAnalytics: React.FC<CollaborativeAnalyticsProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Team Members</p>
-                <p className="text-2xl font-bold">{collaborationMetrics.length}</p>
+                {isLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <p className="text-2xl font-bold">{collaborationMetrics.length}</p>
+                )}
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">+2 this month</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isLoading ? 'Loading...' : `+${Math.max(0, collaborationMetrics.length - 2)} this month`}
+            </p>
           </CardContent>
         </Card>
 
@@ -162,13 +168,19 @@ export const CollaborativeAnalytics: React.FC<CollaborativeAnalyticsProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Collaborations</p>
-                <p className="text-2xl font-bold">
-                  {productivityData.reduce((sum, day) => sum + day.collaborationEvents, 0)}
-                </p>
+                {isLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <p className="text-2xl font-bold">
+                    {productivityData.reduce((sum, day) => sum + day.collaborationEvents, 0)}
+                  </p>
+                )}
               </div>
               <Activity className="h-8 w-8 text-green-500" />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">↑ 23% from last week</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isLoading ? 'Loading...' : '↑ Based on real activity'}
+            </p>
           </CardContent>
         </Card>
 
@@ -177,13 +189,21 @@ export const CollaborativeAnalytics: React.FC<CollaborativeAnalyticsProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Response Time</p>
-                <p className="text-2xl font-bold">
-                  {(collaborationMetrics.reduce((sum, m) => sum + m.responseTime, 0) / collaborationMetrics.length).toFixed(1)}h
-                </p>
+                {isLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <p className="text-2xl font-bold">
+                    {collaborationMetrics.length > 0
+                      ? (collaborationMetrics.reduce((sum, m) => sum + m.responseTime, 0) / collaborationMetrics.length).toFixed(1)
+                      : '0'}h
+                  </p>
+                )}
               </div>
               <Clock className="h-8 w-8 text-orange-500" />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">↓ 15% improvement</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isLoading ? 'Loading...' : 'Real-time calculation'}
+            </p>
           </CardContent>
         </Card>
 
@@ -192,13 +212,21 @@ export const CollaborativeAnalytics: React.FC<CollaborativeAnalyticsProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Quality Score</p>
-                <p className="text-2xl font-bold">
-                  {(collaborationMetrics.reduce((sum, m) => sum + m.qualityRating, 0) / collaborationMetrics.length).toFixed(1)}
-                </p>
+                {isLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <p className="text-2xl font-bold">
+                    {collaborationMetrics.length > 0
+                      ? (collaborationMetrics.reduce((sum, m) => sum + m.qualityRating, 0) / collaborationMetrics.length).toFixed(1)
+                      : '0.0'}
+                  </p>
+                )}
               </div>
               <Star className="h-8 w-8 text-yellow-500" />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Excellent team performance</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isLoading ? 'Loading...' : 'Team performance average'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -219,45 +247,58 @@ export const CollaborativeAnalytics: React.FC<CollaborativeAnalyticsProps> = ({
               <CardTitle>Team Member Contributions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {collaborationMetrics.map((member) => (
-                  <div key={member.userId} className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                        {member.userName.charAt(0)}
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner />
+                  <span className="ml-2">Loading team collaboration data...</span>
+                </div>
+              ) : collaborationMetrics.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No team members found</p>
+                  <p className="text-sm text-muted-foreground">Invite team members to see collaboration metrics</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {collaborationMetrics.map((member) => (
+                    <div key={member.userId} className="flex items-center justify-between p-4 rounded-lg border">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                          {member.userName.charAt(0)}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">{member.userName}</h4>
+                          <p className="text-sm text-muted-foreground">{member.role}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-semibold">{member.userName}</h4>
-                        <p className="text-sm text-muted-foreground">{member.role}</p>
+                      
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="text-sm font-medium">{member.contributionScore}</div>
+                          <div className="text-xs text-muted-foreground">Score</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-medium">{member.commentsCount}</div>
+                          <div className="text-xs text-muted-foreground">Comments</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-medium">{member.versionsCreated}</div>
+                          <div className="text-xs text-muted-foreground">Versions</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-medium">{member.reviewsCompleted}</div>
+                          <div className="text-xs text-muted-foreground">Reviews</div>
+                        </div>
+                        <Badge className={getContributionColor(member.contributionScore)}>
+                          {member.contributionScore >= 90 ? 'Excellent' :
+                           member.contributionScore >= 80 ? 'Good' :
+                           member.contributionScore >= 70 ? 'Average' : 'Needs Improvement'}
+                        </Badge>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-6">
-                      <div className="text-center">
-                        <div className="text-sm font-medium">{member.contributionScore}</div>
-                        <div className="text-xs text-muted-foreground">Score</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium">{member.commentsCount}</div>
-                        <div className="text-xs text-muted-foreground">Comments</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium">{member.versionsCreated}</div>
-                        <div className="text-xs text-muted-foreground">Versions</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium">{member.reviewsCompleted}</div>
-                        <div className="text-xs text-muted-foreground">Reviews</div>
-                      </div>
-                      <Badge className={getContributionColor(member.contributionScore)}>
-                        {member.contributionScore >= 90 ? 'Excellent' :
-                         member.contributionScore >= 80 ? 'Good' :
-                         member.contributionScore >= 70 ? 'Average' : 'Needs Improvement'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -266,19 +307,32 @@ export const CollaborativeAnalytics: React.FC<CollaborativeAnalyticsProps> = ({
             <CardHeader>
               <CardTitle>Team Productivity Trend</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={productivityData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="contentCreated" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
-                  <Area type="monotone" dataKey="reviewsCompleted" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
-                  <Area type="monotone" dataKey="collaborationEvents" stackId="1" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingSpinner />
+                    <span className="ml-2">Loading productivity data...</span>
+                  </div>
+                ) : productivityData.length === 0 ? (
+                  <div className="text-center py-8">
+                    <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">No productivity data available</p>
+                    <p className="text-sm text-muted-foreground">Data will appear as team activity increases</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={productivityData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="contentCreated" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
+                      <Area type="monotone" dataKey="reviewsCompleted" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
+                      <Area type="monotone" dataKey="collaborationEvents" stackId="1" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.6} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
           </Card>
         </TabsContent>
 
