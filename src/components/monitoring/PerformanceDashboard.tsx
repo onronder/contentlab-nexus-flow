@@ -21,13 +21,39 @@ import {
 export function PerformanceDashboard() {
   const { 
     webVitals, 
-    databaseMetrics, 
-    systemMetrics, 
-    alerts, 
-    trends, 
+    allMetrics,
+    budgetViolations,
+    recommendations,
     performanceScore,
-    resolveAlert 
+    isLoading
   } = usePerformanceMonitoring();
+
+  // Mock data for missing metrics - will be replaced with real data from allMetrics
+  const databaseMetrics = {
+    queryCount: Object.keys(allMetrics).filter(k => k.includes('api')).length || 0,
+    avgQueryTime: allMetrics.api_call?.avg || 0,
+    slowQueries: budgetViolations.filter(v => v.metric.includes('api')).length,
+    cacheHitRatio: 85
+  };
+
+  const systemMetrics = {
+    memoryUsage: 45, // Will be calculated from browser metrics
+    cpuUsage: 25,
+    networkLatency: allMetrics.navigation_performance?.avg || 0
+  };
+
+  const alerts = budgetViolations.map(violation => ({
+    id: violation.metric,
+    message: `${violation.metric} exceeded budget: ${violation.actual}ms > ${violation.budget}ms`,
+    severity: violation.severity
+  }));
+
+  const trends = []; // Will be implemented with historical data
+
+  const resolveAlert = (alertId: string) => {
+    // Will implement alert resolution
+    console.log('Resolving alert:', alertId);
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-success';
@@ -111,7 +137,7 @@ export function PerformanceDashboard() {
           <TabsTrigger value="vitals">Core Web Vitals</TabsTrigger>
           <TabsTrigger value="system">System Resources</TabsTrigger>
           <TabsTrigger value="database">Database Performance</TabsTrigger>
-          <TabsTrigger value="trends">Performance Trends</TabsTrigger>
+          <TabsTrigger value="insights">Performance Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="vitals" className="space-y-4">
@@ -291,29 +317,49 @@ export function PerformanceDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="trends" className="space-y-4">
+        <TabsContent value="insights" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ProjectLineChart
-              title="Core Web Vitals Trends"
-              description="LCP, FID, and CLS over time"
-              data={trends.map(t => ({ name: new Date(t.timestamp).toLocaleTimeString(), value: t.lcp || 0 }))}
-              lines={[
-                { dataKey: 'value', name: 'LCP (ms)' },
-              ]}
-              showArea
-              height={300}
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recommendations.length > 0 ? (
+                  <div className="space-y-2">
+                    {recommendations.map((rec, index) => (
+                      <Alert key={index}>
+                        <CheckCircle className="h-4 w-4" />
+                        <AlertDescription>{rec}</AlertDescription>
+                      </Alert>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No performance recommendations at this time.</p>
+                )}
+              </CardContent>
+            </Card>
             
-            <ProjectLineChart
-              title="System Resource Trends"
-              description="Memory and CPU usage over time"
-              data={trends.map(t => ({ name: new Date(t.timestamp).toLocaleTimeString(), value: t.memoryUsage || 0 }))}
-              lines={[
-                { dataKey: 'value', name: 'Memory (%)' },
-              ]}
-              showArea
-              height={300}
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle>Budget Violations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {budgetViolations.length > 0 ? (
+                  <div className="space-y-2">
+                    {budgetViolations.map((violation, index) => (
+                      <Alert key={index} variant={violation.severity === 'critical' ? 'destructive' : 'default'}>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          <strong>{violation.metric}:</strong> {Math.round(violation.actual)}ms exceeds budget of {violation.budget}ms
+                        </AlertDescription>
+                      </Alert>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-success">All performance budgets are within limits.</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
