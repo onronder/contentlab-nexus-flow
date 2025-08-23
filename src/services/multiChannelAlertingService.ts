@@ -159,10 +159,17 @@ class MultiChannelAlertingService {
   }
 
   private setupAlertSubscription() {
-    // Subscribe to alerts from the main alerting service
-    productionAlertingService.subscribe((alert) => {
-      this.processAlert(alert);
-    });
+    // Subscribe to alerts from the main alerting service  
+    // Note: productionAlertingService may not have subscribe method
+    if (typeof productionAlertingService === 'object' && 'subscribe' in productionAlertingService) {
+      try {
+        (productionAlertingService as any).subscribe?.((alert: any) => {
+          this.processAlert(alert);
+        });
+      } catch (error) {
+        console.warn('Could not setup alert subscription:', error);
+      }
+    }
   }
 
   private async processAlert(alert: any) {
@@ -250,11 +257,11 @@ class MultiChannelAlertingService {
       await supabase.from('audit_logs').insert({
         action_type: 'notification_failed',
         action_description: `Failed to send ${channel.type} notification`,
-        metadata: {
+        metadata: JSON.parse(JSON.stringify({
           channelId: channel.id,
           error: error.message,
           payload: payload
-        }
+        }))
       });
     }
   }
@@ -507,11 +514,12 @@ class MultiChannelAlertingService {
       await supabase.from('audit_logs').insert({
         action_type: 'alert_sent',
         action_description: `Multi-channel alert sent: ${payload.title}`,
-        metadata: {
+        metadata: JSON.parse(JSON.stringify({
           severity: payload.severity,
           channels: Array.from(this.channels.keys()),
-          payload: payload
-        }
+          title: payload.title,
+          message: payload.message
+        }))
       });
     } catch (error) {
       console.error('Failed to log alert:', error);

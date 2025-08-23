@@ -456,6 +456,7 @@ class AdvancedErrorTrackingService {
   private async storeAnalysisResults(analysis: ErrorTrendAnalysis, recommendations: string[]) {
     try {
       await supabase.from('analytics_insights').insert({
+        insight_type: 'error_analysis',
         insight_category: 'operational',
         title: 'Error Pattern Analysis',
         description: `Analyzed ${analysis.totalErrors} errors with ${analysis.errorRate.toFixed(2)} errors/sec`,

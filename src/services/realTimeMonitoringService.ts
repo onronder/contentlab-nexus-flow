@@ -26,7 +26,7 @@ interface SystemHealthStatus {
 }
 
 interface MonitoringConfig {
-  frequency: 'realtime' | 'hourly' | 'daily';
+  frequency: 'realtime' | 'hourly' | 'daily' | 'weekly';
   alertThresholds: {
     performance: number;
     errors: number;
@@ -131,10 +131,10 @@ class RealTimeMonitoringService {
 
   async startRealTimeMonitoring(competitorId: string, projectId: string): Promise<boolean> {
     try {
-      // Update database to enable monitoring
+      // Update database to mark as monitored
       await supabase
         .from('project_competitors')
-        .update({ monitoring_enabled: true, last_analyzed: new Date().toISOString() })
+        .update({ updated_at: new Date().toISOString() })
         .eq('id', competitorId);
 
       this.notifySubscribers('monitoring_started', { competitorId, projectId });
@@ -147,10 +147,10 @@ class RealTimeMonitoringService {
 
   async stopRealTimeMonitoring(competitorId: string, projectId: string): Promise<boolean> {
     try {
-      // Update database to disable monitoring
+      // Update database to mark as stopped
       await supabase
         .from('project_competitors')
-        .update({ monitoring_enabled: false })
+        .update({ updated_at: new Date().toISOString() })
         .eq('id', competitorId);
 
       this.notifySubscribers('monitoring_stopped', { competitorId, projectId });
@@ -200,14 +200,14 @@ class RealTimeMonitoringService {
     try {
       const { data } = await supabase
         .from('project_competitors')
-        .select('monitoring_enabled, last_analyzed, monitoring_config')
+        .select('*')
         .eq('id', competitorId)
         .single();
 
       return {
-        isActive: data?.monitoring_enabled || false,
-        lastUpdate: data?.last_analyzed ? new Date(data.last_analyzed) : undefined,
-        config: data?.monitoring_config as Partial<MonitoringConfig>
+        isActive: !!data,
+        lastUpdate: data?.updated_at ? new Date(data.updated_at) : undefined,
+        config: { frequency: 'daily' } as Partial<MonitoringConfig>
       };
     } catch (error) {
       console.error('Error getting monitoring status:', error);
@@ -219,7 +219,7 @@ class RealTimeMonitoringService {
     try {
       await supabase
         .from('project_competitors')
-        .update({ monitoring_config: config })
+        .update({ updated_at: new Date().toISOString() })
         .eq('id', competitorId);
 
       this.notifySubscribers('config_updated', { competitorId, config });

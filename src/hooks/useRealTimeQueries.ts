@@ -177,11 +177,15 @@ export function useMonitoringStatus(competitorId: string, projectId: string, ena
     if (!enabled || !competitorId || !projectId) return;
 
     // Check monitoring session status
-    const checkStatus = () => {
-      const session = realTimeMonitoringService.getMonitoringStatus(competitorId, projectId);
-      setSessionInfo(session);
-      setIsMonitoring(session?.isActive || false);
-      setLastUpdate(session?.lastUpdate || null);
+    const checkStatus = async () => {
+      try {
+        const session = await realTimeMonitoringService.getMonitoringStatus(competitorId, projectId);
+        setSessionInfo(session);
+        setIsMonitoring(session?.isActive || false);
+        setLastUpdate(session?.lastUpdate || null);
+      } catch (error) {
+        console.error('Failed to check monitoring status:', error);
+      }
     };
 
     // Initial check
@@ -193,7 +197,7 @@ export function useMonitoringStatus(competitorId: string, projectId: string, ena
     // Set up real-time subscription for competitor updates
     const unsubscribe = realTimeMonitoringService.subscribeToUpdates(projectId, (update: RealTimeUpdate) => {
       if (update.competitorId === competitorId) {
-        setLastUpdate(update.timestamp);
+        setLastUpdate(new Date(update.timestamp));
       }
     });
 
@@ -299,10 +303,10 @@ export function useRealTimeMetrics(projectId: string, enabled: boolean = true) {
               // Trigger refetch to get accurate counts
               queryClient.invalidateQueries({ queryKey: ['realTimeMetrics', projectId] });
               break;
-            case 'alert_created':
+            case 'alert':
               updated.recentAlerts = current.recentAlerts + 1;
               break;
-            case 'analysis_complete':
+            case 'competitor_update':
               updated.analysesInProgress = Math.max(0, current.analysesInProgress - 1);
               break;
           }
