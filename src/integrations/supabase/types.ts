@@ -6434,6 +6434,19 @@ export type Database = {
         Args: { p_email: string }
         Returns: Json
       }
+      get_project_analytics_optimized: {
+        Args: { p_limit?: number; p_team_id?: string; p_user_id: string }
+        Returns: {
+          content_count: number
+          performance_score: number
+          priority: string
+          project_id: string
+          project_name: string
+          recent_activity_count: number
+          status: string
+          team_member_count: number
+        }[]
+      }
       get_team_invitations: {
         Args: { p_options?: Json; p_team_id: string }
         Returns: Json
