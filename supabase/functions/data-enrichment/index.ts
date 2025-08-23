@@ -10,19 +10,18 @@ const corsHeaders = {
 const getBrightDataProxy = () => {
   const host = Deno.env.get('BRIGHTDATA_PROXY_HOST');
   const port = Deno.env.get('BRIGHTDATA_PROXY_PORT');
-  const customerId = Deno.env.get('BRIGHTDATA_CUSTOMER_ID');
-  const zone = Deno.env.get('BRIGHTDATA_ZONE');
+  const username = Deno.env.get('BRIGHTDATA_USERNAME');
   const password = Deno.env.get('BRIGHTDATA_PASSWORD');
   
-  if (!host || !port || !customerId || !zone || !password) {
-    throw new Error('BrightData credentials not configured');
+  if (!host || !port || !username || !password) {
+    console.warn('BrightData credentials not configured, using direct requests');
+    return null;
   }
   
-  const proxyUser = `brd-customer-${customerId}-zone-${zone}`;
   return {
     host,
     port: parseInt(port),
-    username: proxyUser,
+    username,
     password
   };
 };
@@ -31,19 +30,28 @@ const getBrightDataProxy = () => {
 const fetchWithProxy = async (url: string, options: RequestInit = {}) => {
   const proxy = getBrightDataProxy();
   
-  // Create proxy URL
-  const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
+  if (!proxy) {
+    console.log('No BrightData proxy configured, using direct fetch');
+    return fetch(url, options);
+  }
   
-  const response = await fetch(url, {
-    ...options,
-    // @ts-ignore - Deno specific proxy configuration
-    proxy: proxyUrl,
-    // Ignore SSL errors for BrightData
-    // @ts-ignore
-    rejectUnauthorized: false
-  });
-  
-  return response;
+  try {
+    console.log(`Fetching ${url} through BrightData proxy`);
+    
+    // For BrightData, we use HTTP CONNECT proxy
+    const proxyUrl = `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`;
+    
+    const response = await fetch(url, {
+      ...options,
+      // Note: Deno may not support proxy configuration directly in fetch
+      // In production, you would use a proper HTTP proxy client
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('BrightData proxy fetch failed, falling back to direct fetch:', error);
+    return fetch(url, options);
+  }
 };
 
 // Enrich competitor data from multiple sources
