@@ -310,13 +310,17 @@ export class AdvancedThreatDetectionService {
         .single();
 
       if (data) {
+        const behaviorData = typeof data.behavior_data === 'string' 
+          ? JSON.parse(data.behavior_data) 
+          : data.behavior_data || {};
+
         const profile: BehavioralProfile = {
           user_id: userId,
-          typical_login_times: data.behavior_data?.typical_login_times || [],
-          typical_locations: data.behavior_data?.typical_locations || [],
-          typical_devices: data.behavior_data?.typical_devices || [],
-          activity_patterns: data.behavior_data?.activity_patterns || {},
-          risk_baseline: data.behavior_data?.risk_baseline || 50,
+          typical_login_times: behaviorData.typical_login_times || [],
+          typical_locations: behaviorData.typical_locations || [],
+          typical_devices: behaviorData.typical_devices || [],
+          activity_patterns: behaviorData.activity_patterns || {},
+          risk_baseline: behaviorData.risk_baseline || 50,
           last_updated: data.created_at
         };
 

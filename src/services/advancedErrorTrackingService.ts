@@ -456,18 +456,19 @@ class AdvancedErrorTrackingService {
   private async storeAnalysisResults(analysis: ErrorTrendAnalysis, recommendations: string[]) {
     try {
       await supabase.from('analytics_insights').insert({
-        insight_type: 'error_analysis',
         insight_category: 'operational',
         title: 'Error Pattern Analysis',
         description: `Analyzed ${analysis.totalErrors} errors with ${analysis.errorRate.toFixed(2)} errors/sec`,
-        insight_data: {
+        insight_data: JSON.parse(JSON.stringify({
           analysis,
           recommendations,
           timestamp: Date.now()
-        },
+        })),
         impact_level: analysis.errorRate > 0.1 ? 'high' : analysis.errorRate > 0.05 ? 'medium' : 'low',
         is_actionable: recommendations.length > 0,
-        recommended_actions: recommendations.map(rec => ({ action: rec, priority: 'medium' }))
+        recommended_actions: JSON.parse(JSON.stringify(
+          recommendations.map(rec => ({ action: rec, priority: 'medium' }))
+        ))
       });
     } catch (error) {
       console.error('Failed to store analysis results:', error);

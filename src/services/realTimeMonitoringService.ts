@@ -25,6 +25,29 @@ interface SystemHealthStatus {
   };
 }
 
+interface MonitoringConfig {
+  frequency: 'realtime' | 'hourly' | 'daily';
+  alertThresholds: {
+    performance: number;
+    errors: number;
+    availability: number;
+  };
+  enabledMetrics: string[];
+  notifications: {
+    email: boolean;
+    slack: boolean;
+    webhook?: string;
+  };
+}
+
+interface RealTimeUpdate {
+  type: 'competitor_update' | 'system_health' | 'metric_update' | 'alert';
+  timestamp: number;
+  data: any;
+  competitorId?: string;
+  projectId?: string;
+}
+
 class RealTimeMonitoringService {
   private static instance: RealTimeMonitoringService;
   private metricsStream: Map<string, RealTimeMetric[]> = new Map();
@@ -105,7 +128,108 @@ class RealTimeMonitoringService {
     return this.healthHistory.length > 0 ? 
       this.healthHistory[this.healthHistory.length - 1] : null;
   }
+
+  async startRealTimeMonitoring(competitorId: string, projectId: string): Promise<boolean> {
+    try {
+      // Update database to enable monitoring
+      await supabase
+        .from('project_competitors')
+        .update({ monitoring_enabled: true, last_analyzed: new Date().toISOString() })
+        .eq('id', competitorId);
+
+      this.notifySubscribers('monitoring_started', { competitorId, projectId });
+      return true;
+    } catch (error) {
+      console.error('Error starting real-time monitoring:', error);
+      return false;
+    }
+  }
+
+  async stopRealTimeMonitoring(competitorId: string, projectId: string): Promise<boolean> {
+    try {
+      // Update database to disable monitoring
+      await supabase
+        .from('project_competitors')
+        .update({ monitoring_enabled: false })
+        .eq('id', competitorId);
+
+      this.notifySubscribers('monitoring_stopped', { competitorId, projectId });
+      return true;
+    } catch (error) {
+      console.error('Error stopping real-time monitoring:', error);
+      return false;
+    }
+  }
+
+  async startProjectMonitoring(projectId: string): Promise<void> {
+    // Start monitoring for all competitors in the project
+    const { data: competitors } = await supabase
+      .from('project_competitors')
+      .select('id')
+      .eq('project_id', projectId);
+
+    if (competitors) {
+      for (const competitor of competitors) {
+        await this.startRealTimeMonitoring(competitor.id, projectId);
+      }
+    }
+  }
+
+  subscribeToUpdates(projectId: string, callback: (update: RealTimeUpdate) => void): () => void {
+    const key = `project_${projectId}_${Date.now()}_${Math.random()}`;
+    
+    const wrappedCallback = (data: any) => {
+      const update: RealTimeUpdate = {
+        type: 'competitor_update',
+        timestamp: Date.now(),
+        data,
+        projectId
+      };
+      callback(update);
+    };
+
+    this.subscribers.set(key, wrappedCallback);
+    return () => this.subscribers.delete(key);
+  }
+
+  async getMonitoringStatus(competitorId: string, projectId: string): Promise<{
+    isActive: boolean;
+    lastUpdate?: Date;
+    config?: Partial<MonitoringConfig>;
+  }> {
+    try {
+      const { data } = await supabase
+        .from('project_competitors')
+        .select('monitoring_enabled, last_analyzed, monitoring_config')
+        .eq('id', competitorId)
+        .single();
+
+      return {
+        isActive: data?.monitoring_enabled || false,
+        lastUpdate: data?.last_analyzed ? new Date(data.last_analyzed) : undefined,
+        config: data?.monitoring_config as Partial<MonitoringConfig>
+      };
+    } catch (error) {
+      console.error('Error getting monitoring status:', error);
+      return { isActive: false };
+    }
+  }
+
+  async updateMonitoringConfig(competitorId: string, config: Partial<MonitoringConfig>): Promise<boolean> {
+    try {
+      await supabase
+        .from('project_competitors')
+        .update({ monitoring_config: config })
+        .eq('id', competitorId);
+
+      this.notifySubscribers('config_updated', { competitorId, config });
+      return true;
+    } catch (error) {
+      console.error('Error updating monitoring config:', error);
+      return false;
+    }
+  }
 }
 
 export const realTimeMonitoringService = RealTimeMonitoringService.getInstance();
-export type { RealTimeMetric, SystemHealthStatus };
+export type { RealTimeMetric, SystemHealthStatus, MonitoringConfig, RealTimeUpdate };
