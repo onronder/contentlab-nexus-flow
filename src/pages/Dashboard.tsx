@@ -1,8 +1,13 @@
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { MobileContainer, MobileSection, MobileGrid } from '@/components/mobile/MobileContainer';
+import { PullToRefresh } from '@/components/mobile/PullToRefresh';
+import { useEnhancedMobileDetection } from '@/hooks/useEnhancedMobileDetection';
+import { cn } from '@/lib/utils';
 import { 
   Building2, 
   Target, 
@@ -42,6 +47,7 @@ const Dashboard = () => {
   const { data: alerts, isLoading: isAlertsLoading } = useMonitoringAlerts();
   const { data: performanceMetrics, isLoading: isPerformanceLoading } = usePerformanceMetrics();
   const queryClient = useQueryClient();
+  const { isMobile } = useEnhancedMobileDetection();
 
   // Use real data if available, fallback to mock data
   const stats = realDashboardData || teamStats;
@@ -183,8 +189,18 @@ const Dashboard = () => {
     },
   ];
 
+  // Handle pull-to-refresh on mobile
+  const handleRefresh = React.useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['teams'] });
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    await queryClient.invalidateQueries({ queryKey: ['recent-activity'] });
+    await queryClient.invalidateQueries({ queryKey: ['alerts'] });
+    await queryClient.invalidateQueries({ queryKey: ['performance'] });
+  }, [queryClient]);
+
   return (
-    <div className="space-y-8">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <MobileContainer className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -205,26 +221,34 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {quickStats.map((stat) => (
-          <Card key={stat.title} className="shadow-elegant hover:shadow-glow transition-elegant">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
-                <div className="text-xs">
-                  {stat.change}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        {/* Quick Stats */}
+        <MobileSection>
+          <MobileGrid cols="auto">
+            {quickStats.map((stat) => (
+              <Card key={stat.title} className="shadow-elegant hover:shadow-glow transition-elegant">
+                <CardHeader className={cn(
+                  "flex flex-row items-center justify-between space-y-0 pb-2",
+                  isMobile && "p-4 pb-2"
+                )}>
+                  <CardTitle className={cn(
+                    "text-sm font-medium",
+                    isMobile && "text-xs"
+                  )}>{stat.title}</CardTitle>
+                  <stat.icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className={isMobile ? "p-4 pt-0" : undefined}>
+                  <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
+                    <div className="text-xs">
+                      {stat.change}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </MobileGrid>
+        </MobileSection>
 
       {/* Alerts Section */}
       {alertsList && alertsList.length > 0 && (
@@ -269,7 +293,10 @@ const Dashboard = () => {
         </Card>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+        <div className={cn(
+          "grid gap-6",
+          isMobile ? "grid-cols-1" : "lg:grid-cols-3"
+        )}>
         {/* Recent Activity */}
         <QueryErrorBoundary>
           <Card className="lg:col-span-2 shadow-elegant">
@@ -418,7 +445,8 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-    </div>
+      </MobileContainer>
+    </PullToRefresh>
   );
 };
 

@@ -2,6 +2,8 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AnalyticsPageTracker } from "./AnalyticsPageTracker";
+import { MobileBottomNavigation } from "@/components/mobile/MobileNavigation";
+import { useEnhancedMobileDetection } from "@/hooks/useEnhancedMobileDetection";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -9,11 +11,13 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const { isMobile } = useEnhancedMobileDetection();
+  
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={!isMobile}>
       <AnalyticsPageTracker />
       <div className="min-h-screen flex w-full gradient-mesh">
-        <AppSidebar />
+        {!isMobile && <AppSidebar />}
         
         <div className="flex-1 flex flex-col">
           <header className="h-16 flex items-center justify-between px-6 border-b border-border/50 glass-card">
@@ -32,13 +36,19 @@ export function Layout({ children }: LayoutProps) {
             </div>
           </header>
           
-          <main className="flex-1 p-6 gradient-subtle min-h-0 overflow-auto">
+          <main className={cn(
+            "flex-1 gradient-subtle min-h-0 overflow-auto",
+            isMobile ? "p-4 pb-20" : "p-6"
+          )}>
             <div className="max-w-7xl mx-auto">
               {children}
             </div>
           </main>
         </div>
       </div>
+      
+      {/* Mobile bottom navigation */}
+      <MobileBottomNavigation />
     </SidebarProvider>
   );
 }
