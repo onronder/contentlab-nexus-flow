@@ -168,7 +168,7 @@ export const useCollaborativeAnalytics = (teamId: string, dateRange: { start: Da
           .from('activity_logs')
           .select('*', { count: 'exact', head: true })
           .eq('team_id', currentTeam.id)
-          .in('activity_type', ['collaboration', 'content_management', 'team_management'])
+          .in('activity_type', ['team_management', 'content_activity', 'team_management'])
           .gte('created_at', currentDate.toISOString().split('T')[0])
           .lt('created_at', nextDate.toISOString().split('T')[0]);
 
@@ -215,14 +215,14 @@ export const useCollaborativeAnalytics = (teamId: string, dateRange: { start: Da
           .from('comments')
           .select('*', { count: 'exact', head: true })
           .eq('resource_id', item.id)
-          .eq('resource_type', 'content');
+          .eq('resource_type', 'content_item');
 
         // Get unique contributors (users who commented or modified)
         const { data: contributors } = await supabase
           .from('comments')
           .select('author_id')
           .eq('resource_id', item.id)
-          .eq('resource_type', 'content');
+          .eq('resource_type', 'content_item');
 
         const uniqueContributors = new Set(contributors?.map(c => c.author_id) || []).size;
 

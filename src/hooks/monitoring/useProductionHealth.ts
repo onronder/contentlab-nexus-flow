@@ -42,7 +42,7 @@ export const useProductionHealth = () => {
 
         // Calculate response times from metadata if available
         const responseTimes = recentRequests
-          ?.map(req => req.metadata?.response_time_ms)
+          ?.map(req => (req.metadata as any)?.response_time_ms)
           .filter(time => time !== undefined) || [];
 
         const avgResponseTime = responseTimes.length > 0
@@ -52,7 +52,7 @@ export const useProductionHealth = () => {
         // Calculate uptime based on successful requests
         const totalRequests = recentRequests?.length || 100;
         const errorRequests = recentRequests?.filter(req => 
-          req.metadata?.status_code && req.metadata.status_code >= 400
+          (req.metadata as any)?.status_code && (req.metadata as any).status_code >= 400
         ).length || 0;
 
         const uptime = Math.max(95, ((totalRequests - errorRequests) / totalRequests) * 100);
@@ -99,21 +99,21 @@ export const useProductionHealth = () => {
         const { data: securityLogs } = await supabase
           .from('activity_logs')
           .select('*')
-          .in('activity_type', ['security', 'authentication', 'authorization'])
+          .in('activity_type', ['security_event', 'authentication', 'authentication'])
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Last 24 hours
           .order('created_at', { ascending: false });
 
         const totalLogs = securityLogs?.length || 0;
         const criticalIssues = securityLogs?.filter(log => 
-          log.severity === 'critical' || log.metadata?.security_level === 'critical'
+          log.severity === 'critical' || (log.metadata as any)?.security_level === 'critical'
         ).length || 0;
 
         const highIssues = securityLogs?.filter(log => 
-          log.severity === 'high' || log.metadata?.security_level === 'high'
+          log.severity === 'critical' || (log.metadata as any)?.security_level === 'high'
         ).length || 0;
 
         const mediumIssues = securityLogs?.filter(log => 
-          log.severity === 'medium' || log.metadata?.security_level === 'medium'
+          log.severity === 'warning' || (log.metadata as any)?.security_level === 'medium'
         ).length || 0;
 
         // Calculate overall security score
@@ -177,7 +177,7 @@ export const useProductionHealth = () => {
           .limit(1000);
 
         const cacheHits = recentActivity?.filter(activity => 
-          activity.metadata?.cache_hit === true
+          (activity.metadata as any)?.cache_hit === true
         ).length || 0;
 
         const totalRequests = recentActivity?.length || 1;

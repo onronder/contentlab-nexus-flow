@@ -367,18 +367,18 @@ export const ProductionHealthDashboard = () => {
               <CardDescription>Production cache statistics and health</CardDescription>
             </CardHeader>
             <CardContent>
-              {cacheMetrics ? (
+              {cacheStats ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 glass-card rounded-lg">
                       <div className="text-2xl font-bold text-primary">
-                        {Math.round(cacheMetrics.hitRate * 100)}%
+                        {Math.round(cacheStats.hitRate * 100)}%
                       </div>
                       <p className="text-xs text-muted-foreground">Hit Rate</p>
                     </div>
                     <div className="text-center p-3 glass-card rounded-lg">
                       <div className="text-2xl font-bold text-primary">
-                        {cacheMetrics.size}
+                        {cacheStats.size}
                       </div>
                       <p className="text-xs text-muted-foreground">Entries</p>
                     </div>
@@ -386,16 +386,16 @@ export const ProductionHealthDashboard = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Cache Hits</span>
-                      <span className="font-medium">{cacheMetrics.hits}</span>
+                      <span className="font-medium">{cacheStats.hits}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Cache Misses</span>
-                      <span className="font-medium">{cacheMetrics.misses}</span>
+                      <span className="font-medium">{cacheStats.misses}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Memory Usage</span>
                       <span className="font-medium">
-                        {Math.round(cacheMetrics.memoryUsage / 1024)} KB
+                        {Math.round(cacheStats.memoryUsage / 1024)} KB
                       </span>
                     </div>
                   </div>

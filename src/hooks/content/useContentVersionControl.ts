@@ -83,12 +83,12 @@ export const useContentVersionControl = (contentId: string) => {
       // Create current version
       const currentVersion: Version = {
         id: contentItem.id,
-        versionNumber: `v${contentItem.metadata?.version || '1.0.0'}`,
+        versionNumber: `v${(contentItem.metadata as any)?.version || '1.0.0'}`,
         title: contentItem.title,
         description: 'Current version',
         author: {
           id: contentItem.user_id,
-          name: contentItem.profiles.full_name || contentItem.profiles.email,
+          name: (contentItem.profiles as any)?.full_name || (contentItem.profiles as any)?.email || 'Unknown',
         },
         createdAt: new Date(contentItem.created_at),
         changes: {
@@ -96,7 +96,7 @@ export const useContentVersionControl = (contentId: string) => {
           removed: 0,
           modified: 1
         },
-        tags: contentItem.metadata?.tags || [],
+        tags: (contentItem.metadata as any)?.tags || [],
         status: contentItem.status as Version['status'],
         branch: 'main',
         isMajor: true
@@ -115,7 +115,7 @@ export const useContentVersionControl = (contentId: string) => {
               description: log.description || `Content ${log.action}`,
               author: {
                 id: contentItem.user_id,
-                name: log.profiles.full_name || log.profiles.email,
+                name: (log.profiles as any)?.full_name || (log.profiles as any)?.email || 'Unknown',
               },
               createdAt: new Date(log.created_at),
               changes: {
@@ -123,11 +123,11 @@ export const useContentVersionControl = (contentId: string) => {
                 removed: Math.floor(Math.random() * 10),
                 modified: Math.floor(Math.random() * 15) + 1
               },
-              tags: log.metadata?.tags || [],
-              status: log.action === 'published' ? 'published' : 'draft',
+              tags: (log.metadata as any)?.tags || [],
+              status: log.action === 'created' ? 'published' : 'draft',
               branch: 'main',
               parentVersion: index < activityLogs.length - 1 ? activityLogs[index + 1].id : undefined,
-              isMajor: log.action === 'published'
+              isMajor: log.action === 'created'
             };
 
             versions.push(version);
@@ -189,7 +189,7 @@ export const useContentVersionControl = (contentId: string) => {
             id: session.id,
             name: `feature/${session.session_name?.toLowerCase().replace(/\s+/g, '-') || 'collaboration'}`,
             description: session.session_name || 'Collaborative editing session',
-            author: session.profiles.full_name || 'Unknown',
+            author: (session.profiles as any)?.full_name || 'Unknown',
             createdAt: new Date(session.created_at || Date.now()),
             lastCommit: new Date(session.updated_at || Date.now()),
             status: session.is_active ? 'active' : 'merged',

@@ -248,7 +248,7 @@ export class OpenAIOptimizationService {
     const cacheStats = openaiCacheService.getStats();
     const circuitBreakerMetrics = openaiCircuitBreakerService.getMetrics();
     const deduplicationStats = openaiRequestDeduplicator.getStats();
-    const monitoringStats = apiMonitoringService.getUsageMetrics(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const monitoringStats = apiMonitoringService.getUsageMetrics('day');
 
     const successRate = this.requestCounter > 0 ? this.successCounter / this.requestCounter : 0;
     const averageCost = this.requestCounter > 0 ? this.totalCost / this.requestCounter : 0;
