@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { AnalyticsPageTracker } from "./AnalyticsPageTracker";
 import { MobileBottomNavigation } from "@/components/mobile/MobileNavigation";
 import { useEnhancedMobileDetection } from "@/hooks/useEnhancedMobileDetection";
+import { TeamSwitcher } from "@/components/team/TeamSwitcher";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -27,6 +28,7 @@ export function Layout({ children }: LayoutProps) {
             </div>
             
             <div className="flex items-center gap-4">
+              {isMobile && <TeamSwitcher />}
               <div className="hidden sm:block text-sm text-muted-foreground">
                 Welcome back to <span className="logo-contentlab font-medium">ContentLab Nexus</span>
               </div>

@@ -273,7 +273,11 @@ export function AppSidebar() {
                 </Tooltip>
               )}
             </div>
-            {!collapsed && <TeamSelector />}
+            {!collapsed && (
+              <div className="space-y-3">
+                <TeamSelector />
+              </div>
+            )}
           </div>
         </SidebarHeader>
 
