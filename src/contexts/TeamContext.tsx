@@ -3,7 +3,6 @@ import { Team } from '@/types/team';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeams } from '@/hooks/useTeamQueries';
 import { useTeamPersistence } from '@/hooks/useTeamPersistence';
-import { useAppPreferences } from '@/hooks/useAppPreferences';
 import { toast } from '@/hooks/use-toast';
 
 interface TeamContextType {
@@ -25,8 +24,7 @@ interface TeamProviderProps {
 export function TeamProvider({ children }: TeamProviderProps) {
   const { user } = useAuth();
   const [currentTeam, setCurrentTeamState] = useState<Team | null>(null);
-  const { updateLastTeam, getLastTeam, clearLastTeam, preferences } = useTeamPersistence();
-  const { data: appPreferences } = useAppPreferences();
+  const { updateLastTeam, getLastTeam, clearLastTeam } = useTeamPersistence();
   
   // Use React Query to fetch teams
   const { data: availableTeams = [], isLoading, error } = useTeams();
@@ -55,9 +53,7 @@ export function TeamProvider({ children }: TeamProviderProps) {
           console.log('Initializing team:', { 
             savedTeamId, 
             savedTeam: !!savedTeam, 
-            teamToSet: teamToSet?.name,
-            crossDeviceSync: appPreferences?.crossDeviceSync,
-            recentTeams: appPreferences?.recentTeams?.length || 0
+            teamToSet: teamToSet?.name
           });
           setCurrentTeamState(teamToSet);
           
@@ -109,16 +105,6 @@ export function TeamProvider({ children }: TeamProviderProps) {
         description: `Switched to ${team.name}`,
       });
     }
-  };
-
-  // Enhanced team access with smart suggestions based on recent teams
-  const getTeamSuggestions = () => {
-    if (!appPreferences?.recentTeams) return [];
-    
-    return appPreferences.recentTeams
-      .map(teamId => availableTeams.find(t => t.id === teamId))
-      .filter(Boolean)
-      .slice(0, 3); // Top 3 recent teams
   };
 
   const hasTeamAccess = (permission: string): boolean => {

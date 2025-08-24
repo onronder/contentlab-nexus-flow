@@ -1,59 +1,73 @@
 import { useCallback } from 'react';
-import { useTeamPreferenceHelpers } from './useAppPreferences';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export function useTeamPersistence() {
-  const { preferences, updateCurrentTeam, isUpdating } = useTeamPreferenceHelpers();
-
   const updateLastTeam = useCallback(async (teamId: string) => {
-    // Always update localStorage first for immediate response
+    // Always update localStorage first (primary storage)
     localStorage.setItem('currentTeamId', teamId);
     
+    // Try to sync with server (non-blocking)
     try {
-      // Update app preferences with team history tracking
-      await updateCurrentTeam(teamId);
+      // Use the new app preferences RPC
+      const { error } = await supabase.rpc('update_user_app_preferences', {
+        p_preferences: { currentTeamId: teamId }
+      });
+      
+      if (error) {
+        console.warn('Server sync failed for team preference:', error.message);
+        // Don't throw or block - localStorage is sufficient
+      }
     } catch (error) {
-      console.warn('Failed to update team preferences:', error);
-      // localStorage is still updated for fallback
+      console.warn('Server sync unavailable for team preference:', error);
+      // Don't throw or block - localStorage is sufficient
     }
-  }, [updateCurrentTeam]);
+  }, []);
 
   const getLastTeam = useCallback(async () => {
-    // If preferences are available and cross-device sync is enabled, use server data
-    if (preferences?.crossDeviceSync && preferences.currentTeamId) {
-      // Update localStorage to match server
-      localStorage.setItem('currentTeamId', preferences.currentTeamId);
-      return preferences.currentTeamId;
-    }
-    
-    // Fallback to localStorage for immediate response
+    // Try localStorage first (faster and more reliable)
     const localTeamId = localStorage.getItem('currentTeamId');
     
-    // If we have local data but no server preferences, sync to server
-    if (localTeamId && !preferences?.currentTeamId) {
-      updateCurrentTeam(localTeamId).catch(console.warn);
+    // Try to get from server for cross-device sync (non-blocking)
+    try {
+      const { data, error } = await supabase.rpc('get_user_app_preferences');
+      
+      if (!error && data && typeof data === 'object' && !Array.isArray(data)) {
+        const preferences = data as any;
+        const serverTeamId = preferences.currentTeamId;
+        
+        // If server has a different team, prefer server value but update localStorage
+        if (serverTeamId && serverTeamId !== localTeamId) {
+          localStorage.setItem('currentTeamId', serverTeamId);
+          return serverTeamId;
+        }
+      }
+    } catch (error) {
+      console.warn('Server sync unavailable for team preference:', error);
+      // Fall through to local value
     }
     
     return localTeamId;
-  }, [preferences, updateCurrentTeam]);
+  }, []);
 
   const clearLastTeam = useCallback(async () => {
-    // Clear localStorage immediately
+    // Always clear localStorage first (primary storage)
     localStorage.removeItem('currentTeamId');
     
+    // Try to sync with server (non-blocking)
     try {
-      // Clear server preferences
-      await updateCurrentTeam(null);
+      await supabase.rpc('update_user_app_preferences', {
+        p_preferences: { currentTeamId: null }
+      });
     } catch (error) {
-      console.warn('Failed to clear team preferences:', error);
-      // localStorage is still cleared for immediate effect
+      console.warn('Server sync unavailable for clearing team preference:', error);
+      // Don't throw or block - localStorage clear is sufficient
     }
-  }, [updateCurrentTeam]);
+  }, []);
 
   return {
     updateLastTeam,
     getLastTeam,
-    clearLastTeam,
-    preferences,
-    isUpdating
+    clearLastTeam
   };
 }
