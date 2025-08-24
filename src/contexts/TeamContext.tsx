@@ -41,25 +41,33 @@ export function TeamProvider({ children }: TeamProviderProps) {
     }
   }, [error]);
 
-  // Set initial current team from server-side persistence or first available team
+  // Set initial current team from saved preference or first available team
   useEffect(() => {
     const initializeTeam = async () => {
-      if (!isLoading && availableTeams.length > 0) {
-        const savedTeamId = await getLastTeam();
-        const savedTeam = savedTeamId ? availableTeams.find(team => team.id === savedTeamId) : null;
-        const teamToSet = savedTeam || availableTeams[0];
-        
-        if (!currentTeam || currentTeam.id !== teamToSet.id) {
+      if (!isLoading && availableTeams.length > 0 && !currentTeam) {
+        try {
+          const savedTeamId = await getLastTeam();
+          const savedTeam = savedTeamId ? availableTeams.find(team => team.id === savedTeamId) : null;
+          const teamToSet = savedTeam || availableTeams[0];
+          
+          console.log('Initializing team:', { savedTeamId, savedTeam: !!savedTeam, teamToSet: teamToSet?.name });
           setCurrentTeamState(teamToSet);
-          // Update server-side persistence if we fallback to first team
-          if (!savedTeam) {
-            await updateLastTeam(teamToSet.id);
+          
+          // Update persistence if we fallback to first team (non-blocking)
+          if (!savedTeam && teamToSet) {
+            updateLastTeam(teamToSet.id).catch(console.warn);
+          }
+        } catch (error) {
+          console.warn('Team initialization failed, using first available team:', error);
+          // Fallback to first team if persistence fails
+          if (availableTeams[0]) {
+            setCurrentTeamState(availableTeams[0]);
           }
         }
       } else if (!isLoading && availableTeams.length === 0 && user?.id) {
         console.log('No teams found for user:', user.id);
         setCurrentTeamState(null);
-        await clearLastTeam();
+        clearLastTeam().catch(console.warn);
       }
     };
 
@@ -70,23 +78,24 @@ export function TeamProvider({ children }: TeamProviderProps) {
   useEffect(() => {
     if (!user?.id) {
       setCurrentTeamState(null);
-      clearLastTeam();
+      clearLastTeam().catch(console.warn);
     }
   }, [user?.id, clearLastTeam]);
 
   const setCurrentTeam = async (team: Team | null) => {
     setCurrentTeamState(team);
+    // Update persistence (non-blocking)
     if (team) {
-      await updateLastTeam(team.id);
+      updateLastTeam(team.id).catch(console.warn);
     } else {
-      await clearLastTeam();
+      clearLastTeam().catch(console.warn);
     }
   };
 
   const switchTeam = async (teamId: string) => {
     const team = availableTeams.find(t => t.id === teamId);
     if (team) {
-      await setCurrentTeam(team);
+      setCurrentTeam(team);
       toast({
         title: 'Team switched',
         description: `Switched to ${team.name}`,
