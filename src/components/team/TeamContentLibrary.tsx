@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,17 @@ import { useTeamContent } from "@/hooks/queries/useTeamAwareContentQueries";
 
 export function TeamContentLibrary() {
   const { data: projects = [], isLoading: projectsLoading } = useTeamProjects();
-  const [projectId, setProjectId] = useState<string | undefined>(projects[0]?.id);
+  const [projectId, setProjectId] = useState<string | undefined>();
   const [search, setSearch] = useState("");
-const { data: content = [], isLoading } = useTeamContent(projectId || "");
+  
+  // Set first project as default when projects load
+  useEffect(() => {
+    if (!projectsLoading && projects.length > 0 && !projectId) {
+      setProjectId(projects[0].id);
+    }
+  }, [projects, projectsLoading, projectId]);
+
+  const { data: content = [], isLoading } = useTeamContent(projectId || "");
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
