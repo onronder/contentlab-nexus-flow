@@ -128,10 +128,10 @@ export const ProductionReadinessDashboard: React.FC = () => {
 
   const getStatusColor = (status: ValidationStep['status']) => {
     switch (status) {
-      case 'passed': return 'success';
-      case 'warning': return 'warning';
+      case 'passed': return 'default';
+      case 'warning': return 'secondary';
       case 'failed': return 'destructive';
-      case 'running': return 'default';
+      case 'running': return 'outline';
       default: return 'outline';
     }
   };

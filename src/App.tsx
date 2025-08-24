@@ -33,6 +33,7 @@ const Settings = React.lazy(() => import("./pages/Settings"));
 const Competitive = React.lazy(() => import("./pages/Competitive"));
 const Security = React.lazy(() => import("./pages/Security"));
 const Monitoring = React.lazy(() => import("./pages/Monitoring"));
+const ProductionReadiness = React.lazy(() => import("./pages/ProductionReadiness"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const Collaboration = React.lazy(() => import("./pages/Collaboration").then(m => ({ default: m.Collaboration })));
 const Share = React.lazy(() => import("./pages/Share"));
@@ -274,6 +275,18 @@ const App = () => (
               <Layout>
                 <Suspense fallback={<PageLoading />}>
                   <Monitoring />
+                </Suspense>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/production-readiness" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suspense fallback={<PageLoading />}>
+                  <ProductionReadiness />
                 </Suspense>
               </Layout>
             </ProtectedRoute>
