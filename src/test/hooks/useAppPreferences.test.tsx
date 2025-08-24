@@ -35,12 +35,12 @@ describe('useAppPreferences', () => {
     const mockPreferences = {
       currentTeamId: 'team-1',
       recentTeams: ['team-2', 'team-3'],
-      teamSwitchBehavior: 'remember',
+      teamSwitchBehavior: 'remember' as const,
       crossDeviceSync: true
     };
 
-    const { supabase } = await import('@/integrations/supabase/client');
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: mockPreferences, error: null });
+    const supabaseModule = await import('@/integrations/supabase/client');
+    vi.mocked(supabaseModule.supabase.rpc).mockResolvedValue({ data: mockPreferences, error: null });
 
     const { result } = renderHook(() => useAppPreferences(), {
       wrapper: createWrapper()
@@ -52,8 +52,8 @@ describe('useAppPreferences', () => {
   });
 
   it('handles fetch errors gracefully', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: new Error('Fetch failed') });
+    const supabaseModule = await import('@/integrations/supabase/client');
+    vi.mocked(supabaseModule.supabase.rpc).mockResolvedValue({ data: null, error: new Error('Fetch failed') });
 
     const { result } = renderHook(() => useAppPreferences(), {
       wrapper: createWrapper()
@@ -67,8 +67,8 @@ describe('useAppPreferences', () => {
 
 describe('useUpdateAppPreferences', () => {
   it('updates preferences correctly', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null });
+    const supabaseModule = await import('@/integrations/supabase/client');
+    vi.mocked(supabaseModule.supabase.rpc).mockResolvedValue({ data: null, error: null });
 
     const { result } = renderHook(() => useUpdateAppPreferences(), {
       wrapper: createWrapper()
@@ -78,7 +78,7 @@ describe('useUpdateAppPreferences', () => {
     result.current.mutate(newPreferences);
 
     await waitFor(() => {
-      expect(supabase.rpc).toHaveBeenCalledWith('update_user_app_preferences', {
+      expect(supabaseModule.supabase.rpc).toHaveBeenCalledWith('update_user_app_preferences', {
         p_preferences: newPreferences
       });
     });
@@ -86,17 +86,16 @@ describe('useUpdateAppPreferences', () => {
 });
 
 describe('useTeamPreferenceHelpers', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     const mockPreferences = {
       currentTeamId: 'team-1',
       recentTeams: ['team-2'],
-      teamSwitchBehavior: 'remember',
+      teamSwitchBehavior: 'remember' as const,
       crossDeviceSync: true
     };
 
     const supabaseModule = await import('@/integrations/supabase/client');
-    const { supabase } = supabaseModule;
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: mockPreferences, error: null });
+    vi.mocked(supabaseModule.supabase.rpc).mockResolvedValue({ data: mockPreferences, error: null });
   });
 
   it('provides helper functions', async () => {
@@ -113,7 +112,7 @@ describe('useTeamPreferenceHelpers', () => {
   });
 
   it('updates current team and recent teams list', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
+    const supabaseModule = await import('@/integrations/supabase/client');
     
     const { result } = renderHook(() => useTeamPreferenceHelpers(), {
       wrapper: createWrapper()
@@ -123,7 +122,7 @@ describe('useTeamPreferenceHelpers', () => {
       result.current.updateCurrentTeam('new-team');
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith('update_user_app_preferences', {
+    expect(supabaseModule.supabase.rpc).toHaveBeenCalledWith('update_user_app_preferences', {
       p_preferences: expect.objectContaining({
         currentTeamId: 'new-team',
         recentTeams: expect.arrayContaining(['team-1', 'team-2'])
@@ -132,7 +131,7 @@ describe('useTeamPreferenceHelpers', () => {
   });
 
   it('clears team history correctly', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
+    const supabaseModule = await import('@/integrations/supabase/client');
     
     const { result } = renderHook(() => useTeamPreferenceHelpers(), {
       wrapper: createWrapper()
@@ -142,7 +141,7 @@ describe('useTeamPreferenceHelpers', () => {
       result.current.clearTeamHistory();
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith('update_user_app_preferences', {
+    expect(supabaseModule.supabase.rpc).toHaveBeenCalledWith('update_user_app_preferences', {
       p_preferences: expect.objectContaining({
         recentTeams: []
       })

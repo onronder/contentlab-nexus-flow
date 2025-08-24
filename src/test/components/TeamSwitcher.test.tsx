@@ -23,7 +23,7 @@ const mockTeams = [
     owner_id: 'user-1',
     created_at: '2024-01-01',
     updated_at: '2024-01-01',
-    team_type: 'organization',
+    team_type: 'organization' as const,
     settings: {},
     member_limit: 50,
     current_member_count: 5,
@@ -37,7 +37,7 @@ const mockTeams = [
     owner_id: 'user-1',
     created_at: '2024-01-01',
     updated_at: '2024-01-01',
-    team_type: 'organization',
+    team_type: 'organization' as const,
     settings: {},
     member_limit: 50,
     current_member_count: 3,
@@ -51,7 +51,7 @@ const mockTeams = [
     owner_id: 'user-1',
     created_at: '2024-01-01',
     updated_at: '2024-01-01',
-    team_type: 'organization',
+    team_type: 'organization' as const,
     settings: {},
     member_limit: 50,
     current_member_count: 2,
@@ -81,8 +81,12 @@ describe('TeamSwitcher', () => {
     mockUseAppPreferences.mockReturnValue({
       data: mockPreferences,
       isLoading: false,
-      error: null
-    });
+      error: null,
+      refetch: vi.fn(),
+      isSuccess: true,
+      isError: false,
+      isPending: false
+    } as any);
   });
 
   it('renders current team correctly', () => {
