@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,35 +7,35 @@ import { Layout } from "@/components/layout/Layout";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProtectedRoute, PublicRoute } from "@/components/routing";
 import { RootRedirect } from "@/components/routing/RootRedirect";
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Profile from "./pages/Profile";
-import Projects from "./pages/Projects";
-import CreateProject from "./pages/CreateProject";
-import { EditProject } from "./pages/EditProject";
-import ProjectDetail from "./pages/ProjectDetail";
-import Content from "./pages/Content";
-import Analytics from "./pages/Analytics";
-import TeamPage from "./pages/Team";
-import CreateTeam from "./pages/CreateTeam";
-import Settings from "./pages/Settings";
-import Competitive from "./pages/Competitive";
-import Security from "./pages/Security";
-import Monitoring from "./pages/Monitoring";
-import NotFound from "./pages/NotFound";
-import { Collaboration } from "./pages/Collaboration";
-import { AuthTestingPanel } from '@/components/auth/AuthTestingPanel';
+import { PageLoading } from "@/components/ui/page-loading";
 import { AcceptInvitationPage } from '@/components/invitations/AcceptInvitationPage';
 import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWizard';
 import { isDevelopment } from '@/utils/production';
 import { TeamProvider } from '@/contexts/TeamContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
-// Debug: Verify App.tsx is loading properly
-console.log('🎨 App.tsx loaded - Tailwind CSS should be ready');
-import Share from "./pages/Share";
+
+// Route-level code splitting with React.lazy
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Login = React.lazy(() => import("./pages/Login"));
+const Signup = React.lazy(() => import("./pages/Signup"));
+const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
+const Profile = React.lazy(() => import("./pages/Profile"));
+const Projects = React.lazy(() => import("./pages/Projects"));
+const CreateProject = React.lazy(() => import("./pages/CreateProject"));
+const EditProject = React.lazy(() => import("./pages/EditProject").then(m => ({ default: m.EditProject })));
+const ProjectDetail = React.lazy(() => import("./pages/ProjectDetail"));
+const Content = React.lazy(() => import("./pages/Content"));
+const Analytics = React.lazy(() => import("./pages/Analytics"));
+const TeamPage = React.lazy(() => import("./pages/Team"));
+const CreateTeam = React.lazy(() => import("./pages/CreateTeam"));
+const Settings = React.lazy(() => import("./pages/Settings"));
+const Competitive = React.lazy(() => import("./pages/Competitive"));
+const Security = React.lazy(() => import("./pages/Security"));
+const Monitoring = React.lazy(() => import("./pages/Monitoring"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+const Collaboration = React.lazy(() => import("./pages/Collaboration").then(m => ({ default: m.Collaboration })));
+const Share = React.lazy(() => import("./pages/Share"));
 
 const App = () => (
   <TooltipProvider>
@@ -68,7 +68,9 @@ const App = () => (
           element={
             <PublicRoute>
               <AuthLayout>
-                <Login />
+                <Suspense fallback={<PageLoading />}>
+                  <Login />
+                </Suspense>
               </AuthLayout>
             </PublicRoute>
           } 
@@ -78,7 +80,9 @@ const App = () => (
           element={
             <PublicRoute>
               <AuthLayout>
-                <Signup />
+                <Suspense fallback={<PageLoading />}>
+                  <Signup />
+                </Suspense>
               </AuthLayout>
             </PublicRoute>
           } 
@@ -88,7 +92,9 @@ const App = () => (
           element={
             <PublicRoute>
               <AuthLayout>
-                <ForgotPassword />
+                <Suspense fallback={<PageLoading />}>
+                  <ForgotPassword />
+                </Suspense>
               </AuthLayout>
             </PublicRoute>
           } 
@@ -98,7 +104,9 @@ const App = () => (
           element={
             <PublicRoute>
               <AuthLayout>
-                <ResetPassword />
+                <Suspense fallback={<PageLoading />}>
+                  <ResetPassword />
+                </Suspense>
               </AuthLayout>
             </PublicRoute>
           } 
@@ -110,7 +118,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Dashboard />
+                <Suspense fallback={<PageLoading />}>
+                  <Dashboard />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -120,7 +130,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Profile />
+                <Suspense fallback={<PageLoading />}>
+                  <Profile />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -130,7 +142,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Projects />
+                <Suspense fallback={<PageLoading />}>
+                  <Projects />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -140,7 +154,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <CreateProject />
+                <Suspense fallback={<PageLoading />}>
+                  <CreateProject />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -150,7 +166,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <EditProject />
+                <Suspense fallback={<PageLoading />}>
+                  <EditProject />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -160,7 +178,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <ProjectDetail />
+                <Suspense fallback={<PageLoading />}>
+                  <ProjectDetail />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -170,7 +190,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Content />
+                <Suspense fallback={<PageLoading />}>
+                  <Content />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -180,7 +202,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Analytics />
+                <Suspense fallback={<PageLoading />}>
+                  <Analytics />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -190,7 +214,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <TeamPage />
+                <Suspense fallback={<PageLoading />}>
+                  <TeamPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -199,7 +225,9 @@ const App = () => (
           path="/create-team" 
           element={
             <ProtectedRoute>
-              <CreateTeam />
+              <Suspense fallback={<PageLoading />}>
+                <CreateTeam />
+              </Suspense>
             </ProtectedRoute>
           } 
         />
@@ -208,7 +236,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Settings />
+                <Suspense fallback={<PageLoading />}>
+                  <Settings />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -218,7 +248,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Competitive />
+                <Suspense fallback={<PageLoading />}>
+                  <Competitive />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -228,7 +260,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Security />
+                <Suspense fallback={<PageLoading />}>
+                  <Security />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -238,7 +272,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Monitoring />
+                <Suspense fallback={<PageLoading />}>
+                  <Monitoring />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -248,7 +284,9 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Layout>
-                <Collaboration />
+                <Suspense fallback={<PageLoading />}>
+                  <Collaboration />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           } 
@@ -259,7 +297,9 @@ const App = () => (
           path="/onboarding" 
           element={
             <ProtectedRoute>
-              <TeamOnboardingWizard />
+              <Suspense fallback={<PageLoading />}>
+                <TeamOnboardingWizard />
+              </Suspense>
             </ProtectedRoute>
           } 
         />
@@ -267,7 +307,9 @@ const App = () => (
         {/* Catch-all route */}
         <Route path="*" element={
           <Layout>
-            <NotFound />
+            <Suspense fallback={<PageLoading />}>
+              <NotFound />
+            </Suspense>
           </Layout>
         } />
         </Routes>

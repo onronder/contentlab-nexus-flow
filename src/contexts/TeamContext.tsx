@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Team } from '@/types/team';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeams } from '@/hooks/useTeamQueries';
+import { useTeamPersistence } from '@/hooks/useTeamPersistence';
 import { toast } from '@/hooks/use-toast';
 
 interface TeamContextType {
@@ -23,6 +24,7 @@ interface TeamProviderProps {
 export function TeamProvider({ children }: TeamProviderProps) {
   const { user } = useAuth();
   const [currentTeam, setCurrentTeamState] = useState<Team | null>(null);
+  const { updateLastTeam, getLastTeam, clearLastTeam } = useTeamPersistence();
   
   // Use React Query to fetch teams
   const { data: availableTeams = [], isLoading, error } = useTeams();
@@ -39,46 +41,52 @@ export function TeamProvider({ children }: TeamProviderProps) {
     }
   }, [error]);
 
-  // Set initial current team from localStorage or first available team
+  // Set initial current team from server-side persistence or first available team
   useEffect(() => {
-    if (!isLoading && availableTeams.length > 0) {
-      const savedTeamId = localStorage.getItem('currentTeamId');
-      const savedTeam = savedTeamId ? availableTeams.find(team => team.id === savedTeamId) : null;
-      const teamToSet = savedTeam || availableTeams[0];
-      
-      if (!currentTeam || currentTeam.id !== teamToSet.id) {
-        setCurrentTeamState(teamToSet);
-        localStorage.setItem('currentTeamId', teamToSet.id);
+    const initializeTeam = async () => {
+      if (!isLoading && availableTeams.length > 0) {
+        const savedTeamId = await getLastTeam();
+        const savedTeam = savedTeamId ? availableTeams.find(team => team.id === savedTeamId) : null;
+        const teamToSet = savedTeam || availableTeams[0];
+        
+        if (!currentTeam || currentTeam.id !== teamToSet.id) {
+          setCurrentTeamState(teamToSet);
+          // Update server-side persistence if we fallback to first team
+          if (!savedTeam) {
+            await updateLastTeam(teamToSet.id);
+          }
+        }
+      } else if (!isLoading && availableTeams.length === 0 && user?.id) {
+        console.log('No teams found for user:', user.id);
+        setCurrentTeamState(null);
+        await clearLastTeam();
       }
-    } else if (!isLoading && availableTeams.length === 0 && user?.id) {
-      // No teams found - user needs to create one (only log if user is authenticated)
-      console.log('No teams found for user:', user.id);
-      setCurrentTeamState(null);
-      localStorage.removeItem('currentTeamId');
-    }
-  }, [availableTeams, isLoading, currentTeam, user?.id]);
+    };
+
+    initializeTeam();
+  }, [availableTeams, isLoading, currentTeam, user?.id, getLastTeam, updateLastTeam, clearLastTeam]);
 
   // Clear team state when user logs out
   useEffect(() => {
     if (!user?.id) {
       setCurrentTeamState(null);
-      localStorage.removeItem('currentTeamId');
+      clearLastTeam();
     }
-  }, [user?.id]);
+  }, [user?.id, clearLastTeam]);
 
-  const setCurrentTeam = (team: Team | null) => {
+  const setCurrentTeam = async (team: Team | null) => {
     setCurrentTeamState(team);
     if (team) {
-      localStorage.setItem('currentTeamId', team.id);
+      await updateLastTeam(team.id);
     } else {
-      localStorage.removeItem('currentTeamId');
+      await clearLastTeam();
     }
   };
 
-  const switchTeam = (teamId: string) => {
+  const switchTeam = async (teamId: string) => {
     const team = availableTeams.find(t => t.id === teamId);
     if (team) {
-      setCurrentTeam(team);
+      await setCurrentTeam(team);
       toast({
         title: 'Team switched',
         description: `Switched to ${team.name}`,

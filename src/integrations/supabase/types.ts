@@ -2853,6 +2853,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          last_team_id: string | null
           phone: string | null
           updated_at: string | null
         }
@@ -2863,6 +2864,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          last_team_id?: string | null
           phone?: string | null
           updated_at?: string | null
         }
@@ -2873,10 +2875,19 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          last_team_id?: string | null
           phone?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_last_team_id_fkey"
+            columns: ["last_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_activities: {
         Row: {
@@ -6457,6 +6468,10 @@ export type Database = {
           team_id: string
         }[]
       }
+      get_user_last_team: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_projects_safe: {
         Args: { p_user_id: string }
         Returns: {
@@ -6568,6 +6583,10 @@ export type Database = {
       test_auth_uid: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      update_user_last_team: {
+        Args: { p_team_id: string }
+        Returns: undefined
       }
       validate_settings_data: {
         Args: { p_setting_type: string; p_settings_data: Json }
