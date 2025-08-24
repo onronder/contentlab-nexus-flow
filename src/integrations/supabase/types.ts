@@ -6090,6 +6090,7 @@ export type Database = {
       user_settings: {
         Row: {
           accessibility_settings: Json | null
+          app_preferences: Json | null
           created_at: string | null
           device_preferences: Json | null
           feature_flags: Json | null
@@ -6105,6 +6106,7 @@ export type Database = {
         }
         Insert: {
           accessibility_settings?: Json | null
+          app_preferences?: Json | null
           created_at?: string | null
           device_preferences?: Json | null
           feature_flags?: Json | null
@@ -6120,6 +6122,7 @@ export type Database = {
         }
         Update: {
           accessibility_settings?: Json | null
+          app_preferences?: Json | null
           created_at?: string | null
           device_preferences?: Json | null
           feature_flags?: Json | null
@@ -6427,6 +6430,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: {
           accessibility_settings: Json | null
+          app_preferences: Json | null
           created_at: string | null
           device_preferences: Json | null
           feature_flags: Json | null
@@ -6467,6 +6471,10 @@ export type Database = {
         Returns: {
           team_id: string
         }[]
+      }
+      get_user_app_preferences: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_user_last_team: {
         Args: Record<PropertyKey, never>
@@ -6568,6 +6576,10 @@ export type Database = {
         Args: { action: string; content_id: string; version_data?: Json }
         Returns: Json
       }
+      migrate_last_team_to_app_preferences: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       resend_team_invitation: {
         Args: { p_invitation_id: string }
         Returns: undefined
@@ -6583,6 +6595,10 @@ export type Database = {
       test_auth_uid: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      update_user_app_preferences: {
+        Args: { p_preferences: Json }
+        Returns: undefined
       }
       update_user_last_team: {
         Args: { p_team_id: string }

@@ -3,6 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentUserId } from './useCurrentUserId';
 
+export interface AppPreferences {
+  currentTeamId: string | null;
+  recentTeams: string[];
+  teamSwitchBehavior: 'remember' | 'ask' | 'default';
+  crossDeviceSync: boolean;
+}
+
 export interface UserSettings {
   id: string;
   user_id: string;
@@ -20,6 +27,7 @@ export interface UserSettings {
     activity_visibility: 'public' | 'team' | 'private';
   };
   feature_flags: Record<string, any>;
+  app_preferences: AppPreferences;
   created_at: string;
   updated_at: string;
 }
@@ -61,6 +69,12 @@ const fetchUserSettings = async (userId: string): Promise<UserSettings | null> =
         activity_visibility: 'team'
       },
       feature_flags: (data.feature_flags as any) || {},
+      app_preferences: (data.app_preferences as any) || {
+        currentTeamId: null,
+        recentTeams: [],
+        teamSwitchBehavior: 'remember',
+        crossDeviceSync: true
+      },
       created_at: data.created_at,
       updated_at: data.updated_at
     };
@@ -85,6 +99,7 @@ const updateUserSettings = async (userId: string, settings: Partial<UserSettings
         theme_preferences: settings.theme_preferences,
         privacy_settings: settings.privacy_settings,
         feature_flags: settings.feature_flags,
+        app_preferences: settings.app_preferences as any,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId)
@@ -114,6 +129,12 @@ const updateUserSettings = async (userId: string, settings: Partial<UserSettings
         activity_visibility: 'team'
       },
       feature_flags: (data.feature_flags as any) || {},
+      app_preferences: (data.app_preferences as any) || {
+        currentTeamId: null,
+        recentTeams: [],
+        teamSwitchBehavior: 'remember',
+        crossDeviceSync: true
+      },
       created_at: data.created_at,
       updated_at: data.updated_at
     };

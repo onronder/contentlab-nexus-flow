@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+// App preferences schema
+export const appPreferencesSchema = z.object({
+  currentTeamId: z.string().uuid().nullable(),
+  recentTeams: z.array(z.string().uuid()).max(10).default([]),
+  teamSwitchBehavior: z.enum(['remember', 'ask', 'default']).default('remember'),
+  crossDeviceSync: z.boolean().default(true)
+});
+
 // Comprehensive settings validation schemas
 export const userSettingsSchema = z.object({
   notification_preferences: z.object({
@@ -15,7 +23,8 @@ export const userSettingsSchema = z.object({
     profile_visibility: z.enum(['public', 'team', 'private']),
     activity_visibility: z.enum(['public', 'team', 'private'])
   }),
-  feature_flags: z.record(z.any()).optional()
+  feature_flags: z.record(z.any()).optional(),
+  app_preferences: appPreferencesSchema.optional()
 });
 
 export const contentSettingsSchema = z.object({
