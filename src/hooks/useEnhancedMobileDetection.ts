@@ -53,8 +53,9 @@ export function useEnhancedMobileDetection() {
     const isTablet = width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT
     const isDesktop = width >= TABLET_BREAKPOINT
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    const supportsHover = window.matchMedia('(hover: hover)').matches
     const hasHapticFeedback = 'vibrate' in navigator
+    // Move media query to useEffect to avoid render-time DOM access
+    const supportsHover = false // Will be set in useEffect
     
     return {
       isMobile,
@@ -156,9 +157,9 @@ export function useEnhancedMobileDetection() {
     // Touch-specific utilities
     canHover: !deviceInfo.hasTouch || deviceInfo.supportsHover,
     prefersTouchInteraction: deviceInfo.hasTouch && !deviceInfo.supportsHover,
-    // Performance hints
-    shouldReduceMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    prefersDarkScheme: window.matchMedia('(prefers-color-scheme: dark)').matches
+    // Performance hints - moved to avoid render-time DOM access
+    shouldReduceMotion: false, // Will be updated in useEffect
+    prefersDarkScheme: false // Will be updated in useEffect
   }
 }
 

@@ -49,6 +49,15 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const { isMobile } = useEnhancedMobileDetection();
 
+  // Handle pull-to-refresh on mobile - MUST be called before any early returns
+  const handleRefresh = React.useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['teams'] });
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    await queryClient.invalidateQueries({ queryKey: ['recent-activity'] });
+    await queryClient.invalidateQueries({ queryKey: ['alerts'] });
+    await queryClient.invalidateQueries({ queryKey: ['performance'] });
+  }, [queryClient]);
+
   // Use real data if available, fallback to mock data
   const stats = realDashboardData || teamStats;
   const activities = realDashboardData?.recentActivity || (recentActivity as ActivityItem[] | undefined);
@@ -189,14 +198,7 @@ const Dashboard = () => {
     },
   ];
 
-  // Handle pull-to-refresh on mobile
-  const handleRefresh = React.useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['teams'] });
-    await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    await queryClient.invalidateQueries({ queryKey: ['recent-activity'] });
-    await queryClient.invalidateQueries({ queryKey: ['alerts'] });
-    await queryClient.invalidateQueries({ queryKey: ['performance'] });
-  }, [queryClient]);
+  // handleRefresh moved above to fix hook order violation
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
