@@ -54,7 +54,7 @@ export const AdvancedSearchPanel = ({ projectId, className, onResultsChange }: A
     savedSearches,
     saveSearch,
     loadSavedSearch
-  } = useAdvancedSearch();
+  } = useAdvancedSearch(projectId);
 
   const toggleFilterSection = (section: string) => {
     const newSections = new Set(activeFilterSections);

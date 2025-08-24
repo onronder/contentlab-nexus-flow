@@ -17,7 +17,7 @@ export interface SearchConfig {
   offset?: number;
 }
 
-export const useAdvancedSearch = () => {
+export const useAdvancedSearch = (projectId?: string) => {
   const { toast } = useToast();
   const userId = useCurrentUserId();
   const queryClient = useQueryClient();
@@ -28,13 +28,25 @@ export const useAdvancedSearch = () => {
     limit: 50,
     offset: 0
   });
+
+  // Validate UUID format
+  const isValidUUID = (id?: string): boolean => {
+    if (!id) return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+  };
   
   const [isSearching, setIsSearching] = useState(false);
 
   // Main content search
   const contentSearchQuery = useQuery({
-    queryKey: ['contentSearch', searchConfig],
+    queryKey: ['contentSearch', searchConfig, projectId],
     queryFn: async () => {
+      if (!isValidUUID(projectId)) {
+        console.warn('Invalid project ID for content search:', projectId);
+        return [];
+      }
+      
       if (!searchConfig.query.trim() && Object.keys(searchConfig.filters).length === 0) {
         return [];
       }
@@ -43,7 +55,7 @@ export const useAdvancedSearch = () => {
       try {
         const results = await advancedSearchService.searchContent(
           searchConfig.query,
-          'current-project-id', // This would come from context
+          projectId!,
           searchConfig.filters,
           searchConfig.limit,
           searchConfig.offset
@@ -88,16 +100,19 @@ export const useAdvancedSearch = () => {
 
   // Content recommendations
   const recommendationsQuery = useQuery({
-    queryKey: ['contentRecommendations', userId],
+    queryKey: ['contentRecommendations', userId, projectId],
     queryFn: () => {
-      if (!userId) return [];
+      if (!userId || !isValidUUID(projectId)) {
+        console.warn('Invalid userId or projectId for recommendations:', { userId, projectId });
+        return [];
+      }
       return advancedSearchService.getContentRecommendations(
         userId,
-        'current-project-id', // This would come from context
+        projectId!,
         10
       );
     },
-    enabled: !!userId,
+    enabled: !!userId && isValidUUID(projectId),
     staleTime: 300000 // Results valid for 5 minutes
   });
 
