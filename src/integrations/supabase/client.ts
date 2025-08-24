@@ -2,8 +2,30 @@
 import { createClient, Session } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://ijvhqqdfthchtittyvnt.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdmhxcWRmdGhjaHRpdHR5dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTE4OTMsImV4cCI6MjA2ODc2Nzg5M30.wxyInat54wVrwFQvbk61Hf7beu84TnhrBg0Bkpmo6fA";
+// Runtime configuration with validation
+const getSupabaseConfig = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  
+  if (!url) {
+    throw new Error('Missing VITE_SUPABASE_URL environment variable');
+  }
+  
+  if (!key) {
+    throw new Error('Missing VITE_SUPABASE_PUBLISHABLE_KEY environment variable');
+  }
+  
+  // Validate URL format
+  try {
+    new URL(url);
+  } catch (error) {
+    throw new Error(`Invalid VITE_SUPABASE_URL format: ${url}`);
+  }
+  
+  return { url, key };
+};
+
+const { url: SUPABASE_URL, key: SUPABASE_PUBLISHABLE_KEY } = getSupabaseConfig();
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -79,7 +101,11 @@ export const setSupabaseSession = async (session: any) => {
 // Function to clear invalid session data from localStorage
 const clearInvalidSessionData = () => {
   try {
-    localStorage.removeItem('sb-ijvhqqdfthchtittyvnt-auth-token');
+    // Extract project ID from URL for dynamic localStorage key
+    const projectId = SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+    if (projectId) {
+      localStorage.removeItem(`sb-${projectId}-auth-token`);
+    }
     localStorage.removeItem('supabase.auth.token');
     Object.keys(localStorage).forEach(key => {
       if (key.includes('supabase') || key.includes('auth')) {
