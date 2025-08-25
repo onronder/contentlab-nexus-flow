@@ -1,13 +1,20 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export function useTeamPersistence() {
+  const retryAttempts = useRef<{ [key: string]: number }>({});
+  const maxRetries = 3;
+  const retryDelay = 1000; // 1 second base delay
+
   const updateLastTeam = useCallback(async (teamId: string) => {
     // Always update localStorage first (primary storage)
     localStorage.setItem('currentTeamId', teamId);
     
     // Try to sync with server (non-blocking)
+    const retryKey = `update_${teamId}`;
+    const currentRetries = retryAttempts.current[retryKey] || 0;
+    
     try {
       // Use the new app preferences RPC
       const { error } = await supabase.rpc('update_user_app_preferences', {
@@ -16,11 +23,28 @@ export function useTeamPersistence() {
       
       if (error) {
         console.warn('Server sync failed for team preference:', error.message);
-        // Don't throw or block - localStorage is sufficient
+        
+        // If we haven't exceeded max retries, try again with exponential backoff
+        if (currentRetries < maxRetries) {
+          retryAttempts.current[retryKey] = currentRetries + 1;
+          const delay = retryDelay * Math.pow(2, currentRetries);
+          
+          setTimeout(() => {
+            updateLastTeam(teamId);
+          }, delay);
+        } else {
+          // Reset retry count after max attempts
+          delete retryAttempts.current[retryKey];
+          console.warn(`Max retries exceeded for team preference sync: ${teamId}`);
+        }
+      } else {
+        // Success - reset retry count
+        delete retryAttempts.current[retryKey];
       }
     } catch (error) {
       console.warn('Server sync unavailable for team preference:', error);
-      // Don't throw or block - localStorage is sufficient
+      // Reset retry count on network errors
+      delete retryAttempts.current[retryKey];
     }
   }, []);
 

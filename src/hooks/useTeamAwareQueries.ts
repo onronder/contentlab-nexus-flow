@@ -209,55 +209,78 @@ export function useTeamDashboardStats() {
   return useQuery({
     queryKey: ['team-dashboard-stats', currentTeam?.id],
     queryFn: async () => {
-      if (!user || !currentTeam) return null;
+      if (!user || !currentTeam) {
+        // Return default stats when no team is selected
+        return {
+          totalProjects: 0,
+          activeProjects: 0,
+          totalContent: 0,
+          publishedContent: 0,
+          totalCompetitors: 0,
+          recentActivity: [],
+        };
+      }
 
-      // Get team project count and stats
-      const { data: projects, error: projectsError } = await supabase
-        .from('projects')
-        .select('id, status, created_at')
-        .eq('team_id', currentTeam.id);
+      try {
+        // Get team project count and stats
+        const { data: projects, error: projectsError } = await supabase
+          .from('projects')
+          .select('id, status, created_at')
+          .eq('team_id', currentTeam.id);
 
-      if (projectsError) throw projectsError;
+        if (projectsError) throw projectsError;
 
-      // Get team content count and stats
-      const { data: content, error: contentError } = await supabase
-        .from('content_items')
-        .select('id, status, created_at')
-        .eq('team_id', currentTeam.id);
+        // Get team content count and stats
+        const { data: content, error: contentError } = await supabase
+          .from('content_items')
+          .select('id, status, created_at')
+          .eq('team_id', currentTeam.id);
 
-      if (contentError) throw contentError;
+        if (contentError) throw contentError;
 
-      // Get team competitors count
-      const { data: competitors, error: competitorsError } = await supabase
-        .from('project_competitors')
-        .select(`
-          id,
-          projects!inner(team_id)
-        `)
-        .eq('projects.team_id', currentTeam.id);
+        // Get team competitors count
+        const { data: competitors, error: competitorsError } = await supabase
+          .from('project_competitors')
+          .select(`
+            id,
+            projects!inner(team_id)
+          `)
+          .eq('projects.team_id', currentTeam.id);
 
-      if (competitorsError) throw competitorsError;
+        if (competitorsError) throw competitorsError;
 
-      // Get recent team activity
-      const { data: recentActivity, error: activityError } = await supabase
-        .from('activity_logs')
-        .select('*')
-        .eq('team_id', currentTeam.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        // Get recent team activity
+        const { data: recentActivity, error: activityError } = await supabase
+          .from('activity_logs')
+          .select('*')
+          .eq('team_id', currentTeam.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-      if (activityError) throw activityError;
+        if (activityError) throw activityError;
 
-      return {
-        totalProjects: projects?.length || 0,
-        activeProjects: projects?.filter(p => p.status === 'active').length || 0,
-        totalContent: content?.length || 0,
-        publishedContent: content?.filter(c => c.status === 'published').length || 0,
-        totalCompetitors: competitors?.length || 0,
-        recentActivity: recentActivity || [],
-      };
+        return {
+          totalProjects: projects?.length || 0,
+          activeProjects: projects?.filter(p => p.status === 'active').length || 0,
+          totalContent: content?.length || 0,
+          publishedContent: content?.filter(c => c.status === 'published').length || 0,
+          totalCompetitors: competitors?.length || 0,
+          recentActivity: recentActivity || [],
+        };
+      } catch (error) {
+        console.warn('Error fetching team dashboard stats:', error);
+        // Return default stats on error
+        return {
+          totalProjects: 0,
+          activeProjects: 0,
+          totalContent: 0,
+          publishedContent: 0,
+          totalCompetitors: 0,
+          recentActivity: [],
+        };
+      }
     },
-    enabled: !!user && !!currentTeam,
+    enabled: !!user, // Only require user, not team (so we can show default stats)
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 }
