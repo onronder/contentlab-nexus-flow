@@ -13,6 +13,8 @@ import { TeamOnboardingWizard } from '@/components/onboarding/TeamOnboardingWiza
 import { isDevelopment } from '@/utils/production';
 import { TeamProvider } from '@/contexts/TeamContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
+import { ErrorBoundary } from '@/components/error/ErrorBoundary';
+import { GlobalErrorHandler } from '@/components/error/GlobalErrorHandler';
 
 // Route-level code splitting with React.lazy
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
@@ -39,13 +41,29 @@ const Collaboration = React.lazy(() => import("./pages/Collaboration").then(m =>
 const Share = React.lazy(() => import("./pages/Share"));
 
 const App = () => (
-  <TooltipProvider>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <TeamProvider>
-        <AnalyticsProvider>
-        <Routes>
+  <ErrorBoundary>
+    <GlobalErrorHandler>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ErrorBoundary fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+                <p className="text-muted-foreground mb-4">Unable to load the application properly.</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                >
+                  Refresh Page
+                </button>
+              </div>
+            </div>
+          }>
+            <TeamProvider>
+              <AnalyticsProvider>
+                <Routes>
         {/* Development-only routes */}
         {isDevelopment() && (
           <>
@@ -325,11 +343,14 @@ const App = () => (
             </Suspense>
           </Layout>
         } />
-        </Routes>
-        </AnalyticsProvider>
-      </TeamProvider>
-    </BrowserRouter>
-  </TooltipProvider>
+                </Routes>
+              </AnalyticsProvider>
+            </TeamProvider>
+          </ErrorBoundary>
+        </BrowserRouter>
+      </TooltipProvider>
+    </GlobalErrorHandler>
+  </ErrorBoundary>
 );
 
 export default App;

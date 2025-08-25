@@ -6344,6 +6344,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      column_exists: {
+        Args: { column_name: string; table_name: string }
+        Returns: boolean
+      }
       compute_next_run_at: {
         Args: {
           cadence: string
@@ -6662,6 +6666,10 @@ export type Database = {
       is_user_team_owner_safe: {
         Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
+      }
+      log_safe_error: {
+        Args: { context_data?: Json; error_message: string; error_type: string }
+        Returns: undefined
       }
       log_security_event: {
         Args: {
