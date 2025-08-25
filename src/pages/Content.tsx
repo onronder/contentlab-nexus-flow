@@ -28,7 +28,6 @@ import {
   RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useContentItems } from "@/hooks/useContentQueries";
 import { useFileUrl } from "@/hooks/useFileUpload";
 import { BatchUploadDialog } from "@/components/content/BatchUploadDialog";
 import { AdvancedSearchPanel } from "@/components/content/AdvancedSearchPanel";
@@ -36,10 +35,12 @@ import { FileVersioningManager } from "@/components/content/FileVersioningManage
 import { DeduplicationManager } from "@/components/content/DeduplicationManager";
 import { StorageAnalyticsDashboard } from "@/components/content/StorageAnalyticsDashboard";
 import { ContentCard } from "@/components/content/ContentCard";
-import { useProjects } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ContentErrorBoundary } from "@/components/ui/content-error-boundary";
 import { ErrorAlert } from "@/components/ui/error-alert";
+import { useTeamContext } from "@/contexts/TeamContext";
+import { useTeamProjects } from "@/hooks/queries/useTeamAwareProjectQueries";
+import { useTeamContent } from "@/hooks/queries/useTeamAwareContentQueries";
 import { 
   WorkspacePermissionManager,
   RealTimeCollaborativeEditor,
@@ -60,16 +61,23 @@ const Content = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Use the first available project for now - in production this would come from routing or context
-  const projectId = '1ccc475a-2fc5-4a11-8e24-191f3d36b06c'; // Test Project - Authentication Verification
+  // Get current team and projects
+  const { currentTeam } = useTeamContext();
+  const { data: teamProjects = [], isLoading: projectsLoading } = useTeamProjects();
+  
+  // Use first project from current team
+  const selectedProject = teamProjects[0];
+  const projectId = selectedProject?.id;
 
   // Fetch content from database with error handling
   const { 
     data: contentItems = [], 
-    isLoading, 
+    isLoading: contentLoading, 
     error,
     refetch
-  } = useContentItems(projectId || '');
+  } = useTeamContent(projectId || "", {});
+
+  const isLoading = projectsLoading || contentLoading;
 
   const { getThumbnailUrl, getContentFileUrl } = useFileUrl();
 
@@ -94,12 +102,23 @@ const Content = () => {
     });
   }, [transformedContent, searchTerm, typeFilter, statusFilter]);
 
-  if (!projectId) {
+  if (!currentTeam) {
     return (
       <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">No Project Selected</h1>
-          <p className="text-muted-foreground">Please create a project first to manage content.</p>
+          <h1 className="text-2xl font-bold mb-2">No Team Selected</h1>
+          <p className="text-muted-foreground">Please select a team to view content.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!projectsLoading && teamProjects.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">No Projects Found</h1>
+          <p className="text-muted-foreground">This team doesn't have any projects yet. Create a project to start managing content.</p>
         </div>
       </div>
     );
