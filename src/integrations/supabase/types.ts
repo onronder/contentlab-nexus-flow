@@ -6714,6 +6714,14 @@ export type Database = {
         Args: { p_team_id: string }
         Returns: undefined
       }
+      user_can_access_project: {
+        Args: { p_project_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      user_can_access_team_content: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
       validate_settings_data: {
         Args: { p_setting_type: string; p_settings_data: Json }
         Returns: Json
