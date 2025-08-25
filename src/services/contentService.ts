@@ -151,19 +151,19 @@ export class ContentService {
 
       // Add team-based filtering if teamId provided
       if (teamId) {
-        // Use security definer function to avoid RLS recursion
+        // Use new safe security definer function to avoid RLS recursion
         const currentUserId = await this.getCurrentUserId();
         
         // Verify user has access to this team using security definer function
-        const { data: userTeams } = await supabase.rpc('get_user_teams_safe', {
+        const { data: userTeamIds } = await supabase.rpc('get_user_team_ids_safe', {
           p_user_id: currentUserId
         });
 
-        const hasTeamAccess = userTeams?.some(team => team.team_id === teamId);
+        const userTeamIdList = userTeamIds?.map(team => team.team_id) || [];
+        const hasTeamAccess = userTeamIdList.includes(teamId);
         
         if (hasTeamAccess) {
           // Filter content to only show items from the specified team context
-          // This will be handled by the content_items RLS policies
           query = query.eq('team_id', teamId);
         } else {
           // User doesn't have access to this team, return empty array

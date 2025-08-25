@@ -200,46 +200,81 @@ export class TeamService {
     console.log('TeamService: Fetching teams for user:', userId, 'with options:', options);
 
     try {
-      // Use the fixed safe function to get user teams without recursion
-      const { data: userTeams, error: userTeamsError } = await supabase
-        .rpc('get_user_teams_safe', { p_user_id: userId });
+      // Use the new safe function to get team IDs user has access to
+      const { data: teamIds, error: teamIdsError } = await supabase
+        .rpc('get_user_team_ids_safe', { p_user_id: userId });
 
-      if (userTeamsError) {
-        console.error('TeamService: Error fetching user teams:', userTeamsError);
-        throw new TeamValidationError('Failed to fetch user teams', 'FETCH_ERROR');
+      if (teamIdsError) {
+        console.error('TeamService: Error fetching user team IDs:', teamIdsError);
+        throw new TeamValidationError('Failed to fetch user team IDs', 'FETCH_ERROR');
       }
 
-      if (!userTeams || userTeams.length === 0) {
+      if (!teamIds || teamIds.length === 0) {
         console.log('TeamService: No teams found for user');
         return [];
       }
 
-      // Get team IDs from the function result
-      const teamIds = userTeams.map((t: any) => t.team_id);
-      console.log('TeamService: Found team IDs:', teamIds);
+      console.log('TeamService: Found team IDs:', teamIds.map(t => t.team_id));
 
-      // Now fetch the full team data using the IDs
-      const { data: teams, error } = await supabase
+      // Since RLS now only allows owners to see teams, we need to query differently
+      // First, get teams the user owns directly (these will be accessible via RLS)
+      let ownedTeamsQuery = supabase
         .from('teams')
         .select('*')
-        .in('id', teamIds)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .eq('owner_id', userId)
+        .eq('is_active', true);
 
-      if (error) {
-        console.error('TeamService: Error fetching team details:', error);
-        return [];
+      // Apply filters if provided
+      if (options?.name) {
+        ownedTeamsQuery = ownedTeamsQuery.ilike('name', `%${options.name}%`);
       }
 
-      console.log('TeamService: Successfully fetched teams:', teams || []);
-      return (teams || []).map(team => ({
+      if (options?.teamType) {
+        ownedTeamsQuery = ownedTeamsQuery.eq('team_type', options.teamType);
+      }
+
+      const { data: ownedTeams, error: ownedTeamsError } = await ownedTeamsQuery;
+      
+      if (ownedTeamsError) {
+        console.error('TeamService: Error fetching owned teams:', ownedTeamsError);
+        throw new TeamValidationError(`Failed to fetch owned teams: ${ownedTeamsError.message}`, 'FETCH_ERROR');
+      }
+
+      // For now, we'll only return owned teams since RLS blocks access to member teams
+      // In a full implementation, you'd need a different approach for team member visibility
+      let allTeams = [...(ownedTeams || [])];
+
+      // Apply sorting
+      const sortColumn = options?.sortBy || 'created_at';
+      const sortOrder = options?.sortOrder || 'desc';
+      
+      allTeams.sort((a, b) => {
+        const aValue = a[sortColumn as keyof typeof a];
+        const bValue = b[sortColumn as keyof typeof b];
+        
+        if (sortOrder === 'asc') {
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        } else {
+          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+        }
+      });
+
+      // Apply pagination
+      if (options?.limit || options?.offset) {
+        const start = options?.offset || 0;
+        const end = start + (options?.limit || 50);
+        allTeams = allTeams.slice(start, end);
+      }
+
+      console.log('TeamService: Successfully fetched teams:', allTeams);
+      return allTeams.map(team => ({
         ...team,
         settings: team.settings as Record<string, any>
       })) as Team[];
 
     } catch (error) {
       console.error('TeamService: Error in getTeamsByUser:', error);
-      return [];
+      throw error;
     }
   }
 
