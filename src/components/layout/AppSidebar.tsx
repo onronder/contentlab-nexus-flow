@@ -34,7 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { LogoutButton } from "@/components/ui/logout-button";
-import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useTeamDashboardStats } from "@/hooks/useTeamAwareQueries";
 import { useMonitoringAlerts } from "@/hooks/useMonitoringAlerts";
 import { TeamSelector } from "@/components/navigation/TeamSelector";
 
@@ -50,21 +50,21 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   // Fetch real data for badge counts and quick stats
-  const { data: dashboardStats, isLoading: statsLoading } = useDashboardStats();
+  const { data: teamStats, isLoading: statsLoading } = useTeamDashboardStats();
   const { data: alerts } = useMonitoringAlerts();
 
   // Memoize dynamic badge counts for performance
   const badgeCounts = useMemo(() => ({
-    content: dashboardStats?.contentItems || 0,
-    team: dashboardStats?.teamMembers || 0,
-  }), [dashboardStats?.contentItems, dashboardStats?.teamMembers]);
+    content: teamStats?.totalContent || 0,
+    team: teamStats?.activeProjects || 0,
+  }), [teamStats?.totalContent, teamStats?.activeProjects]);
 
   // Quick stats data
   const quickStats = useMemo(() => ({
-    competitors: dashboardStats?.competitorsTracked || 0,
+    competitors: teamStats?.totalCompetitors || 0,
     alerts: alerts?.filter(alert => !alert.isRead).length || 0,
-    performanceChange: dashboardStats?.projectsChange || 0,
-  }), [dashboardStats?.competitorsTracked, dashboardStats?.projectsChange, alerts]);
+    performanceChange: teamStats?.recentActivity?.length || 0,
+  }), [teamStats?.totalCompetitors, teamStats?.recentActivity, alerts]);
 
   const mainNavItems = [
     { 
