@@ -3,6 +3,7 @@ import { Team } from '@/types/team';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeams } from '@/hooks/useTeamQueries';
 import { useTeamPersistence } from '@/hooks/useTeamPersistence';
+import { useErrorBoundary } from '@/hooks/useErrorBoundary';
 import { toast } from '@/hooks/use-toast';
 
 interface TeamContextType {
@@ -25,6 +26,7 @@ export function TeamProvider({ children }: TeamProviderProps) {
   const { user } = useAuth();
   const [currentTeam, setCurrentTeamState] = useState<Team | null>(null);
   const { updateLastTeam, getLastTeam, clearLastTeam } = useTeamPersistence();
+  const { captureError, recoverFromError } = useErrorBoundary();
   
   // Use React Query to fetch teams
   const { data: availableTeams = [], isLoading, error } = useTeams();
@@ -32,14 +34,18 @@ export function TeamProvider({ children }: TeamProviderProps) {
   // Handle error state
   useEffect(() => {
     if (error) {
+      captureError(error, 'Team fetching');
       console.error('Error fetching teams:', error);
-      toast({
-        title: 'Error loading teams',
-        description: 'Failed to load your teams. Please try again.',
-        variant: 'destructive',
-      });
+      // Only show toast for non-authentication errors
+      if (!error.message.includes('JWT') && !error.message.includes('auth')) {
+        toast({
+          title: 'Error loading teams',
+          description: 'Failed to load your teams. Please try again.',
+          variant: 'destructive',
+        });
+      }
     }
-  }, [error]);
+  }, [error, captureError]);
 
   // Set initial current team from saved preference or first available team
   useEffect(() => {
@@ -59,9 +65,13 @@ export function TeamProvider({ children }: TeamProviderProps) {
           
           // Update persistence if we fallback to first team (non-blocking)
           if (!savedTeam && teamToSet) {
-            updateLastTeam(teamToSet.id).catch(console.warn);
+            updateLastTeam(teamToSet.id).catch(error => {
+              console.warn('Failed to update team preference:', error);
+              // Don't capture error here to avoid cascade failures
+            });
           }
         } catch (error) {
+          captureError(error as Error, 'Team initialization');
           console.warn('Team initialization failed, using first available team:', error);
           // Fallback to first team if persistence fails
           if (availableTeams[0]) {
@@ -71,12 +81,15 @@ export function TeamProvider({ children }: TeamProviderProps) {
       } else if (!isLoading && availableTeams.length === 0 && user?.id) {
         console.log('No teams found for user:', user.id);
         setCurrentTeamState(null);
-        clearLastTeam().catch(console.warn);
+        clearLastTeam().catch(error => {
+          console.warn('Failed to clear team preference:', error);
+          // Don't capture error here to avoid cascade failures
+        });
       }
     };
 
     initializeTeam();
-  }, [availableTeams, isLoading, currentTeam, user?.id, getLastTeam, updateLastTeam, clearLastTeam]);
+  }, [availableTeams, isLoading, currentTeam, user?.id, getLastTeam, updateLastTeam, clearLastTeam, captureError]);
 
   // Clear team state when user logs out
   useEffect(() => {
@@ -87,23 +100,48 @@ export function TeamProvider({ children }: TeamProviderProps) {
   }, [user?.id, clearLastTeam]);
 
   const setCurrentTeam = async (team: Team | null) => {
-    setCurrentTeamState(team);
-    // Update persistence (non-blocking)
-    if (team) {
-      updateLastTeam(team.id).catch(console.warn);
-    } else {
-      clearLastTeam().catch(console.warn);
+    try {
+      setCurrentTeamState(team);
+      // Update persistence (non-blocking)
+      if (team) {
+        updateLastTeam(team.id).catch(error => {
+          console.warn('Failed to update team preference:', error);
+          // Don't capture error here - team switching should still work locally
+        });
+      } else {
+        clearLastTeam().catch(error => {
+          console.warn('Failed to clear team preference:', error);
+          // Don't capture error here - local state clear is sufficient
+        });
+      }
+    } catch (error) {
+      captureError(error as Error, 'Team switching');
+      // Even if persistence fails, update local state
+      setCurrentTeamState(team);
     }
   };
 
   const switchTeam = async (teamId: string) => {
-    const team = availableTeams.find(t => t.id === teamId);
-    if (team) {
-      setCurrentTeam(team);
-      toast({
-        title: 'Team switched',
-        description: `Switched to ${team.name}`,
-      });
+    try {
+      const team = availableTeams.find(t => t.id === teamId);
+      if (team) {
+        await setCurrentTeam(team);
+        toast({
+          title: 'Team switched',
+          description: `Switched to ${team.name}`,
+        });
+      }
+    } catch (error) {
+      captureError(error as Error, 'Team switching');
+      // Still show user feedback even if something went wrong
+      const team = availableTeams.find(t => t.id === teamId);
+      if (team) {
+        toast({
+          title: 'Team switched',
+          description: `Switched to ${team.name} (some features may be limited)`,
+          variant: 'default',
+        });
+      }
     }
   };
 
