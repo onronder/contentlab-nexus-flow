@@ -1802,6 +1802,33 @@ export type Database = {
         }
         Relationships: []
       }
+      encrypted_user_data: {
+        Row: {
+          created_at: string
+          data_type: string
+          encrypted_value: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_type: string
+          encrypted_value: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          encrypted_value?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       enhanced_monitoring: {
         Row: {
           configuration: Json
@@ -3817,6 +3844,42 @@ export type Database = {
           severity?: string
           team_id?: string | null
           title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      security_audit_logs: {
+        Row: {
+          created_at: string
+          event_description: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_description: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_description?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          success?: boolean | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -6087,6 +6150,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions_security: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           accessibility_settings: Json | null
@@ -6235,7 +6334,7 @@ export type Database = {
       }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
+        Returns: number
       }
       cleanup_expired_settings_backups: {
         Args: Record<PropertyKey, never>
@@ -6560,6 +6659,17 @@ export type Database = {
       is_user_system_admin: {
         Args: { user_id_param: string }
         Returns: boolean
+      }
+      log_security_event: {
+        Args: {
+          p_description: string
+          p_event_type: string
+          p_ip_address?: unknown
+          p_metadata?: Json
+          p_success?: boolean
+          p_user_agent?: string
+        }
+        Returns: undefined
       }
       log_team_activity: {
         Args: {
