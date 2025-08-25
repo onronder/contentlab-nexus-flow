@@ -231,20 +231,28 @@ export class TeamService {
       })) as Team[];
 
       // Apply filters if provided
-      if (options?.name) {
+      if (options?.filters?.search) {
         result = result.filter(team => 
-          team.name.toLowerCase().includes(options.name!.toLowerCase())
+          team.name.toLowerCase().includes(options.filters!.search!.toLowerCase())
         );
       }
 
-      if (options?.teamType) {
-        result = result.filter(team => team.team_type === options.teamType);
+      if (options?.filters?.team_type) {
+        result = result.filter(team => team.team_type === options.filters!.team_type);
+      }
+
+      if (options?.filters?.is_active !== undefined) {
+        result = result.filter(team => team.is_active === options.filters!.is_active);
+      }
+
+      if (options?.filters?.owner_id) {
+        result = result.filter(team => team.owner_id === options.filters!.owner_id);
       }
 
       // Apply sorting if provided
-      if (options?.sortBy) {
-        const sortColumn = options.sortBy;
-        const sortOrder = options.sortOrder || 'desc';
+      if (options?.sort) {
+        const sortColumn = options.sort.field;
+        const sortOrder = options.sort.direction || 'desc';
         
         result.sort((a, b) => {
           const aValue = a[sortColumn as keyof typeof a];
@@ -259,21 +267,19 @@ export class TeamService {
       }
 
       // Apply pagination if provided
-      if (options?.limit || options?.offset) {
-        const start = options?.offset || 0;
-        const end = start + (options?.limit || 50);
+      if (options?.page && options?.limit) {
+        const start = (options.page - 1) * options.limit;
+        const end = start + options.limit;
         result = result.slice(start, end);
+      } else if (options?.limit) {
+        result = result.slice(0, options.limit);
       }
 
       console.log('TeamService: Successfully fetched teams:', result.length);
       return result;
     } catch (error: any) {
       console.error('TeamService: Error in getTeamsByUser:', error);
-      throw new TeamValidationError(`Failed to fetch teams: ${error.message}`, 'FETCH_ERROR', {
-        userId,
-        options,
-        originalError: error
-      });
+      throw new TeamValidationError(`Failed to fetch teams: ${error.message}`, 'FETCH_ERROR');
     }
   }
 

@@ -26,7 +26,7 @@ describe('Supabase RPC Integration Tests', () => {
 
   describe('get_user_teams_safe', () => {
     it('should exist and be callable', async () => {
-      const { data, error } = await supabase.rpc('get_user_teams_safe', {
+      const { data, error } = await supabase.rpc('get_user_teams_safe' as any, {
         p_user_id: testUserId || '00000000-0000-0000-0000-000000000000'
       });
 
@@ -36,7 +36,7 @@ describe('Supabase RPC Integration Tests', () => {
     });
 
     it('should return empty array for non-existent user', async () => {
-      const { data, error } = await supabase.rpc('get_user_teams_safe', {
+      const { data, error } = await supabase.rpc('get_user_teams_safe' as any, {
         p_user_id: '00000000-0000-0000-0000-000000000000'
       });
 
@@ -45,7 +45,7 @@ describe('Supabase RPC Integration Tests', () => {
     });
 
     it('should handle null user_id gracefully', async () => {
-      const { data, error } = await supabase.rpc('get_user_teams_safe', {
+      const { data, error } = await supabase.rpc('get_user_teams_safe' as any, {
         p_user_id: null
       });
 
@@ -147,7 +147,7 @@ describe('Supabase RPC Integration Tests', () => {
   describe('Security and Authorization', () => {
     it('should enforce proper RLS on team functions', async () => {
       // Test that functions respect row-level security
-      const { data: userTeams } = await supabase.rpc('get_user_teams_safe', {
+      const { data: userTeams } = await supabase.rpc('get_user_teams_safe' as any, {
         p_user_id: testUserId || '00000000-0000-0000-0000-000000000000'
       });
 
@@ -155,7 +155,7 @@ describe('Supabase RPC Integration Tests', () => {
       expect(Array.isArray(userTeams)).toBe(true);
       
       // If user has teams, verify they're valid UUIDs
-      if (userTeams && userTeams.length > 0) {
+      if (userTeams && Array.isArray(userTeams) && userTeams.length > 0) {
         userTeams.forEach((team: any) => {
           expect(team.team_id).toMatch(
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -167,7 +167,7 @@ describe('Supabase RPC Integration Tests', () => {
     it('should handle unauthenticated requests properly', async () => {
       // Test behavior when not authenticated
       // Note: This depends on your RLS policies
-      const { data, error } = await supabase.rpc('get_user_teams_safe', {
+      const { data, error } = await supabase.rpc('get_user_teams_safe' as any, {
         p_user_id: null
       });
 
@@ -180,7 +180,7 @@ describe('Supabase RPC Integration Tests', () => {
     it('should respond within reasonable time limits', async () => {
       const startTime = Date.now();
       
-      await supabase.rpc('get_user_teams_safe', {
+      await supabase.rpc('get_user_teams_safe' as any, {
         p_user_id: testUserId || '00000000-0000-0000-0000-000000000000'
       });
       
