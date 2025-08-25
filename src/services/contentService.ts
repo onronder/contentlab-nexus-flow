@@ -151,17 +151,23 @@ export class ContentService {
 
       // Add team-based filtering if teamId provided
       if (teamId) {
-        // Only show content created by team members
-        const { data: teamMembers } = await supabase
-          .from('team_members')
-          .select('user_id')
-          .eq('team_id', teamId)
-          .eq('is_active', true)
-          .eq('status', 'active');
+        // Use security definer function to avoid RLS recursion
+        const currentUserId = await this.getCurrentUserId();
+        
+        // Verify user has access to this team using security definer function
+        const { data: userTeams } = await supabase.rpc('get_user_teams_safe', {
+          p_user_id: currentUserId
+        });
 
-        const teamMemberIds = teamMembers?.map(tm => tm.user_id) || [];
-        if (teamMemberIds.length > 0) {
-          query = query.in('user_id', teamMemberIds);
+        const hasTeamAccess = userTeams?.some(team => team.team_id === teamId);
+        
+        if (hasTeamAccess) {
+          // Filter content to only show items from the specified team context
+          // This will be handled by the content_items RLS policies
+          query = query.eq('team_id', teamId);
+        } else {
+          // User doesn't have access to this team, return empty array
+          return [];
         }
       }
 
