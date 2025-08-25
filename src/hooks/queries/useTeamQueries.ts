@@ -18,7 +18,7 @@ export function useTeamQueries() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Use the new safe function to get team IDs, then fetch team details
+      // Use the safe function to get team IDs, then fetch team details
       const { data: teamIds, error: teamIdsError } = await supabase.rpc('get_user_team_ids_safe', {
         p_user_id: user.id
       });
@@ -26,22 +26,19 @@ export function useTeamQueries() {
       if (teamIdsError) throw teamIdsError;
       if (!teamIds || teamIds.length === 0) return [];
 
-      // Get teams the user owns (these will be accessible via RLS)
-      const { data: ownedTeams, error: ownedTeamsError } = await supabase
+      // Extract team IDs from the response
+      const teamIdList = teamIds.map((row: any) => row.team_id);
+
+      // Fetch team details for accessible teams
+      const { data: teams, error: teamsError } = await supabase
         .from('teams')
         .select('id, name, slug, description, owner_id, created_at, updated_at')
-        .eq('owner_id', user.id)
+        .in('id', teamIdList)
         .eq('is_active', true);
 
-      if (ownedTeamsError) throw ownedTeamsError;
+      if (teamsError) throw teamsError;
 
-      // For now, return owned teams. Member teams require different handling due to RLS
-      // In a full implementation, you'd need to either:
-      // 1. Use a service function that bypasses RLS for authorized requests
-      // 2. Store basic team info in a separate accessible table
-      // 3. Use a different approach for team member visibility
-
-      return (ownedTeams || []).map(team => ({
+      return (teams || []).map(team => ({
         id: team.id,
         name: team.name,
         slug: team.slug,

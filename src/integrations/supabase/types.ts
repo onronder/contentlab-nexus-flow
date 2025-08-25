@@ -6634,14 +6634,6 @@ export type Database = {
         Args: { p_exclude_team_id?: string; p_slug: string }
         Returns: boolean
       }
-      is_team_member: {
-        Args: { team_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
-      is_team_owner: {
-        Args: { team_id_param: string; user_id_param: string }
-        Returns: boolean
-      }
       is_user_system_admin: {
         Args: { user_id_param: string }
         Returns: boolean
