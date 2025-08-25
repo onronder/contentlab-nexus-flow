@@ -194,58 +194,53 @@ export class TeamService {
   }
 
   /**
-   * Gets all teams for a specific user (simplified for new RLS structure)
+   * Gets all teams for a specific user using security definer function to bypass RLS recursion
    */
   static async getTeamsByUser(userId: string, options?: TeamQueryOptions): Promise<Team[]> {
     console.log('TeamService: Fetching teams for user:', userId, 'with options:', options);
 
     try {
-      // Use the new safe function to get team IDs user has access to
-      const { data: teamIds, error: teamIdsError } = await supabase
-        .rpc('get_user_team_ids_safe', { p_user_id: userId });
+      // Use the security definer function to get all accessible teams without RLS issues
+      const { data: teams, error: teamsError } = await supabase.rpc('get_accessible_teams', {
+        p_user_id: userId
+      });
 
-      if (teamIdsError) {
-        console.error('TeamService: Error fetching user team IDs:', teamIdsError);
-        throw new TeamValidationError('Failed to fetch user team IDs', 'FETCH_ERROR');
+      if (teamsError) {
+        console.error('TeamService: Error fetching teams:', teamsError);
+        throw teamsError;
       }
 
-      if (!teamIds || teamIds.length === 0) {
-        console.log('TeamService: No teams found for user');
+      if (!teams || teams.length === 0) {
+        console.log('No teams found for user:', userId);
         return [];
       }
 
-      console.log('TeamService: Found team IDs:', teamIds.map(t => t.team_id));
-
-      // Extract team IDs from the response
-      const teamIdList = teamIds.map((row: any) => row.team_id);
-
-      // Now fetch team details for these IDs (only owned teams will be returned due to RLS)
-      // But we use system policy to get all accessible teams
-      let teamsQuery = supabase
-        .from('teams')
-        .select('*')
-        .in('id', teamIdList)
-        .eq('is_active', true);
+      let result = teams.map((team: any) => ({
+        id: team.id,
+        name: team.name,
+        slug: team.slug,
+        description: team.description,
+        owner_id: team.owner_id,
+        created_at: team.created_at,
+        updated_at: team.updated_at,
+        team_type: team.team_type,
+        is_active: team.is_active,
+        current_member_count: team.current_member_count,
+        member_limit: team.member_limit,
+        settings: team.settings
+      })) as Team[];
 
       // Apply filters if provided
       if (options?.name) {
-        teamsQuery = teamsQuery.ilike('name', `%${options.name}%`);
+        result = result.filter(team => 
+          team.name.toLowerCase().includes(options.name!.toLowerCase())
+        );
       }
 
       if (options?.teamType) {
-        teamsQuery = teamsQuery.eq('team_type', options.teamType);
+        result = result.filter(team => team.team_type === options.teamType);
       }
 
-      const { data: teams, error: teamsError } = await teamsQuery;
-      
-      if (teamsError) {
-        console.error('TeamService: Error fetching teams:', teamsError);
-        throw new TeamValidationError(`Failed to fetch teams: ${teamsError.message}`, 'FETCH_ERROR');
-      }
-
-      const result = teams || [];
-      console.log('TeamService: Successfully fetched', result.length, 'teams');
-      
       // Apply sorting if provided
       if (options?.sortBy) {
         const sortColumn = options.sortBy;
@@ -267,22 +262,18 @@ export class TeamService {
       if (options?.limit || options?.offset) {
         const start = options?.offset || 0;
         const end = start + (options?.limit || 50);
-        return result.slice(start, end).map(team => ({
-          ...team,
-          settings: team.settings as Record<string, any>
-        })) as Team[];
+        result = result.slice(start, end);
       }
 
-      return result.map(team => ({
-        ...team,
-        settings: team.settings as Record<string, any>
-      })) as Team[];
-    } catch (error) {
+      console.log('TeamService: Successfully fetched teams:', result.length);
+      return result;
+    } catch (error: any) {
       console.error('TeamService: Error in getTeamsByUser:', error);
-      if (error instanceof TeamValidationError) {
-        throw error;
-      }
-      throw new TeamValidationError('Failed to fetch teams: ' + (error as Error).message, 'FETCH_ERROR');
+      throw new TeamValidationError(`Failed to fetch teams: ${error.message}`, 'FETCH_ERROR', {
+        userId,
+        options,
+        originalError: error
+      });
     }
   }
 

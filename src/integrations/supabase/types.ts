@@ -6438,6 +6438,23 @@ export type Database = {
         Args: { p_token: string }
         Returns: undefined
       }
+      get_accessible_teams: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          current_member_count: number
+          description: string
+          id: string
+          is_active: boolean
+          member_limit: number
+          name: string
+          owner_id: string
+          settings: Json
+          slug: string
+          team_type: string
+          updated_at: string
+        }[]
+      }
       get_avatar_url: {
         Args: { full_name: string; user_id: string }
         Returns: string
