@@ -114,7 +114,8 @@ class IndexedDBService {
     if (!this.db) await this.initialize();
     
     if (status) {
-      return this.db!.getAllFromIndex('offline_queue', 'status', status);
+      const allItems = await this.db!.getAll('offline_queue');
+      return allItems.filter(item => item.status === status);
     }
     return this.db!.getAll('offline_queue');
   }
@@ -152,10 +153,11 @@ class IndexedDBService {
   async getOfflineData(table?: string): Promise<any[]> {
     if (!this.db) await this.initialize();
     
+    const allData = await this.db!.getAll('offline_data');
     if (table) {
-      return this.db!.getAllFromIndex('offline_data', 'table', table);
+      return allData.filter(item => item.table === table);
     }
-    return this.db!.getAll('offline_data');
+    return allData;
   }
 
   async updateOfflineData(id: string, data: any): Promise<void> {
@@ -192,7 +194,8 @@ class IndexedDBService {
 
   async getUnresolvedConflicts(): Promise<any[]> {
     if (!this.db) await this.initialize();
-    return this.db!.getAllFromIndex('conflict_resolution', 'resolved', false);
+    const allConflicts = await this.db!.getAll('conflict_resolution');
+    return allConflicts.filter(conflict => !conflict.resolved);
   }
 
   async resolveConflict(id: string, resolution: 'local' | 'remote' | 'merge', mergedData?: any): Promise<void> {
