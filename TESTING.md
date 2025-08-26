@@ -12,13 +12,16 @@
 npm run test
 
 # Run tests in watch mode
-npm run test -- --watch
+npm run test:watch
 
 # Run tests with UI
 npm run test:ui
 
 # Generate coverage report
 npm run coverage
+
+# Type checking
+npm run type-check
 ```
 
 ### Testing Patterns
