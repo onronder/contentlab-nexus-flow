@@ -150,3 +150,9 @@ verify_jwt = true
 
 [functions.predictive-analytics-engine]
 verify_jwt = true
+
+[functions.realtime-health-monitor]
+verify_jwt = false
+
+[functions.enhanced-session-sync]
+verify_jwt = true
