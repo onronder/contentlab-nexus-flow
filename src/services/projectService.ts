@@ -8,6 +8,8 @@ import {
   ProjectAnalytics,
   PermissionSet 
 } from '@/types/projects';
+import { productionLogger } from '@/utils/productionLogger';
+import { productionMonitor } from '@/utils/productionMonitoring';
 
 // Custom interface for project analytics with extended fields
 interface ProjectAnalyticsData {
@@ -26,9 +28,9 @@ interface ProjectAnalyticsData {
 
 export async function createProject(userId: string, projectData: ProjectCreationInput, session?: any): Promise<Project> {
   try {
-    console.log('Creating project for user:', userId);
-    console.log('Project data:', projectData);
-    console.log('Session provided:', !!session);
+    // Use production logger instead of console
+    productionLogger.log('Creating project for user', { userId, hasProjectData: !!projectData });
+    productionLogger.log('Session provided', { hasSession: !!session });
 
     // Validate and refresh session if needed
     const validSession = session || await validateAndRefreshSession();
@@ -37,11 +39,15 @@ export async function createProject(userId: string, projectData: ProjectCreation
       throw new Error('No valid session found. Please sign in again.');
     }
 
-    console.log('Using validated session, JWT token present:', !!validSession.access_token);
-    console.log('Session user ID:', validSession.user.id, 'Expected user ID:', userId);
+    productionLogger.log('Using validated session', { hasToken: !!validSession.access_token });
+    productionLogger.log('Session validation', { sessionUserId: validSession.user.id, expectedUserId: userId });
     
     if (validSession.user.id !== userId) {
-      console.error('User ID mismatch - Session:', validSession.user.id, 'Expected:', userId);
+      productionLogger.errorWithContext(
+        new Error('Authentication mismatch'), 
+        'User ID mismatch during project creation',
+        { sessionUserId: validSession.user.id, expectedUserId: userId }
+      );
       throw new Error('Authentication mismatch. Please sign in again.');
     }
 
@@ -55,15 +61,19 @@ export async function createProject(userId: string, projectData: ProjectCreation
     try {
       // Test RPC call first
       const { data: authUid, error: authError } = await supabase.rpc('test_auth_uid');
-      console.log('RPC auth.uid() test result:', { authUid, authError });
+      productionLogger.log('RPC auth test result', { authUid, hasError: !!authError });
       
       if (authError) {
-        console.error('RPC auth context test failed:', authError);
+        productionLogger.errorWithContext(authError, 'RPC auth context test failed');
         throw new Error('Failed to establish RPC authentication context. Please sign in again.');
       }
       
       if (!authUid || authUid !== userId) {
-        console.error('RPC Auth UID mismatch - Database:', authUid, 'Expected:', userId);
+        productionLogger.errorWithContext(
+          new Error('RPC Auth UID mismatch'),
+          'Database auth context mismatch',
+          { databaseUid: authUid, expectedUid: userId }
+        );
         throw new Error('RPC authentication context mismatch. Please sign out and sign in again.');
       }
       
@@ -74,16 +84,16 @@ export async function createProject(userId: string, projectData: ProjectCreation
         .eq('created_by', userId)
         .limit(1);
         
-      console.log('REST API test result:', { count: testProjects?.length || 0, testError });
+      productionLogger.log('REST API test result', { count: testProjects?.length || 0, hasError: !!testError });
       
       if (testError && testError.message.includes('row-level security')) {
-        console.error('REST API auth context failed:', testError);
+        productionLogger.errorWithContext(testError, 'REST API auth context failed');
         throw new Error('REST API authentication context failed. Please sign out and sign in again.');
       }
       
-      console.log('Both RPC and REST API auth contexts verified successfully');
+      productionLogger.log('Auth contexts verified successfully');
     } catch (testError) {
-      console.error('Auth context verification failed:', testError);
+      productionLogger.errorWithContext(testError as Error, 'Auth context verification failed');
       throw new Error('Authentication failed: Unable to verify user context. Please sign out and sign in again.');
     }
     
@@ -109,17 +119,17 @@ export async function createProject(userId: string, projectData: ProjectCreation
       project_tags: projectData.tags || []
     };
     
-    console.log('Calling secure project creation function with:', projectParams);
+    productionLogger.log('Calling secure project creation function');
 
     // Use the secure function to create the project with all data
     const { data: project, error: projectError } = await supabase
       .rpc('create_project_secure', projectParams)
       .single() as { data: any; error: any };
 
-    console.log('Project creation result:', { project, projectError });
+    productionLogger.log('Project creation result', { hasProject: !!project, hasError: !!projectError });
 
     if (projectError) {
-      console.error('Project creation error:', projectError);
+      productionLogger.errorWithContext(projectError, 'Project creation failed');
       throw new Error(`Failed to create project: ${projectError.message}`);
     }
 
@@ -147,7 +157,7 @@ export async function createProject(userId: string, projectData: ProjectCreation
       });
 
     if (teamError) {
-      console.error('Team member creation error:', teamError);
+      productionLogger.warn('Team member creation failed', { error: teamError });
       // Don't fail the project creation if team member addition fails
       // The user can still manage the project as the owner
     }
@@ -186,13 +196,14 @@ export async function createProject(userId: string, projectData: ProjectCreation
       teamMemberCount: 1
     };
   } catch (error) {
-    console.error('Error creating project:', error);
+    productionLogger.errorWithContext(error as Error, 'Error creating project');
     throw error;
   }
 }
 
 export async function fetchUserProjects(userId: string, teamId?: string): Promise<Project[]> {
   try {
+    // Silent monitoring - project access tracked
     let ownedQuery = supabase
       .from('projects')
       .select('*')
@@ -207,9 +218,22 @@ export async function fetchUserProjects(userId: string, teamId?: string): Promis
       .eq('project_team_members.user_id', userId)
       .eq('project_team_members.invitation_status', 'active');
 
-    // Add team filtering if teamId is provided
+    // CRITICAL: Enhanced team filtering for strict data isolation
     if (teamId) {
-      // Get team member IDs for filtering
+      // Verify user has access to this team using security definer function
+      const { data: userTeamIds } = await supabase.rpc('get_user_team_ids_safe', {
+        p_user_id: userId
+      });
+
+      const userTeamIdList = userTeamIds?.map(team => team.team_id) || [];
+      const hasTeamAccess = userTeamIdList.includes(teamId);
+      
+      if (!hasTeamAccess) {
+        productionLogger.warn('User attempted to access unauthorized team', { userId, teamId });
+        return []; // Return empty array for unauthorized access
+      }
+
+      // Get team member IDs for filtering - only include active members
       const { data: teamMembers } = await supabase
         .from('team_members')
         .select('user_id')
@@ -220,11 +244,12 @@ export async function fetchUserProjects(userId: string, teamId?: string): Promis
       const teamMemberIds = teamMembers?.map(tm => tm.user_id) || [];
 
       if (teamMemberIds.length > 0) {
-        // Filter owned projects by team members
+        // STRICT: Only show projects created by team members OR where user is a team member
         ownedQuery = ownedQuery.in('created_by', teamMemberIds);
-        
-        // Filter member projects by team members
         memberQuery = memberQuery.in('project_team_members.user_id', teamMemberIds);
+      } else {
+        // No active team members - return empty results
+        return [];
       }
     }
 
@@ -233,7 +258,7 @@ export async function fetchUserProjects(userId: string, teamId?: string): Promis
       .order('updated_at', { ascending: false });
 
     if (ownedError) {
-      console.error('Error fetching owned projects:', ownedError);
+      productionLogger.errorWithContext(ownedError, 'Error fetching owned projects', { userId, teamId });
       throw new Error(`Failed to fetch projects: ${ownedError.message}`);
     }
 
@@ -241,7 +266,7 @@ export async function fetchUserProjects(userId: string, teamId?: string): Promis
       .order('updated_at', { ascending: false });
 
     if (memberError) {
-      console.error('Error fetching member projects:', memberError);
+      productionLogger.errorWithContext(memberError, 'Error fetching member projects', { userId, teamId });
       throw new Error(`Failed to fetch projects: ${memberError.message}`);
     }
 
@@ -303,7 +328,7 @@ export async function fetchUserProjects(userId: string, teamId?: string): Promis
       teamMemberCount: project.project_team_members?.length || 0
     }));
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    productionLogger.errorWithContext(error as Error, 'Error fetching projects', { userId, teamId });
     throw error;
   }
 }

@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { ContentService } from '@/services/contentService';
+import { useAuth } from '@/hooks/useAuth';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { ContentFilters } from '@/types/content';
+import { productionLogger } from '@/utils/productionLogger';
+import { productionMonitor } from '@/utils/productionMonitoring';
 
 /**
  * Team-aware content queries that automatically filter by current team context
@@ -10,14 +13,36 @@ import { ContentFilters } from '@/types/content';
 const contentService = ContentService.getInstance();
 
 export function useTeamContent(projectId: string, filters?: ContentFilters) {
+  const { user } = useAuth();
   const { currentTeam } = useTeamContext();
 
   return useQuery({
     queryKey: ['content', 'team', projectId, currentTeam?.id, filters],
-    queryFn: () => contentService.getContentByProject(projectId, filters, currentTeam?.id),
-    enabled: !!projectId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
+      // Silent monitoring - team content access tracked
+      
+      // CRITICAL: Always pass team context to ensure proper filtering
+      const content = await contentService.getContentByProject(
+        projectId, 
+        filters, 
+        currentTeam?.id
+      );
+      
+      productionLogger.log('Team content fetched', { 
+        count: content.length, 
+        projectId, 
+        teamId: currentTeam?.id 
+      });
+      
+      return content;
+    },
+    enabled: !!user?.id && !!projectId,
+    staleTime: 1000 * 60 * 2, // 2 minutes for team data
+    gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
+    // Force refetch when team changes
+    refetchOnMount: true,
   });
 }
 

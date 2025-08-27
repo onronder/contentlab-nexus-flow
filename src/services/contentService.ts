@@ -12,6 +12,8 @@ import {
   ContentNotFoundError,
   ContentPermissionError
 } from "@/types/content";
+import { productionLogger } from '@/utils/productionLogger';
+import { productionMonitor } from '@/utils/productionMonitoring';
 
 type ContentRow = Database['public']['Tables']['content_items']['Row'];
 type ContentInsert = Database['public']['Tables']['content_items']['Insert'];
@@ -144,14 +146,15 @@ export class ContentService {
 
   async getContentByProject(projectId: string, filters?: ContentFilters, teamId?: string): Promise<ContentItem[]> {
     try {
+      // Silent monitoring - content access tracked
+      
       let query = supabase
         .from('content_items')
         .select(this.getSelectQuery())
         .eq('project_id', projectId);
 
-      // Add team-based filtering if teamId provided
+      // CRITICAL: Enhanced team-based filtering for strict data isolation
       if (teamId) {
-        // Use new safe security definer function to avoid RLS recursion
         const currentUserId = await this.getCurrentUserId();
         
         // Verify user has access to this team using security definer function
@@ -162,13 +165,34 @@ export class ContentService {
         const userTeamIdList = userTeamIds?.map(team => team.team_id) || [];
         const hasTeamAccess = userTeamIdList.includes(teamId);
         
-        if (hasTeamAccess) {
-          // Filter content to only show items from the specified team context
-          query = query.eq('team_id', teamId);
-        } else {
-          // User doesn't have access to this team, return empty array
-          return [];
+        if (!hasTeamAccess) {
+          productionLogger.warn('User attempted to access unauthorized team content', { 
+            userId: currentUserId, 
+            teamId, 
+            projectId 
+          });
+          return []; // Return empty array for unauthorized access
         }
+
+        // STRICT: Filter content to only show items from the specified team context
+        // Also ensure the project belongs to the team context
+        const { data: projectTeam } = await supabase
+          .from('projects')
+          .select('team_id')
+          .eq('id', projectId)
+          .single();
+
+        if (projectTeam?.team_id !== teamId) {
+          productionLogger.warn('Project does not belong to specified team', { 
+            projectId, 
+            expectedTeamId: teamId, 
+            actualTeamId: projectTeam?.team_id 
+          });
+          return []; // Project doesn't belong to this team
+        }
+
+        // Filter content by team context
+        query = query.eq('team_id', teamId);
       }
 
       query = this.applyFilters(query, filters);
@@ -259,7 +283,7 @@ export class ContentService {
     } catch (error) {
       this.handleError(error, 'trackEngagement');
       // Don't throw analytics errors to avoid breaking user experience
-      console.warn('Analytics tracking failed:', error);
+      productionLogger.warn('Analytics tracking failed', { error });
     }
   }
 

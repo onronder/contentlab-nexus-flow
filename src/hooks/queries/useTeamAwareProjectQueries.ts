@@ -3,6 +3,8 @@ import { fetchUserProjects } from '@/services/projectService';
 import { useAuth } from '@/hooks/useAuth';
 import { useTeamContext } from '@/contexts/TeamContext';
 import { Project } from '@/types/projects';
+import { productionLogger } from '@/utils/productionLogger';
+import { productionMonitor } from '@/utils/productionMonitoring';
 
 /**
  * Team-aware project queries that automatically filter by current team context
@@ -14,13 +16,26 @@ export function useTeamProjects() {
 
   return useQuery({
     queryKey: ['projects', 'team', user?.id, currentTeam?.id],
-    queryFn: () => {
+    queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
-      return fetchUserProjects(user.id, currentTeam?.id);
+      
+      // Silent monitoring - team projects access tracked
+      
+      // CRITICAL: Always pass team context to ensure proper filtering
+      const projects = await fetchUserProjects(user.id, currentTeam?.id);
+      
+      productionLogger.log('Team projects fetched', { 
+        count: projects.length, 
+        teamId: currentTeam?.id 
+      });
+      
+      return projects;
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 2, // 2 minutes for team data
+    gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
+    // Force refetch when team changes
+    refetchOnMount: true,
   });
 }
 

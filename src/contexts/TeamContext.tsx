@@ -138,7 +138,7 @@ export function TeamProvider({ children }: TeamProviderProps) {
         
         // Update persistence (non-blocking)
         updateLastTeam(team.id).catch(error => {
-          console.warn('Failed to update team preference:', error);
+          // Silent logging - failed preference update is non-critical
         });
         
         // Show success feedback

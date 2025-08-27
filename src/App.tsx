@@ -16,6 +16,9 @@ import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { GlobalErrorHandler } from '@/components/error/GlobalErrorHandler';
 import { ProductionErrorBoundary } from '@/components/error/ProductionErrorBoundary';
+import { SilentLogger } from '@/utils/silentLogger';
+import { productionMonitor } from '@/utils/productionMonitoring';
+import { isProduction } from '@/utils/production';
 
 // Route-level code splitting with React.lazy
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
@@ -41,7 +44,14 @@ const NotFound = React.lazy(() => import("./pages/NotFound"));
 const Collaboration = React.lazy(() => import("./pages/Collaboration").then(m => ({ default: m.Collaboration })));
 const Share = React.lazy(() => import("./pages/Share"));
 
-const App = () => (
+function App() {
+  // Initialize silent logging in production
+  React.useEffect(() => {
+    SilentLogger.initialize();
+    // Production monitor initializes automatically
+  }, []);
+
+  return (
   <ProductionErrorBoundary>
     <GlobalErrorHandler>
       <TooltipProvider>
@@ -339,6 +349,7 @@ const App = () => (
       </TooltipProvider>
     </GlobalErrorHandler>
   </ProductionErrorBoundary>
-);
+  );
+}
 
 export default App;
