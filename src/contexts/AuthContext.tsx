@@ -65,19 +65,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
     // Setup auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (!mounted) return;
+        if (!isMounted) return;
         
-        devLog('Auth state changed:', event, !!session);
-        devLog('JWT token present:', !!session?.access_token);
+        console.log('Auth state changed:', event, !!session);
         
         // Handle refresh token errors by clearing session
         if (event === 'TOKEN_REFRESHED' && !session) {
-          devWarn('Token refresh failed, clearing stored session');
+          console.warn('Token refresh failed, clearing stored session');
           clearInvalidSession();
         }
         
@@ -87,33 +86,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Then get initial session
     const getInitialSession = async () => {
       try {
+        // First validate and refresh session if needed
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (!mounted) return;
-        
-        if (error) {
-          logError(error, 'AuthContext.getInitialSession');
-          // If it's a refresh token error, clear the invalid session
-          if (error.message?.includes('refresh_token_not_found') || 
-              error.message?.includes('Invalid Refresh Token')) {
-            devWarn('Invalid refresh token detected, clearing session');
-            clearInvalidSession();
+        if (isMounted) {
+          if (error) {
+            console.error('Error getting session:', error);
+            // Clear invalid session data on specific errors
+            if (error.message?.includes('refresh_token_not_found') || 
+                error.message?.includes('Invalid Refresh Token')) {
+              clearInvalidSession();
+            }
+          } else if (session) {
+            setSession(session);
+            setUser(session.user);
+          } else {
+            // No session found
+            setSession(null);
+            setUser(null);
           }
-        } else {
-          devLog('Initial session loaded:', !!session);
-          devLog('JWT token present:', !!session?.access_token);
-          setSession(session);
-          setUser(session?.user ?? null);
+          setLoading(false);
         }
       } catch (error) {
-        logError(error as Error, 'AuthContext.getInitialSession');
-        // Clear session on any authentication error
-        clearInvalidSession();
-      } finally {
-        if (mounted) {
+        console.error('Failed to get initial session:', error);
+        if (isMounted) {
+          clearInvalidSession();
           setLoading(false);
         }
       }
@@ -122,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     getInitialSession();
 
     return () => {
-      mounted = false;
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
