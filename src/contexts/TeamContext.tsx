@@ -7,7 +7,7 @@ import { useErrorBoundary } from '@/hooks/useErrorBoundary';
 import { toast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 
-interface TeamContextType {
+export interface TeamContextType {
   currentTeam: Team | null;
   setCurrentTeam: (team: Team | null) => void;
   availableTeams: Team[];
@@ -17,7 +17,7 @@ interface TeamContextType {
   isTeamMember: (userId: string) => boolean;
 }
 
-const TeamContext = createContext<TeamContextType | undefined>(undefined);
+export const TeamContext = createContext<TeamContextType | undefined>(undefined);
 
 interface TeamProviderProps {
   children: ReactNode;

@@ -4,12 +4,13 @@
 
 export const getSecurityHeaders = () => {
   return {
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://ijvhqqdfthchtittyvnt.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: https://ijvhqqdfthchtittyvnt.supabase.co; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://ijvhqqdfthchtittyvnt.supabase.co wss://ijvhqqdfthchtittyvnt.supabase.co;",
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://ijvhqqdfthchtittyvnt.supabase.co https://lovable-api.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: https://ijvhqqdfthchtittyvnt.supabase.co; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://ijvhqqdfthchtittyvnt.supabase.co wss://ijvhqqdfthchtittyvnt.supabase.co https://lovable-api.com;",
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'X-XSS-Protection': '1; mode=block'
   };
 };
 

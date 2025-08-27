@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useRef, type ReactNode } from 're
 import { useAuth } from './AuthContext';
 import { advancedAnalyticsService } from '@/services/advancedAnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
+import { errorRecovery } from '@/utils/errorRecovery';
+import { initializeExtensionCompatibility, getExtensionCompatibilityReport } from '@/utils/extensionDetection';
+import { initializeProductionMonitoring } from '@/utils/productionMonitoring';
 
 interface AnalyticsContextType {
   trackPageView: (path: string, properties?: Record<string, any>) => void;
@@ -21,6 +24,8 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
   const sessionStartTime = useRef<number>(Date.now());
   const lastPageView = useRef<string>('');
   const lastPageViewTime = useRef<number>(0);
+  const extensionCleanup = useRef<(() => void) | null>(null);
+  const monitoringCleanup = useRef<(() => void) | null>(null);
 
   // Reduced frequency constants
   const PAGE_VIEW_DEBOUNCE = 2000; // 2 seconds
@@ -32,6 +37,16 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
     if (user && !isInitialized.current) {
       initializeAnalytics();
       isInitialized.current = true;
+      
+      // Initialize extension compatibility and monitoring
+      extensionCleanup.current = initializeExtensionCompatibility();
+      monitoringCleanup.current = initializeProductionMonitoring();
+      
+      // Log extension compatibility report
+      const report = getExtensionCompatibilityReport();
+      if (!report.compatible || report.warnings) {
+        console.warn('Extension compatibility issues detected:', report);
+      }
     }
   }, [user]);
 
@@ -347,13 +362,25 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
 
   const getCurrentTeamId = (): string | undefined => {
     try {
-      // Access team context safely by checking if it exists in the DOM
-      const teamData = sessionStorage.getItem('current_team_id');
+      // Access team context safely using error recovery utils
+      const teamData = errorRecovery.safeLocalStorage.getItem('current_team_id');
       return teamData ? JSON.parse(teamData) : undefined;
     } catch {
       return undefined;
     }
   };
+  
+  // Cleanup function for when provider unmounts
+  useEffect(() => {
+    return () => {
+      if (extensionCleanup.current) {
+        extensionCleanup.current();
+      }
+      if (monitoringCleanup.current) {
+        monitoringCleanup.current();
+      }
+    };
+  }, []);
 
   const value: AnalyticsContextType = {
     trackPageView,

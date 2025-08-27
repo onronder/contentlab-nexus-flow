@@ -15,6 +15,7 @@ import { TeamProvider } from '@/contexts/TeamContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { GlobalErrorHandler } from '@/components/error/GlobalErrorHandler';
+import { ProductionErrorBoundary } from '@/components/error/ProductionErrorBoundary';
 
 // Route-level code splitting with React.lazy
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
@@ -41,26 +42,13 @@ const Collaboration = React.lazy(() => import("./pages/Collaboration").then(m =>
 const Share = React.lazy(() => import("./pages/Share"));
 
 const App = () => (
-  <ErrorBoundary>
+  <ProductionErrorBoundary>
     <GlobalErrorHandler>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ErrorBoundary fallback={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
-                <p className="text-muted-foreground mb-4">Unable to load the application properly.</p>
-                <button 
-                  onClick={() => window.location.reload()} 
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                >
-                  Refresh Page
-                </button>
-              </div>
-            </div>
-          }>
+          <ProductionErrorBoundary>
             <TeamProvider>
               <AnalyticsProvider>
                 <Routes>
@@ -346,11 +334,11 @@ const App = () => (
                 </Routes>
               </AnalyticsProvider>
             </TeamProvider>
-          </ErrorBoundary>
+          </ProductionErrorBoundary>
         </BrowserRouter>
       </TooltipProvider>
     </GlobalErrorHandler>
-  </ErrorBoundary>
+  </ProductionErrorBoundary>
 );
 
 export default App;
