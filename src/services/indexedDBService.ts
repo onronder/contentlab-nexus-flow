@@ -57,25 +57,17 @@ class IndexedDBService {
       upgrade(db) {
         // Offline action queue
         if (!db.objectStoreNames.contains('offline_queue')) {
-          const queueStore = db.createObjectStore('offline_queue', { keyPath: 'id' });
-          queueStore.createIndex('priority', 'priority');
-          queueStore.createIndex('status', 'status');
-          queueStore.createIndex('timestamp', 'timestamp');
+          db.createObjectStore('offline_queue', { keyPath: 'id' });
         }
 
         // Offline data storage
         if (!db.objectStoreNames.contains('offline_data')) {
-          const dataStore = db.createObjectStore('offline_data', { keyPath: 'id' });
-          dataStore.createIndex('table', 'table');
-          dataStore.createIndex('syncStatus', 'syncStatus');
-          dataStore.createIndex('lastModified', 'lastModified');
+          db.createObjectStore('offline_data', { keyPath: 'id' });
         }
 
         // Conflict resolution
         if (!db.objectStoreNames.contains('conflict_resolution')) {
-          const conflictStore = db.createObjectStore('conflict_resolution', { keyPath: 'id' });
-          conflictStore.createIndex('timestamp', 'timestamp');
-          conflictStore.createIndex('resolved', 'resolved');
+          db.createObjectStore('conflict_resolution', { keyPath: 'id' });
         }
 
         // Sync metadata
@@ -250,13 +242,16 @@ class IndexedDBService {
   }> {
     if (!this.db) await this.initialize();
     
-    const [queuedActions, pendingSync, conflicts] = await Promise.all([
-      this.db!.countFromIndex('offline_queue', 'status', 'pending'),
-      this.db!.countFromIndex('offline_data', 'syncStatus', 'pending'),
-      this.db!.countFromIndex('conflict_resolution', 'resolved', false),
+    const [allQueue, allData, allConflicts, syncMetadata] = await Promise.all([
+      this.db!.getAll('offline_queue'),
+      this.db!.getAll('offline_data'),
+      this.db!.getAll('conflict_resolution'),
+      this.db!.getAll('sync_metadata'),
     ]);
 
-    const syncMetadata = await this.db!.getAll('sync_metadata');
+    const queuedActions = allQueue.filter(item => item.status === 'pending').length;
+    const pendingSync = allData.filter(item => item.syncStatus === 'pending').length;
+    const conflicts = allConflicts.filter(conflict => !conflict.resolved).length;
     const lastSync = Math.max(...syncMetadata.map(m => m.lastSync), 0);
 
     return {
@@ -274,7 +269,8 @@ class IndexedDBService {
     const cutoff = Date.now() - olderThan;
     
     // Clean old completed queue items
-    const completedItems = await this.db!.getAllFromIndex('offline_queue', 'status', 'completed');
+    const allQueueItems = await this.db!.getAll('offline_queue');
+    const completedItems = allQueueItems.filter(item => item.status === 'completed');
     for (const item of completedItems) {
       if (item.timestamp < cutoff) {
         await this.db!.delete('offline_queue', item.id);
@@ -282,7 +278,8 @@ class IndexedDBService {
     }
 
     // Clean resolved conflicts
-    const resolvedConflicts = await this.db!.getAllFromIndex('conflict_resolution', 'resolved', true);
+    const allConflicts = await this.db!.getAll('conflict_resolution');
+    const resolvedConflicts = allConflicts.filter(conflict => conflict.resolved === true);
     for (const conflict of resolvedConflicts) {
       if (conflict.timestamp < cutoff) {
         await this.db!.delete('conflict_resolution', conflict.id);
