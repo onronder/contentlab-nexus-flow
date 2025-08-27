@@ -45,10 +45,14 @@ const Collaboration = React.lazy(() => import("./pages/Collaboration").then(m =>
 const Share = React.lazy(() => import("./pages/Share"));
 
 function App() {
-  // Initialize silent logging in production
+  // Initialize production monitoring and silent logging
   React.useEffect(() => {
-    SilentLogger.initialize();
-    // Production monitor initializes automatically
+    try {
+      SilentLogger.initialize();
+      productionMonitor.initialize();
+    } catch (error) {
+      // Silent failure - don't break the app
+    }
   }, []);
 
   return (

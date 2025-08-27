@@ -247,6 +247,89 @@ class ProductionMonitor {
       this.healthCheckInterval = undefined;
     }
   }
+
+  /**
+   * Initialize production monitoring with cache invalidation
+   */
+  initialize() {
+    try {
+      // Force cache invalidation
+      this.invalidateCache();
+      
+      // Start monitoring
+      this.startMonitoring();
+      
+      // Setup global debug tools
+      (window as any).__healthCheck = () => this.generateHealthReport();
+      (window as any).__clearCache = () => this.invalidateCache();
+      
+      // Silent logging for production
+      if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+        this.setupProductionLogging();
+      }
+      
+      return true;
+    } catch (error) {
+      // Silent failure - don't break the app
+      return false;
+    }
+  }
+
+  /**
+   * Force browser cache invalidation
+   */
+  private invalidateCache() {
+    try {
+      // Clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear cache if available
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+      
+      // Force page reload with cache bypass
+      if (performance.getEntriesByType('navigation')[0]) {
+        const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (nav.type !== 'reload') {
+          // Only auto-reload if not already a reload to prevent loops
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
+      }
+    } catch (error) {
+      // Silent failure
+    }
+  }
+
+  /**
+   * Setup production-safe logging
+   */
+  private setupProductionLogging() {
+    // Override console methods to prevent spam
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    const originalLog = console.log;
+    
+    console.error = (...args) => {
+      // Only log critical errors in production
+      if (args[0]?.toString().includes('TypeError') || args[0]?.toString().includes('ReferenceError')) {
+        originalError.apply(console, args);
+      }
+    };
+    
+    console.warn = () => {
+      // Suppress warnings in production
+    };
+    
+    console.log = () => {
+      // Suppress logs in production
+    };
+  }
   
   async generateHealthReport(): Promise<string> {
     const healthChecks = await this.performHealthCheck();
