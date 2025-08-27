@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { useTeamContext } from './TeamContext';
 import { advancedAnalyticsService } from '@/services/advancedAnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,7 +16,7 @@ const AnalyticsContext = createContext<AnalyticsContextType | undefined>(undefin
 
 export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const { currentTeam } = useTeamContext();
+  // We'll access team context through hook where needed, not at the provider level
   const isInitialized = useRef(false);
   const sessionStartTime = useRef<number>(Date.now());
   const lastPageView = useRef<string>('');
@@ -91,7 +90,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
             eventProperties: {
               duration_ms: sessionDuration,
               pages_visited: getVisitedPages().length,
-              team_id: currentTeam?.id,
+              team_id: getCurrentTeamId(),
               is_active: document.visibilityState === 'visible'
             },
             pagePath: window.location.pathname
@@ -115,7 +114,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
             sessionId: getSessionId(),
             duration_ms: sessionDuration,
             pages_visited: getVisitedPages().length,
-            team_id: currentTeam?.id
+            team_id: getCurrentTeamId()
           }));
         }
       } catch (error) {
@@ -129,7 +128,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(sessionInterval);
       window.removeEventListener('beforeunload', trackSessionEnd);
     };
-  }, [user, currentTeam]);
+  }, [user]);
 
   const initializeAnalytics = async () => {
     if (!user) return;
@@ -142,7 +141,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
         eventType: 'session',
         eventName: 'session_start',
         eventProperties: {
-          team_id: currentTeam?.id,
+          team_id: getCurrentTeamId(),
           device_type: getDeviceType(),
           browser: getBrowser(),
           referrer: document.referrer,
@@ -174,7 +173,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
       await advancedAnalyticsService.trackPageView(path, {
         userId: user.id,
         eventProperties: {
-          team_id: currentTeam?.id,
+          team_id: getCurrentTeamId(),
           ...properties
         }
       });
@@ -191,7 +190,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       await advancedAnalyticsService.trackInteraction(component, action, {
-        team_id: currentTeam?.id,
+        team_id: getCurrentTeamId(),
         user_id: user.id,
         timestamp: new Date().toISOString(),
         ...properties
@@ -207,7 +206,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Track the view event
       await advancedAnalyticsService.trackCustomEvent({
-        teamId: currentTeam?.id,
+        teamId: getCurrentTeamId(),
         userId: user.id,
         eventName: 'content_view',
         eventCategory: 'content',
@@ -236,7 +235,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Track the engagement event
       await advancedAnalyticsService.trackCustomEvent({
-        teamId: currentTeam?.id,
+        teamId: getCurrentTeamId(),
         userId: user.id,
         eventName: `content_${type}`,
         eventCategory: 'engagement',
@@ -260,7 +259,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       await advancedAnalyticsService.recordBusinessMetric({
-        teamId: currentTeam?.id,
+        teamId: getCurrentTeamId(),
         ...metric
       });
     } catch (error) {
@@ -343,6 +342,16 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
       return JSON.parse(sessionStorage.getItem('visited_pages') || '[]');
     } catch {
       return [];
+    }
+  };
+
+  const getCurrentTeamId = (): string | undefined => {
+    try {
+      // Access team context safely by checking if it exists in the DOM
+      const teamData = sessionStorage.getItem('current_team_id');
+      return teamData ? JSON.parse(teamData) : undefined;
+    } catch {
+      return undefined;
     }
   };
 
