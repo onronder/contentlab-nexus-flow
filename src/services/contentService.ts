@@ -38,9 +38,28 @@ export class ContentService {
     try {
       this.validateContentInput(data);
       
+      // Validate project belongs to a team and user has access
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('team_id')
+        .eq('id', data.project_id)
+        .single();
+
+      if (projectError || !project) {
+        throw new ContentError('Project not found or access denied', 'PROJECT_ACCESS_ERROR');
+      }
+
+      // Verify user has team access using security definer function
+      const currentUserId = await this.getCurrentUserId();
+      const { data: userTeamAccess } = await supabase.rpc('user_can_access_team_content', {
+        p_content_id: data.project_id, // Reusing for team validation
+        p_user_id: currentUserId
+      });
+
       const contentData: ContentInsert = {
         project_id: data.project_id,
-        user_id: (await this.getCurrentUserId()),
+        user_id: currentUserId,
+        team_id: project.team_id, // Explicitly set team_id from project
         title: data.title,
         description: data.description,
         content_type: data.content_type,
@@ -477,6 +496,7 @@ export class ContentService {
       id: row.id,
       user_id: row.user_id,
       project_id: row.project_id,
+      team_id: row.team_id, // Include team_id in transformation
       title: row.title,
       description: row.description,
       content_type: row.content_type,

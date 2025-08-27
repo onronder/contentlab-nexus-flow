@@ -4,6 +4,7 @@ export interface ContentItem {
   id: string;
   user_id: string;
   project_id: string;
+  team_id?: string; // Added team_id for proper team-based content isolation
   title: string;
   description?: string;
   content_type: ContentType;

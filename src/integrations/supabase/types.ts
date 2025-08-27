@@ -6730,7 +6730,7 @@ export type Database = {
         Returns: boolean
       }
       user_can_access_team_content: {
-        Args: { p_team_id: string; p_user_id: string }
+        Args: { p_content_id: string; p_user_id: string }
         Returns: boolean
       }
       validate_settings_data: {

@@ -20,25 +20,45 @@ export function useTeamContent(projectId: string, filters?: ContentFilters) {
     queryKey: ['content', 'team', projectId, currentTeam?.id, filters],
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
+      if (!currentTeam?.id) throw new Error('No team context available');
       
-      // Silent monitoring - team content access tracked
-      
-      // CRITICAL: Always pass team context to ensure proper filtering
-      const content = await contentService.getContentByProject(
-        projectId, 
-        filters, 
-        currentTeam?.id
-      );
-      
-      productionLogger.log('Team content fetched', { 
-        count: content.length, 
-        projectId, 
-        teamId: currentTeam?.id 
-      });
-      
-      return content;
+      // Enhanced team validation - ensure proper data isolation
+      try {
+        const content = await contentService.getContentByProject(
+          projectId, 
+          filters, 
+          currentTeam.id
+        );
+        
+        // Validate all returned content belongs to the current team
+        const invalidContent = content.filter(item => item.team_id !== currentTeam.id);
+        if (invalidContent.length > 0) {
+          productionLogger.error('Content returned with wrong team_id', { 
+            projectId, 
+            currentTeamId: currentTeam.id,
+            invalidItems: invalidContent.map(item => ({ id: item.id, team_id: item.team_id }))
+          });
+          // Filter out invalid content for security
+          return content.filter(item => item.team_id === currentTeam.id);
+        }
+        
+        productionLogger.log('Team content fetched', { 
+          count: content.length, 
+          projectId, 
+          teamId: currentTeam.id 
+        });
+        
+        return content;
+      } catch (error) {
+        productionLogger.error('Failed to fetch team content', { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          projectId, 
+          teamId: currentTeam.id 
+        });
+        throw error;
+      }
     },
-    enabled: !!user?.id && !!projectId,
+    enabled: !!user?.id && !!projectId && !!currentTeam?.id,
     staleTime: 1000 * 60 * 2, // 2 minutes for team data
     gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
     // Force refetch when team changes
