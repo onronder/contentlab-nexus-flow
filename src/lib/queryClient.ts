@@ -73,6 +73,7 @@ export const queryKeys = {
   projects: {
     all: ['projects'] as const,
     user: (userId: string) => ['projects', 'user', userId] as const,
+    team: (userId: string, teamId?: string) => ['projects', 'team', userId, teamId] as const,
     list: (userId: string, filters?: Record<string, any>) => 
       ['projects', 'list', userId, filters] as const,
     detail: (id: string) => ['projects', 'detail', id] as const,
@@ -82,6 +83,19 @@ export const queryKeys = {
     competitors: (id: string) => ['projects', 'competitors', id] as const,
     activities: (id: string, limit?: number) => 
       ['projects', 'activities', id, limit] as const,
+  },
+  content: {
+    all: ['content'] as const,
+    team: (projectId: string, teamId?: string) => ['content', 'team', projectId, teamId] as const,
+    project: (projectId: string, filters?: any) => ['content', 'project', projectId, filters] as const,
+    analytics: (contentId: string) => ['content', 'analytics', contentId] as const,
+  },
+  teams: {
+    all: ['teams'] as const,
+    user: (userId: string) => ['teams', 'user', userId] as const,
+    detail: (teamId: string) => ['teams', 'detail', teamId] as const,
+    members: (teamId: string) => ['teamMembers', teamId] as const,
+    stats: (teamId: string) => ['teamStats', teamId] as const,
   },
   competitors: {
     all: ['competitors'] as const,
@@ -93,7 +107,11 @@ export const queryKeys = {
       ['competitors', 'search', projectId, searchTerm, filters] as const,
     forAnalysis: (projectId: string) => ['competitors', 'forAnalysis', projectId] as const,
   },
-  // Add global invalidation helpers
+  // Team switching invalidation patterns
+  invalidateTeamData: () => ({ queryKey: ['projects', 'team'] }),
+  invalidateTeamContent: () => ({ queryKey: ['content', 'team'] }),
+  invalidateTeamInfo: () => ({ queryKey: ['teams'] }),
+  // Legacy helpers
   invalidateUserProjects: (userId: string) => ['projects', 'user', userId],
   invalidateProjectDetails: (projectId: string) => ['projects', 'detail', projectId],
   invalidateProjectAnalytics: (projectId: string) => ['projects', 'analytics', projectId],

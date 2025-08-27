@@ -2,14 +2,23 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTeamProjects, useTeamProjectsStats, useTeamProjectSearch } from "@/hooks/queries/useTeamAwareProjectQueries";
 import { Loader2, FolderKanban, Flag, TrendingUp } from "lucide-react";
+import { useTeamContext } from "@/contexts/TeamContext";
+import { useTeamSwitching } from "@/hooks/useTeamSwitching";
 
 export function TeamProjectsOverview() {
+  const { currentTeam } = useTeamContext();
+  const { invalidateTeamQueries } = useTeamSwitching();
   const { stats } = useTeamProjectsStats();
   const [query, setQuery] = useState("");
   const { projects, isLoading } = useTeamProjectSearch(query);
+  
+  // Reset search when team changes
+  useEffect(() => {
+    setQuery("");
+  }, [currentTeam?.id]);
 
   return (
     <div className="space-y-6">

@@ -5,6 +5,7 @@ import { useTeams } from '@/hooks/useTeamQueries';
 import { useTeamPersistence } from '@/hooks/useTeamPersistence';
 import { useErrorBoundary } from '@/hooks/useErrorBoundary';
 import { toast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 
 interface TeamContextType {
   currentTeam: Team | null;
@@ -125,7 +126,22 @@ export function TeamProvider({ children }: TeamProviderProps) {
     try {
       const team = availableTeams.find(t => t.id === teamId);
       if (team) {
-        await setCurrentTeam(team);
+        // Set current team immediately for optimistic UI
+        setCurrentTeamState(team);
+        
+        // Invalidate all team-dependent queries
+        await queryClient.invalidateQueries({ queryKey: ['projects', 'team'] });
+        await queryClient.invalidateQueries({ queryKey: ['content', 'team'] });
+        await queryClient.invalidateQueries({ queryKey: ['teams'] });
+        await queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+        await queryClient.invalidateQueries({ queryKey: ['teamStats'] });
+        
+        // Update persistence (non-blocking)
+        updateLastTeam(team.id).catch(error => {
+          console.warn('Failed to update team preference:', error);
+        });
+        
+        // Show success feedback
         toast({
           title: 'Team switched',
           description: `Switched to ${team.name}`,

@@ -17,6 +17,7 @@ import { ProjectGridView } from '@/components/projects/ProjectGridView';
 import { ProjectListView } from '@/components/projects/ProjectListView';
 import { useTeamProjects, useTeamProjectsStats } from '@/hooks/queries/useTeamAwareProjectQueries';
 import { useUser } from '@/contexts';
+import { useTeamContext } from '@/contexts/TeamContext';
 import { useAdvancedProjectFilters } from '@/hooks/useAdvancedProjectFilters';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAccessibleAnnouncement } from '@/hooks/useAccessibleAnnouncement';
@@ -52,6 +53,16 @@ const Projects = () => {
 
   const { data: projects = [], isLoading, error, refetch } = useTeamProjects();
   const { stats } = useTeamProjectsStats();
+  
+  // Reset local state when team changes
+  const { currentTeam } = useTeamContext();
+  useEffect(() => {
+    // Reset search via filter
+    updateFilter('search', { ...filters.search, query: '' });
+    setSelectedProjects([]);
+    setViewMode('grid');
+    setShowFilters(false);
+  }, [currentTeam?.id]);
 
   // Advanced filtering hook
   const {

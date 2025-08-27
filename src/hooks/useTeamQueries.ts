@@ -22,7 +22,20 @@ export function useTeams(options?: TeamQueryOptions) {
     queryFn: async () => {
       if (!user?.id) return [];
       try {
-        return await TeamService.getTeamsByUser(user.id, options);
+        const teams = await TeamService.getTeamsByUser(user.id, options);
+        // Fetch complete team data including members for proper access control
+        const teamsWithMembers = await Promise.all(
+          teams.map(async (team) => {
+            try {
+              const membersResponse = await TeamService.getTeamMembers(team.id);
+              return { ...team, members: membersResponse?.members || [] };
+            } catch (error) {
+              console.warn(`Failed to fetch members for team ${team.id}:`, error);
+              return { ...team, members: [] };
+            }
+          })
+        );
+        return teamsWithMembers;
       } catch (error) {
         console.error('Error fetching teams:', error);
         return [];

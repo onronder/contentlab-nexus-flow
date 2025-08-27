@@ -7,11 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Loader2, FileText, Folder } from "lucide-react";
 import { useTeamProjects } from "@/hooks/queries/useTeamAwareProjectQueries";
 import { useTeamContent } from "@/hooks/queries/useTeamAwareContentQueries";
+import { useTeamSwitching } from "@/hooks/useTeamSwitching";
+import { useTeamContext } from "@/contexts/TeamContext";
 
 export function TeamContentLibrary() {
+  const { currentTeam } = useTeamContext();
+  const { invalidateTeamQueries } = useTeamSwitching();
   const { data: projects = [], isLoading: projectsLoading } = useTeamProjects();
   const [projectId, setProjectId] = useState<string | undefined>();
   const [search, setSearch] = useState("");
+  
+  // Reset state when team changes
+  useEffect(() => {
+    setProjectId(undefined);
+    setSearch("");
+  }, [currentTeam?.id]);
   
   // Set first project as default when projects load
   useEffect(() => {

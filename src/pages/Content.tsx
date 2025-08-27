@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,13 @@ const Content = () => {
   // Use first project from current team
   const selectedProject = teamProjects[0];
   const projectId = selectedProject?.id;
+  
+  // Reset local state when team changes
+  useEffect(() => {
+    setStatusFilter('all');
+    setSearchTerm('');
+    setShowUploadModal(false);
+  }, [currentTeam?.id]);
 
   // Fetch content from database with error handling
   const { 
