@@ -43,8 +43,12 @@ class SubscriptionService {
     if (error) throw error;
     return (data || []).map(plan => ({
       ...plan,
-      features: Array.isArray(plan.features) ? plan.features : [],
-      limits: typeof plan.limits === 'object' && plan.limits ? plan.limits as Record<string, number> : {}
+      features: Array.isArray(plan.features) ? (plan.features as string[]) : [],
+      limits: typeof plan.limits === 'object' && plan.limits ? plan.limits as Record<string, number> : {},
+      price_monthly: plan.price_monthly || 0,
+      price_yearly: plan.price_yearly || 0,
+      description: plan.description || '',
+      is_active: plan.is_active !== false
     }));
   }
 
@@ -65,8 +69,12 @@ class SubscriptionService {
       ...data,
       plan: {
         ...data.plan,
-        features: Array.isArray(data.plan.features) ? data.plan.features : [],
-        limits: typeof data.plan.limits === 'object' && data.plan.limits ? data.plan.limits as Record<string, number> : {}
+        features: Array.isArray(data.plan.features) ? (data.plan.features as string[]) : [],
+        limits: typeof data.plan.limits === 'object' && data.plan.limits ? data.plan.limits as Record<string, number> : {},
+        price_monthly: data.plan.price_monthly || 0,
+        price_yearly: data.plan.price_yearly || 0,
+        description: data.plan.description || '',
+        is_active: data.plan.is_active !== false
       }
     };
   }
@@ -78,23 +86,29 @@ class SubscriptionService {
     const subscription = await this.getUserSubscription();
     if (!subscription) return [];
 
-    // Use rpc for aggregation since groupBy is not available in the client
+    // Get usage from database using a simple query
     const { data, error } = await supabase
-      .rpc('get_user_usage_summary', {
-        p_user_id: user.data.user.id,
-        p_days: 30
-      });
+      .from('usage_tracking')
+      .select('resource_type, usage_count')
+      .eq('user_id', user.data.user.id)
+      .gte('usage_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
     if (error) throw error;
 
-    return (data || []).map(item => {
-      const limit = subscription.plan.limits[item.resource_type] || 0;
-      const usage = item.sum || 0;
+    // Aggregate usage by resource type
+    const usageMap = new Map<string, number>();
+    (data || []).forEach(item => {
+      const current = usageMap.get(item.resource_type) || 0;
+      usageMap.set(item.resource_type, current + item.usage_count);
+    });
+
+    return Array.from(usageMap.entries()).map(([resource_type, usage_count]) => {
+      const limit = subscription.plan.limits[resource_type] || 0;
       return {
-        resource_type: item.resource_type,
-        usage_count: usage,
+        resource_type,
+        usage_count,
         limit,
-        percentage: limit > 0 ? (usage / limit) * 100 : 0
+        percentage: limit > 0 ? (usage_count / limit) * 100 : 0
       };
     });
   }

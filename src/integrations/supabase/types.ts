@@ -6827,6 +6827,13 @@ export type Database = {
           team_id: string
         }[]
       }
+      get_user_usage_summary: {
+        Args: { p_days?: number; p_user_id: string }
+        Returns: {
+          resource_type: string
+          sum: number
+        }[]
+      }
       increment_generated_report_download: {
         Args: { p_id: string }
         Returns: undefined

@@ -45,8 +45,17 @@ class ApiKeyService {
     return {
       key, // Return the full key only once during creation
       apiKey: {
-        ...data,
-        permissions: Array.isArray(data.permissions) ? data.permissions : []
+        id: data.id || '',
+        user_id: data.user_id || '',
+        team_id: data.team_id,
+        name: data.name || '',
+        key_prefix: data.key_prefix || '',
+        permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+        rate_limit: data.rate_limit || 1000,
+        is_active: data.is_active !== false,
+        last_used_at: data.last_used_at,
+        expires_at: data.expires_at,
+        created_at: data.created_at || new Date().toISOString()
       }
     };
   }
@@ -63,8 +72,17 @@ class ApiKeyService {
 
     if (error) throw error;
     return (data || []).map(key => ({
-      ...key,
-      permissions: Array.isArray(key.permissions) ? key.permissions : []
+      id: key.id || '',
+      user_id: key.user_id || '',
+      team_id: key.team_id,
+      name: key.name || '',
+      key_prefix: key.key_prefix || '',
+      permissions: Array.isArray(key.permissions) ? (key.permissions as string[]) : [],
+      rate_limit: key.rate_limit || 1000,
+      is_active: key.is_active !== false,
+      last_used_at: key.last_used_at,
+      expires_at: key.expires_at,
+      created_at: key.created_at || new Date().toISOString()
     }));
   }
 
@@ -77,8 +95,17 @@ class ApiKeyService {
 
     if (error) throw error;
     return (data || []).map(key => ({
-      ...key,
-      permissions: Array.isArray(key.permissions) ? key.permissions : []
+      id: key.id || '',
+      user_id: key.user_id || '',
+      team_id: key.team_id,
+      name: key.name || '',
+      key_prefix: key.key_prefix || '',
+      permissions: Array.isArray(key.permissions) ? (key.permissions as string[]) : [],
+      rate_limit: key.rate_limit || 1000,
+      is_active: key.is_active !== false,
+      last_used_at: key.last_used_at,
+      expires_at: key.expires_at,
+      created_at: key.created_at || new Date().toISOString()
     }));
   }
 
@@ -119,8 +146,17 @@ class ApiKeyService {
       .eq('id', data.id);
 
     return {
-      ...data,
-      permissions: Array.isArray(data.permissions) ? data.permissions : []
+      id: data.id || '',
+      user_id: data.user_id || '',
+      team_id: data.team_id,
+      name: data.name || '',
+      key_prefix: data.key_prefix || '',
+      permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+      rate_limit: data.rate_limit || 1000,
+      is_active: data.is_active !== false,
+      last_used_at: data.last_used_at,
+      expires_at: data.expires_at,
+      created_at: data.created_at || new Date().toISOString()
     };
   }
 
