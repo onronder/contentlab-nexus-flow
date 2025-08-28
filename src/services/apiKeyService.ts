@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { generateRandomString } from '@/utils/security';
 
 export interface ApiKey {
@@ -50,7 +51,7 @@ class ApiKeyService {
         team_id: data.team_id,
         name: data.name || '',
         key_prefix: data.key_prefix || '',
-        permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+        permissions: Array.isArray(data.permissions) ? (data.permissions as Json[]).map(p => String(p)) : [],
         rate_limit: data.rate_limit || 1000,
         is_active: data.is_active !== false,
         last_used_at: data.last_used_at,
@@ -77,7 +78,7 @@ class ApiKeyService {
       team_id: key.team_id,
       name: key.name || '',
       key_prefix: key.key_prefix || '',
-      permissions: Array.isArray(key.permissions) ? (key.permissions as string[]) : [],
+      permissions: Array.isArray(key.permissions) ? (key.permissions as Json[]).map(p => String(p)) : [],
       rate_limit: key.rate_limit || 1000,
       is_active: key.is_active !== false,
       last_used_at: key.last_used_at,
@@ -100,7 +101,7 @@ class ApiKeyService {
       team_id: key.team_id,
       name: key.name || '',
       key_prefix: key.key_prefix || '',
-      permissions: Array.isArray(key.permissions) ? (key.permissions as string[]) : [],
+      permissions: Array.isArray(key.permissions) ? (key.permissions as Json[]).map(p => String(p)) : [],
       rate_limit: key.rate_limit || 1000,
       is_active: key.is_active !== false,
       last_used_at: key.last_used_at,
@@ -151,7 +152,7 @@ class ApiKeyService {
       team_id: data.team_id,
       name: data.name || '',
       key_prefix: data.key_prefix || '',
-      permissions: Array.isArray(data.permissions) ? (data.permissions as string[]) : [],
+      permissions: Array.isArray(data.permissions) ? (data.permissions as Json[]).map(p => String(p)) : [],
       rate_limit: data.rate_limit || 1000,
       is_active: data.is_active !== false,
       last_used_at: data.last_used_at,

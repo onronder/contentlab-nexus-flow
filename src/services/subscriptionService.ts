@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface SubscriptionPlan {
   id: string;
@@ -43,7 +44,7 @@ class SubscriptionService {
     if (error) throw error;
     return (data || []).map(plan => ({
       ...plan,
-      features: Array.isArray(plan.features) ? (plan.features as string[]) : [],
+      features: Array.isArray(plan.features) ? (plan.features as Json[]).map(f => String(f)) : [],
       limits: typeof plan.limits === 'object' && plan.limits ? plan.limits as Record<string, number> : {},
       price_monthly: plan.price_monthly || 0,
       price_yearly: plan.price_yearly || 0,
@@ -69,7 +70,7 @@ class SubscriptionService {
       ...data,
       plan: {
         ...data.plan,
-        features: Array.isArray(data.plan.features) ? (data.plan.features as string[]) : [],
+        features: Array.isArray(data.plan.features) ? (data.plan.features as Json[]).map(f => String(f)) : [],
         limits: typeof data.plan.limits === 'object' && data.plan.limits ? data.plan.limits as Record<string, number> : {},
         price_monthly: data.plan.price_monthly || 0,
         price_yearly: data.plan.price_yearly || 0,
