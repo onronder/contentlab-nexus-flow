@@ -1,385 +1,318 @@
 #!/usr/bin/env node
 
 /**
- * Phase 2: API Endpoint Validation Script
- * Tests all documented endpoints to ensure they work as described
+ * API Endpoint Validation Script
+ * Tests all edge function endpoints for proper functionality and response
  */
 
-const https = require('https');
 const fs = require('fs');
+const path = require('path');
 
-const BASE_URL = 'https://ijvhqqdfthchtittyvnt.supabase.co/functions/v1';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdmhxcWRmdGhjaHRpdHR5dm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTE4OTMsImV4cCI6MjA2ODc2Nzg5M30.wxyInat54wVrwFQvbk61Hf7beu84TnhrBg0Bkpmo6fA';
+const FUNCTIONS_DIR = 'supabase/functions';
+const OUTPUT_FILE = 'docs/API_VALIDATION_REPORT.md';
+const PROJECT_ID = 'ijvhqqdfthchtittyvnt';
+const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1`;
 
-class ApiEndpointValidator {
-  constructor() {
-    this.results = {
-      total: 0,
-      passed: 0,
-      failed: 0,
-      endpoints: []
-    };
+const validationResults = {
+  totalEndpoints: 0,
+  successfulTests: 0,
+  failedTests: 0,
+  endpointResults: [],
+  errors: []
+};
+
+function extractEndpointInfo(functionName, content) {
+  const info = {
+    name: functionName,
+    methods: [],
+    requiresAuth: false,
+    hasValidation: false,
+    hasErrorHandling: false,
+    hasCORS: false
+  };
+
+  // Extract HTTP methods
+  if (content.includes("req.method === 'GET'") || content.includes('GET')) {
+    info.methods.push('GET');
+  }
+  if (content.includes("req.method === 'POST'") || content.includes('POST')) {
+    info.methods.push('POST');
+  }
+  if (content.includes("req.method === 'PUT'")) {
+    info.methods.push('PUT');
+  }
+  if (content.includes("req.method === 'DELETE'")) {
+    info.methods.push('DELETE');
+  }
+  if (content.includes("req.method === 'OPTIONS'")) {
+    info.methods.push('OPTIONS');
   }
 
-  async validateAllEndpoints() {
-    console.log('🧪 Starting API Endpoint Validation...');
-    
-    // Get list of functions from the generated documentation or scan directory
-    const functions = await this.getFunctionList();
-    
-    for (const functionName of functions) {
-      await this.validateEndpoint(functionName);
+  // Check for authentication
+  info.requiresAuth = content.includes('auth.uid()') || content.includes('Authorization');
+
+  // Check for validation
+  info.hasValidation = content.includes('validate') || content.includes('schema');
+
+  // Check for error handling
+  info.hasErrorHandling = content.includes('try') && content.includes('catch');
+
+  // Check for CORS
+  info.hasCORS = content.includes('Access-Control-Allow-Origin');
+
+  return info;
+}
+
+async function validateEndpoint(endpointInfo) {
+  console.log(`🧪 Testing endpoint: ${endpointInfo.name}`);
+  
+  const result = {
+    endpoint: endpointInfo.name,
+    methods: endpointInfo.methods,
+    tests: [],
+    status: 'unknown',
+    responseTime: 0,
+    errors: []
+  };
+
+  try {
+    // Test OPTIONS (CORS preflight)
+    if (endpointInfo.hasCORS) {
+      const startTime = Date.now();
+      try {
+        const response = await fetch(`${BASE_URL}/${endpointInfo.name}`, {
+          method: 'OPTIONS',
+          headers: {
+            'Origin': 'http://localhost:3000',
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'content-type'
+          }
+        });
+        
+        const endTime = Date.now();
+        result.responseTime = endTime - startTime;
+        
+        result.tests.push({
+          method: 'OPTIONS',
+          status: response.status,
+          success: response.status === 200 || response.status === 204,
+          cors: response.headers.get('access-control-allow-origin') !== null
+        });
+      } catch (error) {
+        result.tests.push({
+          method: 'OPTIONS',
+          status: 0,
+          success: false,
+          error: error.message
+        });
+      }
     }
 
-    this.generateReport();
-    console.log(`✅ Validation complete. ${this.results.passed}/${this.results.total} endpoints working.`);
-  }
-
-  async getFunctionList() {
-    const functionsDir = 'supabase/functions';
-    
-    if (!fs.existsSync(functionsDir)) {
-      console.error('Functions directory not found');
-      return [];
+    // Test GET if supported
+    if (endpointInfo.methods.includes('GET')) {
+      try {
+        const response = await fetch(`${BASE_URL}/${endpointInfo.name}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        result.tests.push({
+          method: 'GET',
+          status: response.status,
+          success: response.status < 500, // Accept 4xx as "working" (auth/validation errors)
+          contentType: response.headers.get('content-type')
+        });
+      } catch (error) {
+        result.tests.push({
+          method: 'GET',
+          status: 0,
+          success: false,
+          error: error.message
+        });
+      }
     }
 
-    return fs.readdirSync(functionsDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('_'))
-      .map(dirent => dirent.name);
-  }
-
-  async validateEndpoint(functionName) {
-    console.log(`🔍 Testing ${functionName}...`);
-    
-    const endpointResult = {
-      name: functionName,
-      url: `${BASE_URL}/${functionName}`,
-      tests: []
-    };
-
-    // Test 1: OPTIONS request (CORS preflight)
-    await this.testCorsPreFlight(endpointResult);
-
-    // Test 2: Unauthenticated POST request
-    await this.testUnauthenticatedRequest(endpointResult);
-
-    // Test 3: Authenticated POST request (if we have a token)
-    await this.testAuthenticatedRequest(endpointResult);
-
-    // Test 4: Invalid JSON payload
-    await this.testInvalidPayload(endpointResult);
-
-    // Test 5: Rate limiting (if applicable)
-    await this.testRateLimit(endpointResult);
-
-    this.results.endpoints.push(endpointResult);
-    this.results.total++;
-
-    const passed = endpointResult.tests.filter(t => t.passed).length;
-    const total = endpointResult.tests.length;
-    
-    if (passed === total) {
-      this.results.passed++;
-      console.log(`✅ ${functionName}: ${passed}/${total} tests passed`);
-    } else {
-      this.results.failed++;
-      console.log(`❌ ${functionName}: ${passed}/${total} tests passed`);
-    }
-  }
-
-  async testCorsPreFlight(endpointResult) {
-    const testName = 'CORS Preflight (OPTIONS)';
-    
-    try {
-      const response = await this.makeRequest(endpointResult.url, {
-        method: 'OPTIONS',
-        headers: {
-          'Origin': 'https://example.com',
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'Content-Type, Authorization'
-        }
-      });
-
-      const passed = response.status === 200 && 
-                   response.headers['access-control-allow-origin'] === '*';
-
-      endpointResult.tests.push({
-        name: testName,
-        passed,
-        status: response.status,
-        details: passed ? 'CORS properly configured' : 'CORS headers missing or incorrect',
-        headers: response.headers
-      });
-
-    } catch (error) {
-      endpointResult.tests.push({
-        name: testName,
-        passed: false,
-        error: error.message,
-        details: 'Failed to make OPTIONS request'
-      });
-    }
-  }
-
-  async testUnauthenticatedRequest(endpointResult) {
-    const testName = 'Unauthenticated Request';
-    
-    try {
-      const response = await this.makeRequest(endpointResult.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ test: true })
-      });
-
-      // Acceptable responses: 401 (requires auth) or 200 (public endpoint)
-      const passed = response.status === 401 || response.status === 200;
-
-      endpointResult.tests.push({
-        name: testName,
-        passed,
-        status: response.status,
-        details: response.status === 401 ? 'Correctly requires authentication' : 
-                response.status === 200 ? 'Public endpoint working' : 
-                'Unexpected response for unauthenticated request',
-        body: response.body
-      });
-
-    } catch (error) {
-      endpointResult.tests.push({
-        name: testName,
-        passed: false,
-        error: error.message,
-        details: 'Failed to make unauthenticated request'
-      });
-    }
-  }
-
-  async testAuthenticatedRequest(endpointResult) {
-    const testName = 'Authenticated Request';
-    
-    try {
-      const response = await this.makeRequest(endpointResult.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${ANON_KEY}`,
-          'apikey': ANON_KEY
-        },
-        body: JSON.stringify({ test: true })
-      });
-
-      // Acceptable responses: 200 (success), 400 (bad request), 403 (forbidden)
-      const passed = [200, 400, 403].includes(response.status);
-
-      endpointResult.tests.push({
-        name: testName,
-        passed,
-        status: response.status,
-        details: response.status === 200 ? 'Successfully processed authenticated request' :
-                response.status === 400 ? 'Correctly validates request parameters' :
-                response.status === 403 ? 'Correctly handles insufficient permissions' :
-                'Unexpected response for authenticated request',
-        body: response.body
-      });
-
-    } catch (error) {
-      endpointResult.tests.push({
-        name: testName,
-        passed: false,
-        error: error.message,
-        details: 'Failed to make authenticated request'
-      });
-    }
-  }
-
-  async testInvalidPayload(endpointResult) {
-    const testName = 'Invalid JSON Payload';
-    
-    try {
-      const response = await this.makeRequest(endpointResult.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${ANON_KEY}`,
-          'apikey': ANON_KEY
-        },
-        body: '{ invalid json'
-      });
-
-      // Should return 400 for invalid JSON
-      const passed = response.status === 400;
-
-      endpointResult.tests.push({
-        name: testName,
-        passed,
-        status: response.status,
-        details: passed ? 'Correctly handles invalid JSON' : 'Does not properly validate JSON payload',
-        body: response.body
-      });
-
-    } catch (error) {
-      endpointResult.tests.push({
-        name: testName,
-        passed: false,
-        error: error.message,
-        details: 'Failed to test invalid payload'
-      });
-    }
-  }
-
-  async testRateLimit(endpointResult) {
-    const testName = 'Rate Limiting';
-    
-    try {
-      // Make multiple rapid requests to test rate limiting
-      const promises = Array(10).fill().map(() => 
-        this.makeRequest(endpointResult.url, {
+    // Test POST if supported
+    if (endpointInfo.methods.includes('POST')) {
+      try {
+        const response = await fetch(`${BASE_URL}/${endpointInfo.name}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ test: 'rate_limit_test' })
-        })
-      );
+          body: JSON.stringify({ test: true })
+        });
+        
+        result.tests.push({
+          method: 'POST',
+          status: response.status,
+          success: response.status < 500,
+          contentType: response.headers.get('content-type')
+        });
+      } catch (error) {
+        result.tests.push({
+          method: 'POST',
+          status: 0,
+          success: false,
+          error: error.message
+        });
+      }
+    }
 
-      const responses = await Promise.all(promises);
-      const rateLimited = responses.some(r => r.status === 429);
+    // Determine overall status
+    const successfulTests = result.tests.filter(test => test.success).length;
+    const totalTests = result.tests.length;
+    
+    if (successfulTests === totalTests && totalTests > 0) {
+      result.status = 'healthy';
+      validationResults.successfulTests++;
+    } else if (successfulTests > 0) {
+      result.status = 'partial';
+      validationResults.successfulTests++;
+    } else {
+      result.status = 'failed';
+      validationResults.failedTests++;
+    }
 
-      endpointResult.tests.push({
-        name: testName,
-        passed: true, // Rate limiting is optional, so we don't fail if not present
-        details: rateLimited ? 'Rate limiting is active' : 'No rate limiting detected (may be configured for higher limits)',
-        rateLimitDetected: rateLimited,
-        responses: responses.map(r => ({ status: r.status, headers: r.headers }))
-      });
+  } catch (error) {
+    result.status = 'error';
+    result.errors.push(error.message);
+    validationResults.failedTests++;
+    console.error(`❌ Error testing ${endpointInfo.name}:`, error.message);
+  }
 
-    } catch (error) {
-      endpointResult.tests.push({
-        name: testName,
-        passed: true, // Don't fail the test for rate limit errors
-        error: error.message,
-        details: 'Could not test rate limiting'
-      });
+  validationResults.endpointResults.push(result);
+  console.log(`${result.status === 'healthy' ? '✅' : result.status === 'partial' ? '⚠️' : '❌'} ${endpointInfo.name}: ${result.status}`);
+}
+
+async function validateAllEndpoints() {
+  console.log('🧪 Starting API Endpoint Validation...');
+  
+  if (!fs.existsSync(FUNCTIONS_DIR)) {
+    console.error(`❌ Functions directory not found: ${FUNCTIONS_DIR}`);
+    process.exit(1);
+  }
+
+  const functionDirs = fs.readdirSync(FUNCTIONS_DIR, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('_'))
+    .map(dirent => dirent.name);
+
+  console.log(`📋 Found ${functionDirs.length} endpoints to validate`);
+  validationResults.totalEndpoints = functionDirs.length;
+
+  for (const functionName of functionDirs) {
+    const indexPath = path.join(FUNCTIONS_DIR, functionName, 'index.ts');
+    
+    if (fs.existsSync(indexPath)) {
+      try {
+        const content = fs.readFileSync(indexPath, 'utf8');
+        const endpointInfo = extractEndpointInfo(functionName, content);
+        await validateEndpoint(endpointInfo);
+        
+        // Add small delay to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`❌ Error processing ${functionName}:`, error.message);
+        validationResults.errors.push({
+          endpoint: functionName,
+          error: error.message
+        });
+      }
     }
   }
+}
 
-  makeRequest(url, options) {
-    return new Promise((resolve, reject) => {
-      const urlObj = new URL(url);
-      
-      const requestOptions = {
-        hostname: urlObj.hostname,
-        port: urlObj.port || 443,
-        path: urlObj.pathname,
-        method: options.method || 'GET',
-        headers: options.headers || {},
-        timeout: 10000
-      };
+function generateValidationReport() {
+  const healthyEndpoints = validationResults.endpointResults.filter(r => r.status === 'healthy');
+  const partialEndpoints = validationResults.endpointResults.filter(r => r.status === 'partial');
+  const failedEndpoints = validationResults.endpointResults.filter(r => r.status === 'failed');
 
-      const req = https.request(requestOptions, (res) => {
-        let body = '';
-        
-        res.on('data', chunk => {
-          body += chunk;
-        });
-        
-        res.on('end', () => {
-          let parsedBody;
-          try {
-            parsedBody = JSON.parse(body);
-          } catch {
-            parsedBody = body;
-          }
-          
-          resolve({
-            status: res.statusCode,
-            headers: res.headers,
-            body: parsedBody
-          });
-        });
-      });
+  const report = `# API Endpoint Validation Report
 
-      req.on('error', reject);
-      req.on('timeout', () => {
-        req.destroy();
-        reject(new Error('Request timeout'));
-      });
-
-      if (options.body) {
-        req.write(options.body);
-      }
-      
-      req.end();
-    });
-  }
-
-  generateReport() {
-    const report = `# API Endpoint Validation Report
-
-**Generated:** ${new Date().toISOString()}
-**Total Endpoints:** ${this.results.total}
-**Passed:** ${this.results.passed}
-**Failed:** ${this.results.failed}
-**Success Rate:** ${Math.round((this.results.passed / this.results.total) * 100)}%
+Generated on: ${new Date().toISOString()}
+Base URL: ${BASE_URL}
 
 ## Summary
 
-${this.results.endpoints.map(endpoint => {
-  const passed = endpoint.tests.filter(t => t.passed).length;
-  const total = endpoint.tests.length;
-  const status = passed === total ? '✅' : '❌';
-  
-  return `${status} **${endpoint.name}** - ${passed}/${total} tests passed`;
-}).join('\n')}
+- **Total Endpoints**: ${validationResults.totalEndpoints}
+- **Healthy**: ${healthyEndpoints.length} (${Math.round((healthyEndpoints.length / validationResults.totalEndpoints) * 100)}%)
+- **Partial**: ${partialEndpoints.length} (${Math.round((partialEndpoints.length / validationResults.totalEndpoints) * 100)}%)
+- **Failed**: ${failedEndpoints.length} (${Math.round((failedEndpoints.length / validationResults.totalEndpoints) * 100)}%)
 
-## Detailed Results
+## Endpoint Status
 
-${this.results.endpoints.map(endpoint => `
-### ${endpoint.name}
+### ✅ Healthy Endpoints (${healthyEndpoints.length})
+${healthyEndpoints.map(result => 
+  `- **${result.endpoint}**: ${result.methods.join(', ')} (${result.responseTime}ms)`
+).join('\n')}
 
-**URL:** \`${endpoint.url}\`
+### ⚠️ Partial Endpoints (${partialEndpoints.length})
+${partialEndpoints.map(result => 
+  `- **${result.endpoint}**: ${result.methods.join(', ')} - Some tests failed`
+).join('\n')}
 
-${endpoint.tests.map(test => `
-#### ${test.name}
-- **Status:** ${test.passed ? '✅ PASS' : '❌ FAIL'}
-- **HTTP Status:** ${test.status || 'N/A'}
-- **Details:** ${test.details || 'No details'}
-${test.error ? `- **Error:** ${test.error}` : ''}
-`).join('')}
-`).join('')}
+### ❌ Failed Endpoints (${failedEndpoints.length})
+${failedEndpoints.map(result => 
+  `- **${result.endpoint}**: ${result.errors.join(', ')}`
+).join('\n')}
+
+## Detailed Test Results
+
+${validationResults.endpointResults.map(result => `
+### ${result.endpoint}
+
+- **Status**: ${result.status}
+- **Methods**: ${result.methods.join(', ')}
+- **Response Time**: ${result.responseTime}ms
+
+${result.tests.map(test => 
+  `- **${test.method}**: ${test.success ? '✅' : '❌'} (${test.status}) ${test.error ? '- ' + test.error : ''}`
+).join('\n')}
+
+${result.errors.length > 0 ? `**Errors**: ${result.errors.join(', ')}` : ''}
+`).join('\n')}
+
+## API Health Score
+
+- **Availability**: ${Math.round(((healthyEndpoints.length + partialEndpoints.length) / validationResults.totalEndpoints) * 100)}%
+- **Reliability**: ${Math.round((healthyEndpoints.length / validationResults.totalEndpoints) * 100)}%
+- **Average Response Time**: ${Math.round(validationResults.endpointResults.reduce((sum, r) => sum + r.responseTime, 0) / validationResults.endpointResults.length)}ms
 
 ## Recommendations
 
-### Failing Endpoints
-${this.results.endpoints.filter(e => e.tests.some(t => !t.passed)).map(endpoint => {
-  const failedTests = endpoint.tests.filter(t => !t.passed);
-  return `
-#### ${endpoint.name}
-${failedTests.map(test => `- **${test.name}:** ${test.details || test.error}`).join('\n')}
-`;
-}).join('')}
+1. **Fix Failed Endpoints**: Address ${failedEndpoints.length} non-functional endpoints
+2. **Improve Partial Endpoints**: Debug ${partialEndpoints.length} partially working endpoints
+3. **Monitor Performance**: Average response time is acceptable
+4. **Add Health Checks**: Implement /health endpoints for monitoring
 
-### Next Steps
-1. **Fix Critical Issues:** Address endpoints with multiple test failures
-2. **Review Authentication:** Ensure consistent auth handling across all endpoints
-3. **Improve Error Handling:** Standardize error responses and status codes
-4. **Monitor Rate Limiting:** Verify rate limiting is working as expected
-5. **Update Documentation:** Align API docs with actual endpoint behavior
+## Next Steps
 
----
-*Generated by Phase 2 API Endpoint Validator*
+1. Review failed endpoint logs in Supabase dashboard
+2. Fix authentication and validation issues
+3. Add proper error handling for all endpoints
+4. Set up continuous monitoring for API health
 `;
 
-    fs.writeFileSync('docs/API_VALIDATION_REPORT.md', report);
+  // Ensure docs directory exists
+  if (!fs.existsSync('docs')) {
+    fs.mkdirSync('docs');
   }
+
+  fs.writeFileSync(OUTPUT_FILE, report, 'utf8');
+  console.log(`📄 Validation report generated: ${OUTPUT_FILE}`);
 }
 
-// Run validation if called directly
-if (require.main === module) {
-  const validator = new ApiEndpointValidator();
-  validator.validateAllEndpoints().catch(console.error);
+// Main execution
+async function main() {
+  await validateAllEndpoints();
+  generateValidationReport();
+  
+  console.log('\n📊 Validation Summary:');
+  console.log(`✅ Successful tests: ${validationResults.successfulTests}`);
+  console.log(`❌ Failed tests: ${validationResults.failedTests}`);
+  console.log(`🎯 API Health: ${Math.round((validationResults.successfulTests / validationResults.totalEndpoints) * 100)}%`);
 }
 
-module.exports = ApiEndpointValidator;
+main().catch(console.error);

@@ -1,288 +1,245 @@
 #!/usr/bin/env node
 
 /**
- * Phase 2: Edge Function Standardization Script
- * Automatically standardizes edge function patterns for consistency
+ * Edge Function Standardization Script
+ * Applies consistent patterns to all edge functions for production readiness
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const FUNCTIONS_DIR = 'supabase/functions';
+const OUTPUT_FILE = 'docs/STANDARDIZATION_REPORT.md';
 
-class EdgeFunctionStandardizer {
-  constructor() {
-    this.standardizedCount = 0;
-    this.errorCount = 0;
-    this.changes = [];
+const standardizationResults = {
+  totalFunctions: 0,
+  functionsUpdated: 0,
+  functionsSkipped: 0,
+  changes: [],
+  errors: []
+};
+
+// Standard patterns to apply
+const STANDARD_CORS_HEADERS = `const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};`;
+
+const STANDARD_LOGGER = `class Logger {
+  info(message: string, data?: any) {
+    console.log(\`[INFO] \${message}\`, data);
+  }
+  
+  warn(message: string, data?: any) {
+    console.warn(\`[WARN] \${message}\`, data);
+  }
+  
+  error(message: string, error?: any) {
+    console.error(\`[ERROR] \${message}\`, error);
+  }
+}
+
+const logger = new Logger();`;
+
+function standardizeFunction(functionName) {
+  const indexPath = path.join(FUNCTIONS_DIR, functionName, 'index.ts');
+  
+  if (!fs.existsSync(indexPath)) {
+    standardizationResults.functionsSkipped++;
+    return;
   }
 
-  async standardizeAllFunctions() {
-    console.log('🔧 Starting Edge Function Standardization...');
-    
-    if (!fs.existsSync(FUNCTIONS_DIR)) {
-      console.error(`❌ Functions directory not found: ${FUNCTIONS_DIR}`);
-      return;
+  try {
+    let content = fs.readFileSync(indexPath, 'utf8');
+    let hasChanges = false;
+    const changes = [];
+
+    standardizationResults.totalFunctions++;
+
+    // Add CORS headers if missing
+    if (!content.includes('Access-Control-Allow-Origin')) {
+      content = STANDARD_CORS_HEADERS + '\n\n' + content;
+      changes.push('Added CORS headers');
+      hasChanges = true;
     }
 
-    const functionDirs = fs.readdirSync(FUNCTIONS_DIR, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('_'))
-      .map(dirent => dirent.name);
-
-    for (const functionName of functionDirs) {
-      await this.standardizeFunction(functionName);
-    }
-
-    this.generateReport();
-    console.log(`✅ Standardization complete. ${this.standardizedCount} functions updated, ${this.errorCount} errors.`);
+    // Add OPTIONS handler if missing
+    if (!content.includes("req.method === 'OPTIONS'")) {
+      const optionsHandler = `
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
-
-  async standardizeFunction(functionName) {
-    const indexPath = path.join(FUNCTIONS_DIR, functionName, 'index.ts');
-    
-    if (!fs.existsSync(indexPath)) {
-      console.warn(`⚠️ Skipping ${functionName}: index.ts not found`);
-      return;
-    }
-
-    try {
-      const originalContent = fs.readFileSync(indexPath, 'utf8');
-      let content = originalContent;
-      const changes = [];
-
-      // 1. Replace console statements with structured logging
-      content = this.replaceConsoleStatements(content, changes);
-
-      // 2. Standardize security middleware pattern
-      content = this.standardizeSecurityPattern(content, changes, functionName);
-
-      // 3. Add missing imports if needed
-      content = this.addMissingImports(content, changes);
-
-      // 4. Standardize error responses
-      content = this.standardizeErrorResponses(content, changes);
-
-      // 5. Add function documentation if missing
-      content = this.addDocumentation(content, changes, functionName);
-
-      if (content !== originalContent) {
-        // Create backup
-        fs.writeFileSync(`${indexPath}.backup`, originalContent);
-        
-        // Write standardized version
-        fs.writeFileSync(indexPath, content);
-        
-        this.standardizedCount++;
-        this.changes.push({
-          function: functionName,
-          changes: changes
-        });
-        
-        console.log(`✅ Standardized ${functionName} (${changes.length} changes)`);
-      } else {
-        console.log(`ℹ️ ${functionName} already standardized`);
-      }
-
-    } catch (error) {
-      console.error(`❌ Error standardizing ${functionName}:`, error.message);
-      this.errorCount++;
-    }
-  }
-
-  replaceConsoleStatements(content, changes) {
-    // Replace console.log/error/warn with structured logging
-    const replacements = [
-      {
-        pattern: /console\.log\((.*?)\);/g,
-        replacement: "logger.info('Log message', { data: $1 });",
-        description: "Replaced console.log with structured logging"
-      },
-      {
-        pattern: /console\.error\((.*?)\);/g,
-        replacement: "logger.error('Error occurred', new Error($1));",
-        description: "Replaced console.error with structured logging"
-      },
-      {
-        pattern: /console\.warn\((.*?)\);/g,
-        replacement: "logger.warn('Warning', { data: $1 });",
-        description: "Replaced console.warn with structured logging"
-      },
-      {
-        pattern: /console\.info\((.*?)\);/g,
-        replacement: "logger.info('Information', { data: $1 });",
-        description: "Replaced console.info with structured logging"
-      }
-    ];
-
-    let newContent = content;
-    replacements.forEach(({ pattern, replacement, description }) => {
-      if (pattern.test(newContent)) {
-        newContent = newContent.replace(pattern, replacement);
-        changes.push(description);
-      }
-    });
-
-    return newContent;
-  }
-
-  standardizeSecurityPattern(content, changes, functionName) {
-    // If function uses Deno.serve without withSecurity, convert it
-    if (content.includes('Deno.serve(') && !content.includes('withSecurity')) {
+`;
       
-      // Extract handler function
-      const denoServeMatch = content.match(/Deno\.serve\((.*?)\)/s);
-      if (denoServeMatch) {
-        const handlerCode = denoServeMatch[1];
-        
-        // Create new pattern
-        const newPattern = `
-const handler = withSecurity(async (req, logger) => {
-  ${this.extractHandlerBody(handlerCode)}
-}, {
-  requireAuth: true,
-  rateLimitRequests: 100,
-  rateLimitWindow: 60000,
-  enableCORS: true
-});
-
-Deno.serve(handler);`;
-
-        content = content.replace(denoServeMatch[0], newPattern);
-        changes.push('Converted to withSecurity pattern');
-      }
+      // Insert after serve function declaration
+      content = content.replace(
+        /Deno\.serve\(.*?\{/,
+        (match) => match + optionsHandler
+      );
+      changes.push('Added OPTIONS handler');
+      hasChanges = true;
     }
 
-    // If function uses export default but not withSecurity
-    if (content.includes('export default') && !content.includes('withSecurity')) {
-      // This needs manual review, just flag it
-      changes.push('Manual review needed: export default without withSecurity');
+    // Add structured logger if missing
+    if (!content.includes('class Logger') && !content.includes('logger')) {
+      content = STANDARD_LOGGER + '\n\n' + content;
+      changes.push('Added structured logger');
+      hasChanges = true;
     }
 
-    return content;
-  }
-
-  extractHandlerBody(handlerCode) {
-    // Simple extraction - in real implementation, would need proper AST parsing
-    if (handlerCode.includes('async (req)')) {
-      return handlerCode.replace('async (req)', '').replace(/^\s*=>\s*\{/, '').replace(/\}\s*$/, '');
-    }
-    return '// Manual conversion needed';
-  }
-
-  addMissingImports(content, changes) {
-    const imports = [];
+    // Replace console statements with logger
+    const consoleRegex = /console\.(log|error|warn|info|debug)\s*\(/g;
+    const consoleMatches = content.match(consoleRegex);
     
-    // Check if withSecurity is used but not imported
-    if (content.includes('withSecurity') && !content.includes("import { withSecurity")) {
-      imports.push("import { withSecurity } from '../_shared/security.ts';");
+    if (consoleMatches && !content.includes('logger.')) {
+      content = content.replace(/console\.log\s*\(/g, 'logger.info(');
+      content = content.replace(/console\.error\s*\(/g, 'logger.error(');
+      content = content.replace(/console\.warn\s*\(/g, 'logger.warn(');
+      content = content.replace(/console\.info\s*\(/g, 'logger.info(');
+      content = content.replace(/console\.debug\s*\(/g, 'logger.info(');
+      changes.push(`Replaced ${consoleMatches.length} console statements`);
+      hasChanges = true;
     }
 
-    // Check if logger is used but withSecurity import doesn't include SecurityLogger
-    if (content.includes('logger.') && !content.includes('SecurityLogger')) {
-      // Update existing import or add new one
-      if (content.includes("import { withSecurity }")) {
-        content = content.replace(
-          "import { withSecurity }",
-          "import { withSecurity, SecurityLogger }"
-        );
-        changes.push('Added SecurityLogger import');
-      }
-    }
-
-    if (imports.length > 0) {
-      const importStatements = imports.join('\n');
-      content = importStatements + '\n' + content;
-      changes.push(`Added imports: ${imports.join(', ')}`);
-    }
-
-    return content;
+    // Add error handling wrapper if missing
+    if (!content.includes('try') && !content.includes('catch')) {
+      // Wrap the main handler in try/catch
+      content = content.replace(
+        /return new Response\(/g,
+        (match, offset) => {
+          const beforeMatch = content.substring(0, offset);
+          if (!beforeMatch.includes('try {')) {
+            return `try {\n    ${match}`;
+          }
+          return match;
+        }
+      );
+      
+      // Add catch block before the final closing brace
+      if (!content.includes('} catch')) {
+        content = content.replace(/}\s*$/, `  } catch (error) {
+    logger.error('Function error', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
-
-  standardizeErrorResponses(content, changes) {
-    // Standardize error response format
-    const errorPatterns = [
-      {
-        pattern: /return new Response\(JSON\.stringify\(\{\s*error:\s*([^}]+)\s*\}\)/g,
-        replacement: `return new Response(JSON.stringify({
-  success: false,
-  error: $1,
-  timestamp: new Date().toISOString()
-})`,
-        description: 'Standardized error response format'
+}`);
+        changes.push('Added error handling wrapper');
+        hasChanges = true;
       }
-    ];
+    }
 
-    let newContent = content;
-    errorPatterns.forEach(({ pattern, replacement, description }) => {
-      if (pattern.test(newContent)) {
-        newContent = newContent.replace(pattern, replacement);
-        changes.push(description);
+    // Ensure all responses include CORS headers
+    const responseRegex = /new Response\([^,)]+(?:,\s*{[^}]*})?/g;
+    content = content.replace(responseRegex, (match) => {
+      if (!match.includes('headers') || !match.includes('corsHeaders')) {
+        if (match.includes('headers:')) {
+          return match.replace('headers:', 'headers: { ...corsHeaders,');
+        } else if (match.includes('{')) {
+          return match.replace('{', '{ headers: corsHeaders,');
+        } else {
+          return match.replace(')', ', { headers: corsHeaders })');
+        }
       }
+      return match;
     });
 
-    return newContent;
-  }
-
-  addDocumentation(content, changes, functionName) {
-    // Add basic JSDoc if missing
-    if (!content.includes('/**') && !content.startsWith('/**')) {
-      const documentation = `/**
- * ${functionName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Function
- * 
- * @description Handles ${functionName} operations
- * @param {Request} req - The incoming request
- * @param {SecurityLogger} logger - Structured logger instance
- * @returns {Promise<Response>} JSON response
- */
-
-`;
-      content = documentation + content;
-      changes.push('Added function documentation');
+    if (hasChanges) {
+      fs.writeFileSync(indexPath, content, 'utf8');
+      standardizationResults.functionsUpdated++;
+      standardizationResults.changes.push({
+        function: functionName,
+        changes: changes
+      });
+      console.log(`✅ Standardized: ${functionName} (${changes.length} changes)`);
+    } else {
+      console.log(`⚪ No changes needed: ${functionName}`);
     }
 
-    return content;
+  } catch (error) {
+    console.error(`❌ Error standardizing ${functionName}:`, error.message);
+    standardizationResults.errors.push({
+      function: functionName,
+      error: error.message
+    });
   }
+}
 
-  generateReport() {
-    const report = `# Edge Function Standardization Report
+function generateStandardizationReport() {
+  const report = `# Edge Function Standardization Report
 
-**Generated:** ${new Date().toISOString()}
-**Functions Processed:** ${this.standardizedCount + this.errorCount}
-**Successfully Standardized:** ${this.standardizedCount}
-**Errors:** ${this.errorCount}
+Generated on: ${new Date().toISOString()}
 
-## Changes Made
+## Summary
 
-${this.changes.map(change => `
-### \`${change.function}\`
-${change.changes.map(c => `- ${c}`).join('\n')}
-`).join('')}
+- **Total Functions**: ${standardizationResults.totalFunctions}
+- **Functions Updated**: ${standardizationResults.functionsUpdated}
+- **Functions Skipped**: ${standardizationResults.functionsSkipped}
+- **Errors**: ${standardizationResults.errors.length}
 
-## Manual Review Needed
+## Changes Applied
 
-Functions that require manual attention:
-${this.changes
-  .filter(change => change.changes.some(c => c.includes('Manual review needed')))
-  .map(change => `- \`${change.function}\``)
-  .join('\n')}
+${standardizationResults.changes.map(item => 
+  `### ${item.function}\n${item.changes.map(change => `- ${change}`).join('\n')}\n`
+).join('\n')}
 
-## Backup Files
+## Errors Encountered
 
-Backup files have been created with \`.backup\` extension for all modified functions.
-To restore a function: \`cp function-name/index.ts.backup function-name/index.ts\`
+${standardizationResults.errors.map(item => 
+  `### ${item.function}\n- Error: ${item.error}\n`
+).join('\n')}
 
----
-*Generated by Phase 2 Edge Function Standardizer*
+## Standards Applied
+
+1. **CORS Headers**: Consistent Access-Control headers across all functions
+2. **OPTIONS Handler**: Proper preflight request handling
+3. **Structured Logging**: Logger class with info/warn/error methods
+4. **Console Replacement**: All console.* statements replaced with logger
+5. **Error Handling**: Try/catch wrappers for robust error handling
+6. **Response Headers**: CORS headers included in all responses
+
+## Production Readiness Score
+
+- **Standardization Coverage**: ${Math.round((standardizationResults.functionsUpdated / standardizationResults.totalFunctions) * 100)}%
+- **Error Rate**: ${Math.round((standardizationResults.errors.length / standardizationResults.totalFunctions) * 100)}%
+
+## Next Steps
+
+1. Review and test all updated functions
+2. Run API documentation generation
+3. Validate all endpoints work correctly
+4. Deploy and monitor function performance
 `;
 
-    fs.writeFileSync('docs/STANDARDIZATION_REPORT.md', report);
+  // Ensure docs directory exists
+  if (!fs.existsSync('docs')) {
+    fs.mkdirSync('docs');
   }
+
+  fs.writeFileSync(OUTPUT_FILE, report, 'utf8');
+  console.log(`📄 Standardization report generated: ${OUTPUT_FILE}`);
 }
 
-// Run standardization if called directly
-if (require.main === module) {
-  const standardizer = new EdgeFunctionStandardizer();
-  standardizer.standardizeAllFunctions().catch(console.error);
+// Main execution
+console.log('🔧 Starting Edge Function Standardization...');
+
+if (!fs.existsSync(FUNCTIONS_DIR)) {
+  console.error(`❌ Functions directory not found: ${FUNCTIONS_DIR}`);
+  process.exit(1);
 }
 
-module.exports = EdgeFunctionStandardizer;
+const functionDirs = fs.readdirSync(FUNCTIONS_DIR, { withFileTypes: true })
+  .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('_'))
+  .map(dirent => dirent.name);
+
+console.log(`📋 Found ${functionDirs.length} functions to standardize`);
+
+functionDirs.forEach(standardizeFunction);
+generateStandardizationReport();
+
+console.log('\n📊 Standardization Summary:');
+console.log(`✅ Functions updated: ${standardizationResults.functionsUpdated}`);
+console.log(`⚠️  Errors: ${standardizationResults.errors.length}`);
+console.log(`🎯 Success rate: ${Math.round((standardizationResults.functionsUpdated / standardizationResults.totalFunctions) * 100)}%`);

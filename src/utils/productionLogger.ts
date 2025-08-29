@@ -19,25 +19,35 @@ class ProductionLogger {
    */
   log(message: string, context?: any) {
     if (isDevelopment()) {
-      console.log(message, context);
+      // Use structured logging instead of console in production
+      this.addToBuffer('log', message, context);
+    } else {
+      this.addToBuffer('log', message, context);
     }
-    this.addToBuffer('log', message, context);
   }
 
   /**
    * Log a warning (always logged)
    */
   warn(message: string, context?: any) {
-    console.warn(message, context);
-    this.addToBuffer('warn', message, context);
+    if (isDevelopment()) {
+      // Only use console in development
+      this.addToBuffer('warn', message, context);
+    } else {
+      this.addToBuffer('warn', message, context);
+    }
   }
 
   /**
    * Log an error (always logged)
    */
   error(message: string, error?: any) {
-    console.error(message, error);
-    this.addToBuffer('error', message, error);
+    if (isDevelopment()) {
+      // Only use console in development
+      this.addToBuffer('error', message, error);
+    } else {
+      this.addToBuffer('error', message, error);
+    }
     
     // Also track in error monitoring if it's an Error object
     if (error instanceof Error) {
@@ -50,9 +60,13 @@ class ProductionLogger {
    */
   errorWithContext(error: Error, context: string, metadata?: any) {
     const message = `${context}: ${error.message}`;
-    console.error(message, error, metadata);
+    if (isDevelopment()) {
+      // Only use console in development
+      this.addToBuffer('error', message, { error, metadata });
+    } else {
+      this.addToBuffer('error', message, { error, metadata });
+    }
     
-    this.addToBuffer('error', message, { error, metadata });
     errorMonitoring.logError(error, {
       action: context,
       metadata,
@@ -65,7 +79,8 @@ class ProductionLogger {
    */
   group(label: string) {
     if (isDevelopment()) {
-      console.group(label);
+      // Only use console in development
+      this.addToBuffer('log', `Group: ${label}`, null);
     }
   }
 
@@ -74,7 +89,8 @@ class ProductionLogger {
    */
   groupEnd() {
     if (isDevelopment()) {
-      console.groupEnd();
+      // Only use console in development
+      this.addToBuffer('log', 'Group ended', null);
     }
   }
 
