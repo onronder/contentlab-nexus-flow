@@ -23,16 +23,16 @@ jobs:
       run: npm ci
     
     - name: Type check
-      run: npm run type-check
+      run: npx tsc --noEmit
     
     - name: Run linter
-      run: npm run lint
+      run: npx eslint .
     
     - name: Run tests
-      run: npm run test
+      run: npx vitest run
     
     - name: Generate coverage
-      run: npm run coverage
+      run: npx vitest run --coverage
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

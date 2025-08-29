@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { getExtensionCompatibilityReport } from '@/utils/extensionDetection';
 import { productionMonitor } from '@/utils/productionMonitoring';
+import { productionLogger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -42,14 +43,19 @@ export class ProductionErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Production Error Boundary caught an error:', error, errorInfo);
+    // Use structured logger for error reporting
+    productionLogger.errorWithContext(error, 'ProductionErrorBoundary', { 
+      errorInfo, 
+      errorId: this.state.errorId,
+      componentStack: errorInfo.componentStack 
+    });
     
     // Check for extension interference
     const extensionReport = getExtensionCompatibilityReport();
     
     // Log to monitoring system
     productionMonitor.generateHealthReport().then(report => {
-      console.log('System health at time of error:', report);
+      productionLogger.log('System health at time of error', { report, errorId: this.state.errorId });
     });
 
     this.setState({

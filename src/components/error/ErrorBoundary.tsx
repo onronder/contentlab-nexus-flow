@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { productionLogger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -42,9 +43,8 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const { onError } = this.props;
     
-    // Log error details
-    console.error('[ErrorBoundary] Caught error:', error);
-    console.error('[ErrorBoundary] Error info:', errorInfo);
+    // Log error details using structured logger
+    productionLogger.errorWithContext(error, 'ErrorBoundary', { errorInfo, componentStack: errorInfo.componentStack });
     
     // Don't show toast for authentication or team switching errors to prevent cascade
     const isAuthError = error.message.includes('JWT') || 

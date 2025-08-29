@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useGlobalErrorHandler } from '@/hooks/useErrorBoundary';
+import { productionLogger } from '@/utils/logger';
 
 export function GlobalErrorHandler({ children }: { children: React.ReactNode }) {
   const { handleGlobalError } = useGlobalErrorHandler();
@@ -7,7 +8,11 @@ export function GlobalErrorHandler({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     // Handle unhandled promise rejections
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('[GlobalErrorHandler] Unhandled promise rejection:', event.reason);
+      productionLogger.errorWithContext(
+        new Error(event.reason?.message || 'Unhandled promise rejection'), 
+        'GlobalErrorHandler - Promise Rejection',
+        { reason: event.reason }
+      );
       
       // Don't show errors for authentication issues to prevent cascade failures
       const isAuthError = event.reason?.message?.includes('JWT') || 
@@ -27,7 +32,11 @@ export function GlobalErrorHandler({ children }: { children: React.ReactNode }) 
 
     // Handle uncaught JavaScript errors
     const handleError = (event: ErrorEvent) => {
-      console.error('[GlobalErrorHandler] Uncaught error:', event.error);
+      productionLogger.errorWithContext(event.error, 'GlobalErrorHandler - Uncaught Error', { 
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno 
+      });
       
       // Don't show errors for authentication issues
       const isAuthError = event.error?.message?.includes('JWT') || 
