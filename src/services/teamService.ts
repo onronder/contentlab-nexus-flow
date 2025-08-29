@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/utils/consoleReplacement';
 import type {
   Team,
   TeamCreateInput,
@@ -38,7 +39,7 @@ export class TeamService {
    * Creates a team with full backend integration using RPC function
    */
   static async createTeamWithIntegration(teamData: TeamCreateInput & { auto_setup?: boolean }): Promise<Team> {
-    console.log('TeamService: Creating team with integration:', teamData);
+    logger.team('Creating team with integration', teamData);
     
     try {
       this.validateTeamData(teamData);
@@ -48,7 +49,7 @@ export class TeamService {
         throw new TeamValidationError('User must be authenticated to create teams', 'AUTH_REQUIRED');
       }
 
-      console.log('TeamService: Calling RPC function with data:', {
+      logger.team('Calling RPC function with data', {
         name: teamData.name,
         type: teamData.team_type || 'organization',
         user: currentUser.user.id
@@ -71,7 +72,7 @@ export class TeamService {
       });
 
       if (error) {
-        console.error('TeamService: RPC function error:', error);
+        logger.error('RPC function error', 'TeamService', { error });
         throw new TeamValidationError(`Failed to create team: ${error.message}`, 'CREATION_FAILED');
       }
 
@@ -79,11 +80,11 @@ export class TeamService {
       const rpcResult = data as any;
       
       if (!rpcResult?.success) {
-        console.error('TeamService: RPC function returned error:', rpcResult);
+        logger.error('RPC function returned error', 'TeamService', { rpcResult });
         throw new TeamValidationError(rpcResult?.message || 'Failed to create team', 'CREATION_FAILED');
       }
 
-      console.log('TeamService: Team created successfully with RPC:', rpcResult);
+      logger.team('Team created successfully with RPC', rpcResult);
       
       // Extract the team data from the response and ensure it has the correct structure
       const teamResult = {
@@ -104,7 +105,7 @@ export class TeamService {
       return teamResult;
       
     } catch (error) {
-      console.error('TeamService: Error in createTeamWithIntegration:', error);
+      logger.error('Error in createTeamWithIntegration', 'TeamService', { error });
       throw error;
     }
   }
@@ -124,7 +125,7 @@ export class TeamService {
         if (error.code === 'PGRST116') {
           return null; // Team not found
         }
-        console.error('Error fetching team:', error);
+        logger.error('Error fetching team', 'TeamService', { error });
         throw new TeamValidationError(`Failed to fetch team: ${error.message}`, 'FETCH_FAILED');
       }
 
@@ -133,7 +134,7 @@ export class TeamService {
         settings: data.settings as Record<string, any>
       };
     } catch (error) {
-      console.error('TeamService.getTeamById error:', error);
+      logger.error('getTeamById error', 'TeamService', { error });
       throw error;
     }
   }
@@ -159,7 +160,7 @@ export class TeamService {
         .single();
 
       if (error) {
-        console.error('Error updating team:', error);
+        logger.error('Error updating team', 'TeamService', { error });
         throw new TeamValidationError(`Failed to update team: ${error.message}`, 'UPDATE_FAILED');
       }
 
@@ -168,7 +169,7 @@ export class TeamService {
         settings: data.settings as Record<string, any>
       };
     } catch (error) {
-      console.error('TeamService.updateTeam error:', error);
+      logger.error('updateTeam error', 'TeamService', { error });
       throw error;
     }
   }
@@ -184,11 +185,11 @@ export class TeamService {
         .eq('id', teamId);
 
       if (error) {
-        console.error('Error deleting team:', error);
+        logger.error('Error deleting team', 'TeamService', { error });
         throw new TeamValidationError(`Failed to delete team: ${error.message}`, 'DELETE_FAILED');
       }
     } catch (error) {
-      console.error('TeamService.deleteTeam error:', error);
+      logger.error('deleteTeam error', 'TeamService', { error });
       throw error;
     }
   }
@@ -197,7 +198,7 @@ export class TeamService {
    * Gets all teams for a specific user using security definer function to bypass RLS recursion
    */
   static async getTeamsByUser(userId: string, options?: TeamQueryOptions): Promise<Team[]> {
-    console.log('TeamService: Fetching teams for user:', userId, 'with options:', options);
+    logger.team('Fetching teams for user', { userId, options });
 
     try {
       // Use the security definer function to get all accessible teams without RLS issues
@@ -206,12 +207,12 @@ export class TeamService {
       });
 
       if (teamsError) {
-        console.error('TeamService: Error fetching teams:', teamsError);
+        logger.error('Error fetching teams', 'TeamService', { error: teamsError });
         throw teamsError;
       }
 
       if (!teams || teams.length === 0) {
-        console.log('No teams found for user:', userId);
+        logger.team('No teams found for user', { userId });
         return [];
       }
 
@@ -275,10 +276,10 @@ export class TeamService {
         result = result.slice(0, options.limit);
       }
 
-      console.log('TeamService: Successfully fetched teams:', result.length);
+      logger.team('Successfully fetched teams', { count: result.length });
       return result;
     } catch (error: any) {
-      console.error('TeamService: Error in getTeamsByUser:', error);
+      logger.error('Error in getTeamsByUser', 'TeamService', { error });
       throw new TeamValidationError(`Failed to fetch teams: ${error.message}`, 'FETCH_ERROR');
     }
   }
@@ -298,13 +299,13 @@ export class TeamService {
         .single();
 
       if (error) {
-        console.error('Error fetching team stats:', error);
+        logger.error('Error fetching team stats', 'TeamService', { error });
         throw new TeamValidationError(`Failed to fetch team stats: ${error.message}`, 'FETCH_FAILED');
       }
 
       return data;
     } catch (error) {
-      console.error('TeamService.getTeamStats error:', error);
+      logger.error('getTeamStats error', 'TeamService', { error });
       throw error;
     }
   }
@@ -322,13 +323,13 @@ export class TeamService {
         .limit(limit);
 
       if (error) {
-        console.error('Error fetching team activity:', error);
+        logger.error('Error fetching team activity', 'TeamService', { error });
         throw new TeamValidationError(`Failed to fetch team activity: ${error.message}`, 'FETCH_FAILED');
       }
 
       return data || [];
     } catch (error) {
-      console.error('TeamService.getTeamActivity error:', error);
+      logger.error('getTeamActivity error', 'TeamService', { error });
       return [];
     }
   }
@@ -367,7 +368,7 @@ export class TeamService {
         .single();
 
       if (error) {
-        console.error('Error adding team member:', error);
+        logger.error('Error adding team member', 'TeamService', { error });
         throw new TeamValidationError(`Failed to add team member: ${error.message}`, 'ADD_MEMBER_FAILED');
       }
 
@@ -380,7 +381,7 @@ export class TeamService {
         }
       };
     } catch (error) {
-      console.error('TeamService.addTeamMember error:', error);
+      logger.error('addTeamMember error', 'TeamService', { error });
       throw error;
     }
   }
@@ -400,11 +401,11 @@ export class TeamService {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error removing team member:', error);
+        logger.error('Error removing team member', 'TeamService', { error });
         throw new TeamValidationError(`Failed to remove team member: ${error.message}`, 'REMOVE_MEMBER_FAILED');
       }
     } catch (error) {
-      console.error('TeamService.removeTeamMember error:', error);
+      logger.error('removeTeamMember error', 'TeamService', { error });
       throw error;
     }
   }
@@ -433,11 +434,11 @@ export class TeamService {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error updating member role:', error);
+        logger.error('Error updating member role', 'TeamService', { error });
         throw new TeamValidationError(`Failed to update member role: ${error.message}`, 'UPDATE_ROLE_FAILED');
       }
     } catch (error) {
-      console.error('TeamService.updateMemberRole error:', error);
+      logger.error('updateMemberRole error', 'TeamService', { error });
       throw error;
     }
   }
@@ -467,7 +468,7 @@ export class TeamService {
       const { data: members, error, count } = await query;
 
       if (error) {
-        console.error('Error fetching team members:', error);
+        logger.error('Error fetching team members', 'TeamService', { error });
         throw new TeamValidationError(`Failed to fetch team members: ${error.message}`, 'FETCH_FAILED');
       }
 
@@ -484,7 +485,7 @@ export class TeamService {
         limit: options?.limit || 20
       };
     } catch (error) {
-      console.error('TeamService.getTeamMembers error:', error);
+      logger.error('getTeamMembers error', 'TeamService', { error });
       throw error;
     }
   }
@@ -516,7 +517,7 @@ export class TeamService {
    * Generates a unique slug for a team name (now handled by RPC function)
    */
   private static async generateUniqueSlug(name: string): Promise<string> {
-    console.log('TeamService: Generating unique slug for:', name);
+    logger.team('Generating unique slug for', { name });
     
     // This method is now deprecated since slug generation is handled by the RPC function
     // But keeping it for backward compatibility
@@ -532,7 +533,7 @@ export class TeamService {
       });
 
       if (error) {
-        console.error('TeamService: Error checking slug with RPC:', error);
+        logger.error('Error checking slug with RPC', 'TeamService', { error });
         // Fallback to random slug
         return `${baseSlug}-${Math.random().toString(36).substring(2, 8)}`;
       }
@@ -545,7 +546,7 @@ export class TeamService {
       return `${baseSlug}-${Math.random().toString(36).substring(2, 8)}`;
       
     } catch (error) {
-      console.error('TeamService: Error in generateUniqueSlug:', error);
+      logger.error('Error in generateUniqueSlug', 'TeamService', { error });
       // Fallback to random slug
       return `${baseSlug}-${Math.random().toString(36).substring(2, 8)}`;
     }
@@ -555,7 +556,7 @@ export class TeamService {
    * Checks if a slug is unique using the RLS-safe function
    */
   private static async isSlugUnique(slug: string, excludeTeamId?: string): Promise<boolean> {
-    console.log('TeamService: Checking slug uniqueness for:', slug);
+    logger.team('Checking slug uniqueness for', { slug });
     
     try {
       const { data: isUnique, error } = await supabase.rpc('is_slug_unique_safe', {
@@ -564,15 +565,15 @@ export class TeamService {
       });
 
       if (error) {
-        console.error('Error checking slug uniqueness with RPC:', error);
+        logger.error('Error checking slug uniqueness with RPC', 'TeamService', { error });
         throw error;
       }
 
-      console.log(`TeamService: Slug "${slug}" uniqueness check result:`, isUnique);
+      logger.team('Slug uniqueness check result', { slug, isUnique });
       return isUnique;
       
     } catch (error) {
-      console.error('TeamService: Error in isSlugUnique:', error);
+      logger.error('Error in isSlugUnique', 'TeamService', { error });
       throw error;
     }
   }
@@ -590,7 +591,7 @@ export class TeamService {
         .eq('status', 'active');
 
       if (countError) {
-        console.error('Error counting team members:', countError);
+        logger.error('Error counting team members', 'TeamService', { error: countError });
         return;
       }
 
@@ -600,10 +601,10 @@ export class TeamService {
         .eq('id', teamId);
 
       if (updateError) {
-        console.error('Error updating team member count:', updateError);
+        logger.error('Error updating team member count', 'TeamService', { error: updateError });
       }
     } catch (error) {
-      console.error('TeamService.updateTeamMemberCount error:', error);
+      logger.error('updateTeamMemberCount error', 'TeamService', { error });
     }
   }
 
@@ -623,13 +624,13 @@ export class TeamService {
         .eq('is_active', true);
 
       if (error) {
-        console.error('Error fetching user team roles:', error);
+        logger.error('Error fetching user team roles', 'TeamService', { error });
         throw new TeamValidationError(`Failed to fetch user team roles: ${error.message}`, 'FETCH_FAILED');
       }
 
       return data || [];
     } catch (error) {
-      console.error('TeamService.getUserTeamRoles error:', error);
+      logger.error('getUserTeamRoles error', 'TeamService', { error });
       return [];
     }
   }
@@ -654,7 +655,7 @@ export class TeamService {
         .single();
 
       if (error) {
-        console.error('Error fetching team permissions:', error);
+        logger.error('Error fetching team permissions', 'TeamService', { error });
         return [];
       }
 
@@ -665,7 +666,7 @@ export class TeamService {
 
       return permissions;
     } catch (error) {
-      console.error('TeamService.getTeamPermissions error:', error);
+      logger.error('getTeamPermissions error', 'TeamService', { error });
       return [];
     }
   }
@@ -682,13 +683,13 @@ export class TeamService {
         .order('hierarchy_level', { ascending: false });
 
       if (error) {
-        console.error('Error fetching user roles:', error);
+        logger.error('Error fetching user roles', 'TeamService', { error });
         throw new TeamValidationError(`Failed to fetch user roles: ${error.message}`, 'FETCH_FAILED');
       }
 
       return data || [];
     } catch (error) {
-      console.error('TeamService.getUserRoles error:', error);
+      logger.error('getUserRoles error', 'TeamService', { error });
       return [];
     }
   }

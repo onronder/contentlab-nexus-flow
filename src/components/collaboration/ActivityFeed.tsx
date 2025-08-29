@@ -23,6 +23,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { logger } from '@/utils/consoleReplacement';
 
 interface ActivityLog {
   id: string;
@@ -141,7 +142,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
       setHasMore(formattedData.length === limit);
     } catch (error: any) {
-      console.error('Error fetching activities:', error);
+      logger.collaboration('Error fetching activities', error);
       toast({
         title: 'Error loading activities',
         description: error.message,
@@ -169,7 +170,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         table: 'project_activities',
         filter: projectId ? `project_id=eq.${projectId}` : undefined
       }, (payload) => {
-        console.log('New activity:', payload);
+        logger.collaboration('New activity', payload);
         fetchActivities(1, filters);
       })
       .subscribe();

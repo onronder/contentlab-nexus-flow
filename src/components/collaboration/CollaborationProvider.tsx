@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useCallback, useEffect } 
 import { useAuth } from '@/hooks/useAuth';
 import { useWebSocketCollaboration } from '@/hooks/useWebSocketCollaboration';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/consoleReplacement';
 
 // Enhanced collaboration state management
 interface CollaborationState {
@@ -377,7 +378,7 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
       await updatePresence('online', `${resourceType}:${resourceId}`, { session: sessionId });
 
     } catch (error) {
-      console.error('Error starting collaboration session:', error);
+      logger.collaboration('Error starting collaboration session', error);
       throw error;
     }
   }, [user, teamId, resourceId, resourceType, presence, updatePresence]);
@@ -399,7 +400,7 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
       await updatePresence('away');
 
     } catch (error) {
-      console.error('Error ending collaboration session:', error);
+      logger.collaboration('Error ending collaboration session', error);
       throw error;
     }
   }, [state.activeSession, user, updatePresence]);

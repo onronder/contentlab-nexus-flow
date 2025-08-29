@@ -24,6 +24,7 @@ import { toast } from '@/hooks/use-toast';
 import { advancedAnalyticsService } from '@/services/advancedAnalyticsService';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { logger } from '@/utils/consoleReplacement';
 
 interface AnalyticsDashboardProps {
   teamId?: string;
@@ -120,7 +121,7 @@ export const AdvancedAnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       setCustomEvents(eventsData);
 
     } catch (error) {
-      console.error('Error loading analytics data:', error);
+      logger.analytics('Error loading analytics data', error);
       toast({
         title: "Error",
         description: "Failed to load analytics data. Please try again.",
@@ -152,7 +153,7 @@ export const AdvancedAnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         description: "New insights generated successfully!",
       });
     } catch (error) {
-      console.error('Error generating insights:', error);
+      logger.analytics('Error generating insights', error);
       toast({
         title: "Error",
         description: "Failed to generate insights. Please try again.",
@@ -173,7 +174,7 @@ export const AdvancedAnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         description: "Insight dismissed successfully.",
       });
     } catch (error) {
-      console.error('Error dismissing insight:', error);
+      logger.analytics('Error dismissing insight', error);
       toast({
         title: "Error",
         description: "Failed to dismiss insight. Please try again.",
